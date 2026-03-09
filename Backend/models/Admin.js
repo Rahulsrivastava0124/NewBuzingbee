@@ -29,11 +29,12 @@ const adminSchema = new mongoose.Schema(
 
 adminSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
-    return next();
+    next();
+    return;
   }
 
   this.password = await bcrypt.hash(this.password, 12);
-  return next();
+  next();
 });
 
 adminSchema.methods.matchPassword = async function (enteredPassword) {
