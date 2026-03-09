@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://api.buzingbee.com/api'
+const API_BASE_URL = "https://api.buzingbee.com/api";
 
 // Helper function to get auth token
 const getAuthToken = () => {
