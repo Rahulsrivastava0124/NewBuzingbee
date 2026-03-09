@@ -32,7 +32,10 @@ const quillFormats = [
 ];
 
 const isContentEmpty = (html = "") => {
-  const text = html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, "").trim();
+  const text = html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, "")
+    .trim();
   return text.length === 0;
 };
 
