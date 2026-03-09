@@ -1,0 +1,8 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "/^cd \"/Users/rahulkumarsrivastava/Documents/Github/AdminBuzingbee/admin Panel /buzingbee\" && npx tailwindcss init -p$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
+}
