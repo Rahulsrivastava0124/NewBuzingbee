@@ -16,7 +16,7 @@ const normalizeTags = (tags) => {
 const buildImageUrlFromFile = (req) => {
   if (!req.file) return "";
   const baseUrl = `${req.protocol}://${req.get("host")}`;
-  return `${baseUrl}/uploads/${req.file.filename}`;
+  return `${baseUrl}/uploads/blogs/${req.file.filename}`;
 };
 
 const parseScheduledAt = (value) => {

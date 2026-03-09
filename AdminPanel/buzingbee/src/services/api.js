@@ -74,11 +74,20 @@ export const blogAPI = {
   // Get all blogs
   getAll: async (filters = {}) => {
     const params = new URLSearchParams(filters);
-    const response = await fetch(`${API_BASE_URL}/blog?${params.toString()}`, {
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`,
-      },
-    });
+    const query = params.toString();
+
+    // Public endpoint first
+    let response = await fetch(
+      `${API_BASE_URL}/blog${query ? `?${query}` : ""}`,
+    );
+
+    // Backward-compatible fallback (older backend route)
+    if (response.status === 401 || response.status === 403) {
+      response = await fetch(
+        `${API_BASE_URL}/blog/all${query ? `?${query}` : ""}`,
+      );
+    }
+
     const data = await handleResponse(response);
     return data.blogs || [];
   },
