@@ -27,14 +27,12 @@ const adminSchema = new mongoose.Schema(
   },
 );
 
-adminSchema.pre("save", async function (next) {
+adminSchema.pre("save", async function () {
   if (!this.isModified("password")) {
-    next();
     return;
   }
 
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 adminSchema.methods.matchPassword = async function (enteredPassword) {
