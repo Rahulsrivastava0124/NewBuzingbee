@@ -9,8 +9,24 @@ services:
     ports:
       - "3000:80"
     restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - buzingbee-network
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ../Backend
+      dockerfile: Dockerfile
+    container_name: buzingbee-backend
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
     environment:
       - NODE_ENV=production
+      - PORT=3001
     networks:
       - buzingbee-network
 
