@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  admin-panel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: buzingbee-admin-panel
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - buzingbee-network
+
+networks:
+  buzingbee-network:
+    driver: bridge
