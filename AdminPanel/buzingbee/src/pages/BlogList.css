@@ -199,10 +199,23 @@
   border-radius: 10px;
   font-size: 22px;
   transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.blog-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.blog-thumbnail-placeholder {
+  font-size: 22px;
 }
 
 .blog-card:hover .blog-thumbnail {
-  transform: scale(1.1) rotate(5deg);
+  transform: scale(1.1);
 }
 
 .blog-menu-btn {

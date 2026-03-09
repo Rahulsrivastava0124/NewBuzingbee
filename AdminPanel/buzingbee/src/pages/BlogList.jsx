@@ -76,11 +76,6 @@ export default function BlogList() {
     return classes[status] || "";
   };
 
-  const getThumbnail = (index) => {
-    const emojis = ["🚀", "🎨", "💡", "⚡", "📐", "⚛️", "🌟", "🎯", "🔥", "✨"];
-    return emojis[index % emojis.length];
-  };
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -167,7 +162,20 @@ export default function BlogList() {
         {filteredBlogs.map((blog, index) => (
           <div key={blog._id || blog.id} className="blog-card">
             <div className="blog-card-header">
-              <div className="blog-thumbnail">{getThumbnail(index)}</div>
+              <div className="blog-thumbnail">
+                {blog.image ? (
+                  <img 
+                    src={blog.image} 
+                    alt={blog.title}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentElement.innerHTML = '📝';
+                    }}
+                  />
+                ) : (
+                  <span className="blog-thumbnail-placeholder">📝</span>
+                )}
+              </div>
               <button className="blog-menu-btn">
                 <MoreVertical size={18} />
               </button>
