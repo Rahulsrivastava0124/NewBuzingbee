@@ -164,12 +164,12 @@ export default function BlogList() {
             <div className="blog-card-header">
               <div className="blog-thumbnail">
                 {blog.image ? (
-                  <img 
-                    src={blog.image} 
+                  <img
+                    src={blog.image}
                     alt={blog.title}
                     onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.parentElement.innerHTML = '📝';
+                      e.target.style.display = "none";
+                      e.target.parentElement.innerHTML = "📝";
                     }}
                   />
                 ) : (
