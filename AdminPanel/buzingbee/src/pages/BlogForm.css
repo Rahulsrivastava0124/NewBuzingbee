@@ -241,64 +241,60 @@
   font-weight: 500;
 }
 
-.editor-toolbar {
-  display: flex;
-  gap: 4px;
-  padding: 8px;
+.content-editor .ql-toolbar.ql-snow {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-bottom: none;
   border-radius: 10px 10px 0 0;
 }
 
-.toolbar-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.toolbar-btn:hover {
-  background: var(--surface-3);
-  color: var(--text);
-}
-
-.toolbar-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--border);
-  margin: 4px 8px;
-}
-
-.form-group .editor-toolbar + textarea {
-  border-radius: 0 0 10px 10px;
+.content-editor .ql-container.ql-snow {
+  border: 1px solid var(--border);
   border-top: none;
+  border-radius: 0 0 10px 10px;
+  background: var(--surface-2);
 }
 
-.editor-toolbar {
-  padding: 10px;
-  gap: 6px;
-}
-
-.content-editor {
+.content-editor .ql-editor {
   min-height: 420px;
-  padding: 18px 20px;
   font-size: 16px;
   line-height: 1.8;
   letter-spacing: 0.2px;
   font-family: "DM Sans", sans-serif;
+  color: var(--text);
 }
 
-.content-editor::placeholder {
-  font-size: 15px;
+.content-editor .ql-editor.ql-blank::before {
+  color: var(--text-dim);
   font-style: italic;
+}
+
+.content-editor .ql-toolbar button,
+.content-editor .ql-toolbar .ql-picker {
+  color: var(--text-muted);
+}
+
+.content-editor .ql-toolbar button:hover,
+.content-editor .ql-toolbar button.ql-active,
+.content-editor .ql-toolbar .ql-picker-label:hover,
+.content-editor .ql-toolbar .ql-picker-label.ql-active {
+  color: var(--text);
+}
+
+.content-editor .ql-stroke {
+  stroke: currentColor;
+}
+
+.content-editor .ql-fill {
+  fill: currentColor;
+}
+
+.content-editor .ql-picker-options {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.content-editor .ql-editor:focus {
+  outline: none;
 }
 
 .image-upload {

@@ -1,17 +1,40 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  Save,
-  Eye,
-  Image,
-  Link as LinkIcon,
-  Bold,
-  Italic,
-  List,
-} from "lucide-react";
+import { ArrowLeft, Save, Eye, Image } from "lucide-react";
+import ReactQuill from "react-quill-new";
 import { blogAPI } from "../services/api";
+import "react-quill-new/dist/quill.snow.css";
 import "./BlogForm.css";
+
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["blockquote", "code-block"],
+    ["link", "image"],
+    ["clean"],
+  ],
+};
+
+const quillFormats = [
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "list",
+  "bullet",
+  "blockquote",
+  "code-block",
+  "link",
+  "image",
+];
+
+const isContentEmpty = (html = "") => {
+  const text = html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, "").trim();
+  return text.length === 0;
+};
 
 export default function BlogForm() {
   const navigate = useNavigate();
@@ -149,6 +172,12 @@ export default function BlogForm() {
         setError(
           "Please select schedule date & time for scheduled publishing.",
         );
+        setLoading(false);
+        return;
+      }
+
+      if (isContentEmpty(formData.content)) {
+        setError("Please add blog content before saving.");
         setLoading(false);
         return;
       }
@@ -322,43 +351,18 @@ export default function BlogForm() {
 
             <div className="form-group">
               <label>Content *</label>
-              <div className="editor-toolbar">
-                <button type="button" className="toolbar-btn" title="Bold">
-                  <Bold size={16} />
-                </button>
-                <button type="button" className="toolbar-btn" title="Italic">
-                  <Italic size={16} />
-                </button>
-                <button type="button" className="toolbar-btn" title="List">
-                  <List size={16} />
-                </button>
-                <div className="toolbar-divider"></div>
-                <button
-                  type="button"
-                  className="toolbar-btn"
-                  title="Insert Link"
-                >
-                  <LinkIcon size={16} />
-                </button>
-                <button
-                  type="button"
-                  className="toolbar-btn"
-                  title="Insert Image"
-                >
-                  <Image size={16} />
-                </button>
-              </div>
-              <textarea
-                id="content"
-                name="content"
+              <ReactQuill
                 className="content-editor"
                 value={formData.content}
-                onChange={handleChange}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, content: value }))
+                }
+                modules={quillModules}
+                formats={quillFormats}
                 placeholder="Start writing your blog content here..."
-                rows="16"
-                required
-                disabled={loading}
-              ></textarea>
+                readOnly={loading}
+                theme="snow"
+              />
             </div>
           </div>
         </div>
