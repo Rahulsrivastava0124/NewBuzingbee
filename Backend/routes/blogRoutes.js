@@ -67,8 +67,8 @@ router.post(
     });
   },
 );
-router.get("/", protectAdmin, getAllBlogs);
-router.get("/:id", protectAdmin, getBlogById);
+router.get("/", getAllBlogs); // Public endpoint for fetching blogs
+router.get("/:id", getBlogById); // Public endpoint for fetching single blog
 router.post("/", protectAdmin, upload.single("image"), addBlog);
 router.put("/:id", protectAdmin, upload.single("image"), updateBlog);
 router.delete("/:id", protectAdmin, deleteBlog);
