@@ -192,7 +192,8 @@ export default function BlogForm() {
         content: formData.content,
         category: formData.category,
         tags: formData.tags,
-        image: formData.featuredImage,
+        // Only include image if there's a new file or existing URL (not blob)
+        image: imageFile ? "" : (formData.featuredImage?.startsWith("blob:") ? "" : formData.featuredImage || ""),
         imageFile,
         status: effectiveStatus,
         scheduledAt:

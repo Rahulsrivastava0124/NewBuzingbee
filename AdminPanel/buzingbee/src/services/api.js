@@ -9,7 +9,12 @@ const toFormData = (payload) => {
   const formData = new FormData();
 
   Object.entries(payload).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") return;
+    // Skip undefined and null, but allow empty strings for specific fields
+    if (value === undefined || value === null) return;
+    
+    // Skip empty strings except for image field (preserve existing URLs)
+    if (value === "" && key !== "image") return;
+    
     if (key === "imageFile" && value instanceof File) {
       formData.append("image", value);
       return;
