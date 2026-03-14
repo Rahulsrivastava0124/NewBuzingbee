@@ -49,15 +49,14 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-// Auto publish scheduled blogs every minute
-autoPublishScheduledBlogs().catch((error) => {
-  console.error("Initial auto publish check error:", error.message);
-});
+// Auto-publish scheduled blogs every minute
+setInterval(() => {
+  autoPublishScheduledBlogs().catch((error) => {
+    console.error("Error auto-publishing scheduled blogs:", error);
+  });
+}, 60000); // 60000ms = 1 minute
 
-setInterval(async () => {
-  try {
-    await autoPublishScheduledBlogs();
-  } catch (error) {
-    console.error("Auto publish scheduler error:", error.message);
-  }
-}, 60 * 1000);
+// Run on server start
+autoPublishScheduledBlogs().catch((error) => {
+  console.error("Error auto-publishing scheduled blogs on startup:", error);
+});

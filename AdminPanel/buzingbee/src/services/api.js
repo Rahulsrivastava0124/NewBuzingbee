@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://api.buzingbee.com/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -12,8 +12,14 @@ const toFormData = (payload) => {
     // Skip undefined and null, but allow empty strings for specific fields
     if (value === undefined || value === null) return;
 
-    // Skip empty strings except for image field (preserve existing URLs)
-    if (value === "" && key !== "image") return;
+    // Skip empty strings except for: image (preserve existing URLs), scheduledAt (to clear scheduled), status (for status updates)
+    if (
+      value === "" &&
+      key !== "image" &&
+      key !== "scheduledAt" &&
+      key !== "status"
+    )
+      return;
 
     if (key === "imageFile" && value instanceof File) {
       formData.append("image", value);
@@ -98,12 +104,22 @@ export const blogAPI = {
   },
 
   // Get single blog by ID
-  getById: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/blog/${id}`, {
+  getById: async (id, options = {}) => {
+    const params = new URLSearchParams();
+    if (options.trackView) params.set("trackView", "true");
+
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+
+    let response = await fetch(`${API_BASE_URL}/blog/${id}${suffix}`, {
       headers: {
         Authorization: `Bearer ${getAuthToken()}`,
       },
     });
+
+    if (response.status === 401 || response.status === 403) {
+      response = await fetch(`${API_BASE_URL}/blog/${id}${suffix}`);
+    }
+
     const data = await handleResponse(response);
     return data.blog;
   },

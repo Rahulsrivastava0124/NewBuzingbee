@@ -20,9 +20,48 @@ const buildImageUrlFromFile = (req) => {
 };
 
 const parseScheduledAt = (value) => {
-  if (!value) return null;
+  if (!value || value === "") return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const validateScheduledTime = (scheduledDate) => {
+  if (!scheduledDate) return false;
+  const now = new Date();
+  return scheduledDate > now;
+};
+
+const getClientIP = (req) => {
+  return (
+    req.headers["x-forwarded-for"]?.split(",")[0].trim() ||
+    req.headers["x-real-ip"] ||
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    req.ip ||
+    "unknown"
+  );
+};
+
+const traceBlogApiCall = (req, payload = {}) => {
+  const traceEnabled =
+    String(process.env.BLOG_TRACE_ENABLED || "true").toLowerCase() !== "false";
+
+  if (!traceEnabled) return;
+
+  const ip = getClientIP(req);
+  const userAgent = req.headers["user-agent"] || "unknown";
+  const referrer = req.headers.referer || req.headers.referrer || "direct";
+
+  console.log("[BLOG_API_TRACE]", {
+    time: new Date().toISOString(),
+    method: req.method,
+    path: req.originalUrl,
+    blogId: req.params?.id || "",
+    ip,
+    referrer,
+    userAgent,
+    ...payload,
+  });
 };
 
 const addBlog = async (req, res) => {
@@ -64,6 +103,17 @@ const addBlog = async (req, res) => {
       });
     }
 
+    if (
+      resolvedStatus === "scheduled" &&
+      scheduledDate &&
+      !validateScheduledTime(scheduledDate)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Scheduled time must be in the future",
+      });
+    }
+
     const newBlog = new Blog({
       title,
       content,
@@ -74,6 +124,7 @@ const addBlog = async (req, res) => {
       status: resolvedStatus,
       scheduledAt: resolvedStatus === "scheduled" ? scheduledDate : null,
       publishedAt: resolvedStatus === "published" ? new Date() : null,
+      views: 0,
       createdBy: req.admin?.id,
       excerpt: excerpt || "",
       slug: slug || "",
@@ -119,11 +170,15 @@ const getAllBlogs = async (req, res) => {
     }
 
     const blogs = await Blog.find(query).sort({ createdAt: -1 });
+    const normalizedBlogs = blogs.map((blog) => ({
+      ...blog.toObject(),
+      views: Number.isFinite(Number(blog.views)) ? Number(blog.views) : 0,
+    }));
 
     return res.status(200).json({
       success: true,
-      count: blogs.length,
-      blogs,
+      count: normalizedBlogs.length,
+      blogs: normalizedBlogs,
     });
   } catch (error) {
     return res.status(500).json({
@@ -135,21 +190,64 @@ const getAllBlogs = async (req, res) => {
 };
 
 const getBlogById = async (req, res) => {
+  const startedAt = Date.now();
   try {
-    const blog = await Blog.findById(req.params.id);
+    const shouldTrackView =
+      String(req.query.trackView || "false").toLowerCase() === "true";
+
+    if (shouldTrackView) {
+      await Blog.updateOne(
+        {
+          _id: req.params.id,
+          $or: [{ views: { $exists: false } }, { views: null }],
+        },
+        { $set: { views: 0 } },
+      );
+    }
+
+    const blog = shouldTrackView
+      ? await Blog.findByIdAndUpdate(
+          req.params.id,
+          { $inc: { views: 1 } },
+          { new: true },
+        )
+      : await Blog.findById(req.params.id);
 
     if (!blog) {
+      traceBlogApiCall(req, {
+        route: "getBlogById",
+        statusCode: 404,
+        found: false,
+        durationMs: Date.now() - startedAt,
+      });
+
       return res.status(404).json({
         success: false,
         message: "Blog not found",
       });
     }
 
+    traceBlogApiCall(req, {
+      route: "getBlogById",
+      statusCode: 200,
+      found: true,
+      trackView: shouldTrackView,
+      views: blog.views || 0,
+      durationMs: Date.now() - startedAt,
+    });
+
     return res.status(200).json({
       success: true,
       blog,
     });
   } catch (error) {
+    traceBlogApiCall(req, {
+      route: "getBlogById",
+      statusCode: 500,
+      error: error.message,
+      durationMs: Date.now() - startedAt,
+    });
+
     return res.status(500).json({
       success: false,
       message: "Failed to fetch blog",
@@ -192,11 +290,36 @@ const updateBlog = async (req, res) => {
     const nextStatus = status ?? blog.status;
     const parsedScheduledAt = parseScheduledAt(scheduledAt);
 
-    if (nextStatus === "scheduled" && !parsedScheduledAt && !blog.scheduledAt) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid scheduled time is required for scheduled blogs",
-      });
+    // When changing to scheduled status, need to provide a future scheduledAt
+    if (nextStatus === "scheduled") {
+      if (!parsedScheduledAt && !blog.scheduledAt) {
+        return res.status(400).json({
+          success: false,
+          message: "Valid scheduled time is required for scheduled blogs",
+        });
+      }
+
+      // If new scheduledAt is provided, validate it's in the future
+      if (parsedScheduledAt && !validateScheduledTime(parsedScheduledAt)) {
+        return res.status(400).json({
+          success: false,
+          message: "Scheduled time must be in the future",
+        });
+      }
+
+      // If using existing scheduledAt, validate it's still in the future
+      const existingScheduledAt = blog.scheduledAt;
+      if (
+        !parsedScheduledAt &&
+        existingScheduledAt &&
+        !validateScheduledTime(existingScheduledAt)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Existing scheduled time has passed. Please provide a new future time",
+        });
+      }
     }
 
     blog.title = title ?? blog.title;
@@ -207,13 +330,18 @@ const updateBlog = async (req, res) => {
     blog.image = uploadedImageUrl || image || featuredImage || blog.image;
     blog.status = nextStatus;
     if (nextStatus === "scheduled") {
-      blog.scheduledAt = parsedScheduledAt || blog.scheduledAt;
+      // Use new scheduledAt if provided, otherwise keep existing
+      if (parsedScheduledAt) {
+        blog.scheduledAt = parsedScheduledAt;
+      }
+      // Always clear publishedAt when scheduling
       blog.publishedAt = null;
     } else if (nextStatus === "published") {
       blog.scheduledAt = null;
       blog.publishedAt = blog.publishedAt || new Date();
-    } else {
+    } else if (nextStatus === "draft" || nextStatus === "review") {
       blog.scheduledAt = null;
+      blog.publishedAt = null;
     }
     blog.excerpt = excerpt ?? blog.excerpt;
     blog.slug = slug ?? blog.slug;

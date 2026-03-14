@@ -159,7 +159,7 @@ export default function BlogList() {
       {error && <div className="error-message">{error}</div>}
 
       <div className="blog-grid">
-        {filteredBlogs.map((blog, index) => (
+        {filteredBlogs.map((blog) => (
           <div key={blog._id || blog.id} className="blog-card">
             <div className="blog-card-header">
               <div className="blog-thumbnail">
@@ -202,6 +202,15 @@ export default function BlogList() {
                 <span>{(blog.views || 0).toLocaleString()} views</span>
               </div>
               <div className="blog-actions">
+                <button
+                  className="action-btn"
+                  onClick={() =>
+                    navigate(`/dashboard/blog/${blog._id || blog.id}`)
+                  }
+                  title="View Details"
+                >
+                  <Eye size={16} />
+                </button>
                 <button
                   className="action-btn"
                   onClick={() =>

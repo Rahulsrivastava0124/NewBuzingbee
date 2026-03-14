@@ -39,6 +39,12 @@ const isContentEmpty = (html = "") => {
   return text.length === 0;
 };
 
+const toScheduledIso = (value = "") => {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+};
+
 export default function BlogForm() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -120,6 +126,9 @@ export default function BlogForm() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === "status" && value !== "scheduled"
+        ? { scheduledAt: "" }
+        : {}),
     }));
 
     // Auto-generate slug from title
@@ -201,7 +210,9 @@ export default function BlogForm() {
         imageFile,
         status: effectiveStatus,
         scheduledAt:
-          effectiveStatus === "scheduled" ? formData.scheduledAt : "",
+          effectiveStatus === "scheduled"
+            ? toScheduledIso(formData.scheduledAt)
+            : "",
         seoTitle: formData.seoTitle,
         seoDescription: formData.seoDescription,
         seoKeywords: formData.seoKeywords,
@@ -228,12 +239,12 @@ export default function BlogForm() {
     await submitWithStatus();
   };
 
-  const handleSaveAsDraft = async () => {
-    await submitWithStatus("draft");
+  const handleSave = async () => {
+    await submitWithStatus();
   };
 
   const handlePublish = async () => {
-    await submitWithStatus("published");
+    await submitWithStatus();
   };
 
   return (
@@ -248,11 +259,11 @@ export default function BlogForm() {
           <button
             type="button"
             className="btn-secondary"
-            onClick={handleSaveAsDraft}
+            onClick={handleSave}
             disabled={loading}
           >
             <Save size={18} />
-            {loading ? "Saving..." : "Save Draft"}
+            {loading ? "Saving..." : isEditing ? "Update Blog" : "Save Blog"}
           </button>
           <button
             type="button"
@@ -261,7 +272,13 @@ export default function BlogForm() {
             disabled={loading}
           >
             <Eye size={18} />
-            {loading ? "Publishing..." : "Publish"}
+            {loading
+              ? isEditing
+                ? "Saving..."
+                : "Publishing..."
+              : isEditing
+                ? "Save Changes"
+                : "Save Status"}
           </button>
         </div>
       </div>

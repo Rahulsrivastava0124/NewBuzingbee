@@ -4,6 +4,27 @@
       "approve": true,
       "matchCommandLine": true
     },
-    "npm view": true
+    "npm view": true,
+    "npm run build": true,
+    "/^cd \"/Users/rahulkumarsrivastava/Documents/Github/AdminBuzingbee/Backend\" && node --check index\\.js && node --check controllers/blogController\\.js && node --check routes/blogRoutes\\.js$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^cd \"/Users/rahulkumarsrivastava/Documents/Github/AdminBuzingbee/Backend\" && node --check index\\.js && node --check controllers/blogController\\.js$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^cd \"/Users/rahulkumarsrivastava/Documents/Github/AdminBuzingbee/Backend\" && node --check controllers/blogController\\.js && node --check routes/blogRoutes\\.js && node --check models/Blog\\.js$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^cd \"/Users/rahulkumarsrivastava/Documents/Github/AdminBuzingbee/Backend\" && node --check controllers/blogController\\.js && node --check routes/blogRoutes\\.js && node --check index\\.js$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^node --check controllers/blogController\\.js && node --check routes/blogRoutes\\.js$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
   }
 }

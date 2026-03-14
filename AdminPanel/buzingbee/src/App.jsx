@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import DashboardHome from "./pages/DashboardHome";
 import BlogList from "./pages/BlogList";
 import BlogForm from "./pages/BlogForm";
+import BlogDetails from "./pages/BlogDetails";
 import TrafficPage from "./pages/TrafficPage";
 import Audience from "./pages/Audience";
 import SettingsPage from "./pages/SettingsPage";
@@ -38,6 +39,7 @@ function App() {
         >
           <Route index element={<DashboardHome />} />
           <Route path="blogs" element={<BlogList />} />
+          <Route path="blog/:id" element={<BlogDetails />} />
           <Route path="create-blog" element={<BlogForm />} />
           <Route
             path="add-blog"
