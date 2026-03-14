@@ -1,4 +1,28 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+const normalizeApiBaseUrl = (value) => value?.replace(/\/$/, "");
+
+const resolveApiBaseUrl = () => {
+  const envApiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
+  if (envApiBaseUrl) {
+    return envApiBaseUrl;
+  }
+
+  if (typeof window !== "undefined") {
+    const { hostname } = window.location;
+
+    if (hostname === "admin.buzingbee.com") {
+      return "https://api.buzingbee.com/api";
+    }
+
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:3001/api";
+    }
+  }
+
+  return "/api";
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 // Helper function to get auth token
 const getAuthToken = () => {
