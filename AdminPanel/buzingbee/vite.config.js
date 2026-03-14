@@ -8,17 +8,6 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: "http://localhost:3000",
-        secure: false,
-        changeOrigin: true,
-      },
-      "/uploads": {
-        target: "http://localhost:3000",
-        secure: false,
-        changeOrigin: true,
-      },
-      "/health": {
-        target: "http://localhost:3000",
-        secure: false,
         changeOrigin: true,
       },
     },
