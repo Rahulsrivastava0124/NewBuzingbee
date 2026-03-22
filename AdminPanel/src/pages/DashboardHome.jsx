@@ -21,7 +21,13 @@ const RANGE_OPTIONS = [
     mode: "hourly",
     hours: 24,
   },
-  { value: "7d", label: "Last 7 Days", shortLabel: "7d", mode: "daily", days: 7 },
+  {
+    value: "7d",
+    label: "Last 7 Days",
+    shortLabel: "7d",
+    mode: "daily",
+    days: 7,
+  },
   {
     value: "30d",
     label: "Last 1 Month",
@@ -156,8 +162,14 @@ function DashboardHome() {
       setAnalyticsLoading(true);
       try {
         const analyticsRes = isHourlyRange
-          ? await analyticsAPI.getHourly({ website, hours: selectedRange.hours })
-          : await analyticsAPI.getOverview({ website, days: selectedRange.days });
+          ? await analyticsAPI.getHourly({
+              website,
+              hours: selectedRange.hours,
+            })
+          : await analyticsAPI.getOverview({
+              website,
+              days: selectedRange.days,
+            });
 
         setAnalytics({
           totalViews: analyticsRes.totalViews || 0,
@@ -395,9 +407,7 @@ function DashboardHome() {
             </span>{" "}
             mobile visits
           </div>
-          <div className="dark-activity-time">
-            {selectedRange.shortLabel}
-          </div>
+          <div className="dark-activity-time">{selectedRange.shortLabel}</div>
         </div>
       </div>
 

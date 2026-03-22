@@ -167,7 +167,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
 }
 
 .password-toggle-btn:hover {

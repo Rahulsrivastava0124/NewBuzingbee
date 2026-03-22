@@ -168,7 +168,8 @@ const updateAdminProfile = async (req, res) => {
     }
 
     const trimmedUsername = typeof username === "string" ? username.trim() : "";
-    const trimmedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+    const trimmedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
 
     let profileChanged = false;
     let passwordChanged = false;
@@ -208,7 +209,9 @@ const updateAdminProfile = async (req, res) => {
     }
 
     const hasPasswordPayload =
-      Boolean(currentPassword) || Boolean(newPassword) || Boolean(confirmPassword);
+      Boolean(currentPassword) ||
+      Boolean(newPassword) ||
+      Boolean(confirmPassword);
 
     if (hasPasswordPayload) {
       if (!currentPassword || !newPassword || !confirmPassword) {

@@ -137,7 +137,11 @@ export default function SettingsPage() {
       confirmPassword: passwordForm.confirmPassword,
     };
 
-    if (!payload.currentPassword || !payload.newPassword || !payload.confirmPassword) {
+    if (
+      !payload.currentPassword ||
+      !payload.newPassword ||
+      !payload.confirmPassword
+    ) {
       setPasswordError("All password fields are required.");
       return;
     }
@@ -206,7 +210,9 @@ export default function SettingsPage() {
 
         <div className="settings-section">
           <form className="settings-form" onSubmit={handleProfileSubmit}>
-            {profileError && <div className="settings-alert error">{profileError}</div>}
+            {profileError && (
+              <div className="settings-alert error">{profileError}</div>
+            )}
             {profileSuccess && (
               <div className="settings-alert success">{profileSuccess}</div>
             )}
@@ -231,7 +237,9 @@ export default function SettingsPage() {
                 id="email"
                 type="email"
                 value={form.email}
-                onChange={(event) => handleInputChange("email", event.target.value)}
+                onChange={(event) =>
+                  handleInputChange("email", event.target.value)
+                }
                 placeholder="Enter email"
                 autoComplete="email"
               />
@@ -272,7 +280,9 @@ export default function SettingsPage() {
 
         <div className="settings-section">
           <form className="settings-form" onSubmit={handlePasswordSubmit}>
-            {passwordError && <div className="settings-alert error">{passwordError}</div>}
+            {passwordError && (
+              <div className="settings-alert error">{passwordError}</div>
+            )}
             {passwordSuccess && (
               <div className="settings-alert success">{passwordSuccess}</div>
             )}
@@ -285,7 +295,10 @@ export default function SettingsPage() {
                   type={showPassword.currentPassword ? "text" : "password"}
                   value={passwordForm.currentPassword}
                   onChange={(event) =>
-                    handlePasswordInputChange("currentPassword", event.target.value)
+                    handlePasswordInputChange(
+                      "currentPassword",
+                      event.target.value,
+                    )
                   }
                   placeholder="Enter current password"
                   autoComplete="current-password"
@@ -334,7 +347,11 @@ export default function SettingsPage() {
                   }
                   disabled={passwordSaving}
                 >
-                  {showPassword.newPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword.newPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
                 </button>
               </div>
             </div>
@@ -347,7 +364,10 @@ export default function SettingsPage() {
                   type={showPassword.confirmPassword ? "text" : "password"}
                   value={passwordForm.confirmPassword}
                   onChange={(event) =>
-                    handlePasswordInputChange("confirmPassword", event.target.value)
+                    handlePasswordInputChange(
+                      "confirmPassword",
+                      event.target.value,
+                    )
                   }
                   placeholder="Re-enter new password"
                   autoComplete="new-password"
