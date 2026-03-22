@@ -24,9 +24,51 @@ const resolveApiBaseUrl = () => {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+const AUTH_TOKEN_KEY = "authToken";
+const AUTH_TOKEN_EXPIRY_KEY = "authTokenExpiry";
+const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
+
+const clearStoredAuth = () => {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_TOKEN_EXPIRY_KEY);
+};
+
+const decodeTokenExpiry = (token) => {
+  try {
+    const payloadPart = token?.split(".")?.[1];
+    if (!payloadPart) return null;
+
+    const base64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const normalized = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(atob(normalized));
+
+    if (payload?.exp && Number.isFinite(Number(payload.exp))) {
+      return Number(payload.exp) * 1000;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
 // Helper function to get auth token
 const getAuthToken = () => {
-  return localStorage.getItem("authToken");
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) return null;
+
+  const tokenExpiryFromJwt = decodeTokenExpiry(token);
+  const tokenExpiryFromStorage = Number(
+    localStorage.getItem(AUTH_TOKEN_EXPIRY_KEY) || 0,
+  );
+  const expiryTime = tokenExpiryFromJwt || tokenExpiryFromStorage;
+
+  if (expiryTime && Date.now() >= expiryTime) {
+    clearStoredAuth();
+    return null;
+  }
+
+  return token;
 };
 
 const toFormData = (payload) => {
@@ -299,11 +341,13 @@ export const analyticsAPI = {
 // Auth helpers
 export const authHelper = {
   saveToken: (token) => {
-    localStorage.setItem("authToken", token);
+    const expiryTime = decodeTokenExpiry(token) || Date.now() + TEN_DAYS_MS;
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    localStorage.setItem(AUTH_TOKEN_EXPIRY_KEY, String(expiryTime));
   },
 
   removeToken: () => {
-    localStorage.removeItem("authToken");
+    clearStoredAuth();
   },
 
   isAuthenticated: () => {

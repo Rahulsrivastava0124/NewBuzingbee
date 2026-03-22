@@ -8,7 +8,7 @@ const generateToken = (admin) => {
       username: admin.username,
     },
     process.env.JWT_SECRET || "change-me-jwt-secret",
-    { expiresIn: "1d" },
+    { expiresIn: "10d" },
   );
 };
 
