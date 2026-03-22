@@ -1,0 +1,22 @@
+# Block low-value bots
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: baiduspider
+Disallow: /
+
+# Allow all other crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://buzingbee.com/sitemap.xml

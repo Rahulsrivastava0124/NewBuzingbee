@@ -1,0 +1,26 @@
+# BuzingBee
+
+> BuzingBee is a digital marketing and AI services agency.
+
+## Primary Services
+- AI SEO and LLM SEO
+- Generative Engine Optimization (GEO)
+- Answer Engine Optimization (AEO)
+- SEO and content strategy
+- Google Ads and Meta Ads
+- Web development and mobile app development
+- AI automation and chatbot integration
+
+## Important URLs
+- Home: https://buzingbee.com/
+- Services: https://buzingbee.com/services
+- About: https://buzingbee.com/about
+- Pricing: https://buzingbee.com/pricing
+- Startup Plans: https://buzingbee.com/startup
+- Portfolio: https://buzingbee.com/portfolio
+- Blog: https://buzingbee.com/blog
+- Contact: https://buzingbee.com/contact
+
+## Contact
+- Email: hello@buzingbee.com
+- Phone: +91 95079 81942

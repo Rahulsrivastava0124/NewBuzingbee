@@ -1,0 +1,39 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "/^docker build -t buzingbee \\.$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^node scripts/generate-sitemap\\.mjs$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^git rm -r --cached --ignore-unmatch \\.next build out && git status --short \\| head -n 40$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^git add -A && git status --short \\| head -n 120$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^git commit -m \"Migrate to Next\\.js, add SEO improvements, and remove build artifacts\"$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^cd /Users/rahulkumarsrivastava/Documents/Github/BuzingBee && python3 -c \"\nimport re, os, glob\n\ndef check_imgs\\(filepath\\):\n    with open\\(filepath, 'r', errors='ignore'\\) as f:\n        content = f\\.read\\(\\)\n    # Find all <img tags and check if they have alt\n    pattern = r'<img\\\\b\\(\\[\\^>\\]\\*\\?\\)/\\?>'\n    for m in re\\.finditer\\(pattern, content, re\\.DOTALL\\):\n        attrs = m\\.group\\(1\\)\n        if 'alt=' not in attrs:\n            line = content\\[:m\\.start\\(\\)\\]\\.count\\('\\\\n'\\) \\+ 1\n            print\\(f'\\{filepath\\}:\\{line\\}: \\{m\\.group\\(0\\)\\[:100\\]\\}'\\)\n\nfor f in glob\\.glob\\('src/\\*\\*/\\*\\.jsx', recursive=True\\) \\+ glob\\.glob\\('pages/\\*\\*/\\*\\.jsx', recursive=True\\) \\+ glob\\.glob\\('pages/\\*\\*/\\*\\.js', recursive=True\\):\n    check_imgs\\(f\\)\n\"\n$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^python3 /tmp/check_alt\\.py$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "npx tailwindcss": true,
+    "npx next": true,
+    "xxd": true,
+    "/^node -e \"const u = new URL\\('https://api\\.buzingbee\\.com/api/blog\\?'\\); console\\.log\\('hostname:', u\\.hostname, '\\| href:', u\\.href\\)\"$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
+}

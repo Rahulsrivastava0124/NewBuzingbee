@@ -1,0 +1,118 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://buzingbee.com/#organization",
+      "name": "BuzingBee",
+      "url": "https://buzingbee.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://buzingbee.com/logo.png"
+      },
+      "image": "https://buzingbee.com/og-image.png",
+      "description": "BuzingBee provides digital marketing services and AI services for business growth, including SEO, paid ads, intelligent automation, and AI agents.",
+      "keywords": "digital marketing services, AI services, business growth, SEO, Google Ads, Meta Ads, email marketing, AI agents",
+      "sameAs": [
+        "https://www.instagram.com/buzingbee_/",
+        "https://www.facebook.com/profile.php?id=61562079487441",
+        "https://x.com/BuzingBee_",
+        "https://www.linkedin.com/company/buzing-bee/?viewAsMember=true"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer service",
+        "telephone": "+91 95079 81942",
+        "areaServed": "Worldwide"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Kolkata",
+        "addressRegion": "West Bengal",
+        "addressCountry": "IN"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://buzingbee.com/#website",
+      "name": "BuzingBee",
+      "url": "https://buzingbee.com/",
+      "description": "Digital marketing services and AI services to grow your business online.",
+      "publisher": { "@id": "https://buzingbee.com/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://buzingbee.com/?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      },
+      "hasPart": [
+        {
+          "@type": ["WebPage", "SiteNavigationElement"],
+          "@id": "https://buzingbee.com/#webpage",
+          "url": "https://buzingbee.com/",
+          "name": "Home",
+          "description": "BuzingBee: Digital Marketing Services & AI Services for Business Growth.",
+          "isPartOf": { "@id": "https://buzingbee.com/#website" }
+        },
+        {
+          "@type": ["WebPage", "SiteNavigationElement"],
+          "@id": "https://buzingbee.com/services#webpage",
+          "url": "https://buzingbee.com/services",
+          "name": "Services",
+          "description": "Explore BuzingBee digital marketing and AI services: AI agent development, SEO, Google Ads, Meta Ads, website automation, and email marketing automation.",
+          "isPartOf": { "@id": "https://buzingbee.com/#website" }
+        },
+        {
+          "@type": ["WebPage", "SiteNavigationElement"],
+          "@id": "https://buzingbee.com/pricing#webpage",
+          "url": "https://buzingbee.com/pricing",
+          "name": "Pricing",
+          "description": "Compare monthly, yearly, and project-based pricing plans for development, marketing, and AI services.",
+          "isPartOf": { "@id": "https://buzingbee.com/#website" }
+        },
+        {
+          "@type": ["WebPage", "SiteNavigationElement"],
+          "@id": "https://buzingbee.com/startup#webpage",
+          "url": "https://buzingbee.com/startup",
+          "name": "Startup Plans",
+          "description": "Affordable startup plans with minimal cost entry points across all BuzingBee services.",
+          "isPartOf": { "@id": "https://buzingbee.com/#website" }
+        },
+        {
+          "@type": ["WebPage", "SiteNavigationElement"],
+          "@id": "https://buzingbee.com/portfolio#webpage",
+          "url": "https://buzingbee.com/portfolio",
+          "name": "Portfolio",
+          "description": "Browse BuzingBee portfolio and case studies for websites, apps, and digital growth campaigns.",
+          "isPartOf": { "@id": "https://buzingbee.com/#website" }
+        },
+        {
+          "@type": ["WebPage", "SiteNavigationElement"],
+          "@id": "https://buzingbee.com/about#webpage",
+          "url": "https://buzingbee.com/about",
+          "name": "About",
+          "description": "Learn how BuzingBee combines digital marketing expertise and AI services to help businesses grow with intelligent strategies and measurable results.",
+          "isPartOf": { "@id": "https://buzingbee.com/#website" }
+        },
+        {
+          "@type": ["WebPage", "SiteNavigationElement"],
+          "@id": "https://buzingbee.com/blog#webpage",
+          "url": "https://buzingbee.com/blog",
+          "name": "Blog",
+          "description": "Digital Marketing & AI Services Blog – insights, tips, and strategies by BuzingBee.",
+          "isPartOf": { "@id": "https://buzingbee.com/#website" }
+        },
+        {
+          "@type": ["WebPage", "SiteNavigationElement"],
+          "@id": "https://buzingbee.com/contact#webpage",
+          "url": "https://buzingbee.com/contact",
+          "name": "Contact",
+          "description": "Contact BuzingBee for digital marketing and AI services. Get in touch with our team today.",
+          "isPartOf": { "@id": "https://buzingbee.com/#website" }
+        }
+      ]
+    }
+  ]
+}
