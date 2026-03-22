@@ -10,6 +10,7 @@ export interface BlogApiItem {
   publishedAt?: string;
   createdAt?: string;
   status?: string;
+  views?: number;
   seo?: {
     title?: string;
     description?: string;
@@ -27,6 +28,7 @@ export interface BlogCardItem {
   date: string;
   image: string;
   slug: string;
+  views: number;
 }
 
 export interface BlogPostItem extends BlogCardItem {
@@ -149,6 +151,50 @@ export const fetchBlogBySlug = async (
   slug: string,
 ): Promise<BlogPostItem | null> => {
   try {
+    const blogApiUrl = resolvedBlogApiUrl();
+    const blogApiOrigin = readBlogApiOrigin(blogApiUrl);
+    const encodedSlug = encodeURIComponent(String(slug || "").trim());
+
+    const response = await fetch(
+      `${blogApiUrl}/slug/${encodedSlug}?trackView=true`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    if (response.ok) {
+      const payload = await response.json();
+      const raw = payload?.blog;
+
+      if (raw && typeof raw === "object") {
+        const indexFallback = 0;
+        return {
+          id: String(raw._id || raw.id || indexFallback),
+          title: raw.title || "Untitled Blog",
+          excerpt:
+            raw.excerpt ||
+            raw.seo?.description ||
+            "Read full details in the article.",
+          category: raw.category || "Blog",
+          date: toReadableDate(raw.publishedAt || raw.createdAt),
+          image: normalizeImageUrl(
+            raw.image || raw.seo?.ogImage,
+            blogApiOrigin,
+          ),
+          slug: raw.slug || toSlug(raw.title || slug || "blog"),
+          views: Number.isFinite(Number(raw.views)) ? Number(raw.views) : 0,
+          content: raw.content || "",
+          seoTitle: raw.seo?.title || raw.title || "BuzingBee Blog",
+          seoDescription:
+            raw.seo?.description ||
+            raw.excerpt ||
+            "Read full details in the article.",
+          seoKeywords: normalizeKeywords(raw.seo?.keywords),
+          canonicalUrl: raw.seo?.canonicalUrl || "",
+        };
+      }
+    }
+
     const all = await fetchBlogPosts();
     const requested = String(slug || "")
       .trim()
@@ -182,15 +228,18 @@ const resolvedBlogApiUrl = (): string => {
 export const fetchBlogCards = async (): Promise<BlogCardItem[]> => {
   const posts = await fetchBlogPosts();
 
-  return posts.map(({ id, title, excerpt, category, date, image, slug }) => ({
-    id,
-    title,
-    excerpt,
-    category,
-    date,
-    image,
-    slug,
-  }));
+  return posts.map(
+    ({ id, title, excerpt, category, date, image, slug, views }) => ({
+      id,
+      title,
+      excerpt,
+      category,
+      date,
+      image,
+      slug,
+      views,
+    }),
+  );
 };
 
 export const fetchBlogPosts = async (): Promise<BlogPostItem[]> => {
@@ -229,6 +278,7 @@ export const fetchBlogPosts = async (): Promise<BlogPostItem[]> => {
     date: toReadableDate(blog.publishedAt || blog.createdAt),
     image: normalizeImageUrl(blog.image || blog.seo?.ogImage, blogApiOrigin),
     slug: blog.slug || toSlug(blog.title || `blog-${index + 1}`),
+    views: Number.isFinite(Number(blog.views)) ? Number(blog.views) : 0,
     content: blog.content || "",
     seoTitle: blog.seo?.title || blog.title || "BuzingBee Blog",
     seoDescription:

@@ -21,21 +21,40 @@ export default function BlogList() {
   }, [searchParams]);
 
   useEffect(() => {
-    const fetchBlogs = async () => {
+    let isMounted = true;
+
+    const fetchBlogs = async ({ showLoader = false } = {}) => {
       try {
-        setLoading(true);
+        if (showLoader) {
+          setLoading(true);
+        }
         const filters = filterStatus !== "all" ? { status: filterStatus } : {};
         const response = await blogAPI.getAll(filters);
-        setBlogs(response || []);
+        if (isMounted) {
+          setBlogs(response || []);
+        }
       } catch (err) {
-        setError(err.message);
+        if (isMounted) {
+          setError(err.message);
+        }
         console.error("Error fetching blogs:", err);
       } finally {
-        setLoading(false);
+        if (showLoader && isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchBlogs();
+    fetchBlogs({ showLoader: true });
+
+    const intervalId = window.setInterval(() => {
+      fetchBlogs();
+    }, 15000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
   }, [filterStatus]);
 
   const updateStatusFilter = (status) => {

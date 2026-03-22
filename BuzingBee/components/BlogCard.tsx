@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calendar, ArrowRight } from "lucide-react";
+import { Calendar, ArrowRight, Eye } from "lucide-react";
 import Link from "next/link";
 
 interface BlogCardProps {
@@ -11,6 +11,7 @@ interface BlogCardProps {
   date: string;
   image: string;
   slug: string;
+  views: number;
   index: number;
 }
 
@@ -21,6 +22,7 @@ export default function BlogCard({
   date,
   image,
   slug,
+  views,
   index,
 }: BlogCardProps) {
   return (
@@ -52,9 +54,15 @@ export default function BlogCard({
         ) : null}
       </div>
       <div className="p-6">
-        <div className="flex items-center gap-2 text-textMuted text-xs mb-3">
-          <Calendar className="w-3 h-3" />
-          {date}
+        <div className="flex items-center justify-between gap-2 text-textMuted text-xs mb-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3 h-3" />
+            {date}
+          </div>
+          <div className="flex items-center gap-1">
+            <Eye className="w-3 h-3" />
+            <span>{views.toLocaleString()}</span>
+          </div>
         </div>
         <h3
           className="text-lg font-bold text-textHeading font-heading mb-2 line-clamp-2

@@ -256,6 +256,91 @@ const getBlogById = async (req, res) => {
   }
 };
 
+const getBlogBySlug = async (req, res) => {
+  const startedAt = Date.now();
+  try {
+    const slug = String(req.params.slug || "").trim();
+    const shouldTrackView =
+      String(req.query.trackView || "false").toLowerCase() === "true";
+
+    if (!slug) {
+      return res.status(400).json({
+        success: false,
+        message: "Blog slug is required",
+      });
+    }
+
+    const query = {
+      slug: {
+        $regex: `^${slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        $options: "i",
+      },
+    };
+
+    if (shouldTrackView) {
+      await Blog.updateOne(
+        {
+          ...query,
+          $or: [{ views: { $exists: false } }, { views: null }],
+        },
+        { $set: { views: 0 } },
+      );
+    }
+
+    const blog = shouldTrackView
+      ? await Blog.findOneAndUpdate(
+          query,
+          { $inc: { views: 1 } },
+          { new: true },
+        )
+      : await Blog.findOne(query);
+
+    if (!blog) {
+      traceBlogApiCall(req, {
+        route: "getBlogBySlug",
+        statusCode: 404,
+        found: false,
+        slug,
+        durationMs: Date.now() - startedAt,
+      });
+
+      return res.status(404).json({
+        success: false,
+        message: "Blog not found",
+      });
+    }
+
+    traceBlogApiCall(req, {
+      route: "getBlogBySlug",
+      statusCode: 200,
+      found: true,
+      slug,
+      trackView: shouldTrackView,
+      views: blog.views || 0,
+      durationMs: Date.now() - startedAt,
+    });
+
+    return res.status(200).json({
+      success: true,
+      blog,
+    });
+  } catch (error) {
+    traceBlogApiCall(req, {
+      route: "getBlogBySlug",
+      statusCode: 500,
+      slug: req.params?.slug || "",
+      error: error.message,
+      durationMs: Date.now() - startedAt,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch blog",
+      error: error.message,
+    });
+  }
+};
+
 const updateBlog = async (req, res) => {
   try {
     const {
@@ -459,6 +544,7 @@ module.exports = {
   addBlog,
   getAllBlogs,
   getBlogById,
+  getBlogBySlug,
   updateBlog,
   deleteBlog,
   getBlogStats,

@@ -2,13 +2,14 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const path = require("path");
-require("dotenv").config();
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 require("./db.collection");
 const adminRoutes = require("./routes/adminRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const healthRoutes = require("./routes/healthRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const { autoPublishScheduledBlogs } = require("./controllers/blogController");
+const { checkR2Connection } = require("./services/storageService");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,6 +48,30 @@ app.use((err, _req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+
+  checkR2Connection()
+    .then((status) => {
+      if (status.connected) {
+        console.log("[R2] Connected", {
+          bucket: status.bucket,
+          apiEndpoint: status.apiEndpoint,
+          publicBaseUrl: status.publicBaseUrl,
+        });
+        return;
+      }
+
+      console.warn("[R2] Not ready", {
+        bucket: status.bucket,
+        apiEndpoint: status.apiEndpoint,
+        publicBaseUrl: status.publicBaseUrl,
+        missing: status.missing,
+        code: status.code,
+        message: status.message,
+      });
+    })
+    .catch((error) => {
+      console.error("[R2] Startup check failed", error.message);
+    });
 });
 
 // Auto-publish scheduled blogs every minute

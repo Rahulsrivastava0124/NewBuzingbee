@@ -13,6 +13,7 @@ type BlogListItem = {
   date: string;
   image: string;
   slug: string;
+  views: number;
 };
 
 export const metadata: Metadata = {
@@ -115,6 +116,7 @@ export default async function BlogPage() {
                 date={post.date}
                 image={post.image}
                 slug={post.slug}
+                views={post.views}
                 index={i}
               />
             ))}
