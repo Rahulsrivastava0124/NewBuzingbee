@@ -17,6 +17,12 @@ const getClientIP = (req) => {
   );
 };
 
+const parseDateInput = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const trackAnalyticsEvent = async (req, res) => {
   try {
     const { page, website, device, location } = req.body;
@@ -145,14 +151,64 @@ const getAnalyticsOverview = async (req, res) => {
 
 const getHourlyAnalytics = async (req, res) => {
   try {
-    const { website, hours = 24 } = req.query;
+    const { website, hours = 24, startDate, endDate } = req.query;
 
-    const hoursCount = Math.max(1, Math.min(168, Number(hours) || 24));
-    const start = new Date();
-    start.setMinutes(0, 0, 0);
-    start.setHours(start.getHours() - (hoursCount - 1));
+    const customStartDate = parseDateInput(startDate);
+    const customEndDate = parseDateInput(endDate);
+    const hasCustomRange = Boolean(customStartDate && customEndDate);
 
-    const match = { eventDate: { $gte: start } };
+    if ((startDate || endDate) && !hasCustomRange) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid startDate or endDate",
+      });
+    }
+
+    let start;
+    let end;
+    let hoursCount;
+
+    if (hasCustomRange) {
+      if (customStartDate >= customEndDate) {
+        return res.status(400).json({
+          success: false,
+          message: "startDate must be earlier than endDate",
+        });
+      }
+
+      const maxRangeMs = 90 * 24 * 60 * 60 * 1000;
+      if (customEndDate.getTime() - customStartDate.getTime() > maxRangeMs) {
+        return res.status(400).json({
+          success: false,
+          message: "Custom range cannot exceed 90 days",
+        });
+      }
+
+      start = new Date(customStartDate);
+      start.setMinutes(0, 0, 0);
+
+      end = new Date(customEndDate);
+      end.setMinutes(59, 59, 999);
+
+      hoursCount =
+        Math.floor((end.getTime() - start.getTime()) / (60 * 60 * 1000)) + 1;
+    } else {
+      hoursCount = Math.max(1, Math.min(168, Number(hours) || 24));
+      start = new Date();
+      start.setMinutes(0, 0, 0);
+      start.setHours(start.getHours() - (hoursCount - 1));
+
+      end = new Date(start);
+      end.setHours(start.getHours() + hoursCount - 1);
+      end.setMinutes(59, 59, 999);
+    }
+
+    const match = {
+      eventDate: {
+        $gte: start,
+        $lte: end,
+      },
+    };
     if (website) match.website = String(website).toLowerCase();
 
     const [totalViews, rawHourly, deviceStats, topPages] = await Promise.all([
@@ -192,6 +248,7 @@ const getHourlyAnalytics = async (req, res) => {
       hourlyViews.push({
         hour: hourDisplay,
         time: hour.toISOString(),
+        label: hourDisplay,
         views: hourlyMap.get(key) || 0,
       });
     }
@@ -202,6 +259,11 @@ const getHourlyAnalytics = async (req, res) => {
       hourlyViews,
       topPages: topPages.map((p) => ({ page: p._id, views: p.views })),
       devices: deviceStats.map((d) => ({ device: d._id, views: d.views })),
+      range: {
+        start: start.toISOString(),
+        end: end.toISOString(),
+        isCustom: hasCustomRange,
+      },
     });
   } catch (error) {
     return res.status(500).json({

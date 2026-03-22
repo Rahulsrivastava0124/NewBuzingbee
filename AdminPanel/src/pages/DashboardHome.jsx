@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, FileText, TrendingUp, Activity } from "lucide-react";
 import {
@@ -13,8 +13,50 @@ import {
 import { blogAPI, analyticsAPI } from "../services/api";
 import "./DashboardHome.css";
 
-const CustomTooltip = ({ active, payload }) => {
+const RANGE_OPTIONS = [
+  {
+    value: "24h",
+    label: "Last 24 Hours",
+    shortLabel: "24h",
+    mode: "hourly",
+    hours: 24,
+  },
+  { value: "7d", label: "Last 7 Days", shortLabel: "7d", mode: "daily", days: 7 },
+  {
+    value: "30d",
+    label: "Last 1 Month",
+    shortLabel: "1m",
+    mode: "daily",
+    days: 30,
+  },
+  {
+    value: "60d",
+    label: "Last 2 Months",
+    shortLabel: "2m",
+    mode: "daily",
+    days: 60,
+  },
+];
+
+const formatChartTick = (value, isHourly) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (isHourly) {
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const CustomTooltip = ({ active, payload, isHourly }) => {
   if (active && payload && payload.length) {
+    const item = payload[0].payload;
     return (
       <div
         style={{
@@ -26,7 +68,7 @@ const CustomTooltip = ({ active, payload }) => {
         }}
       >
         <p style={{ color: "#64748b", margin: 0, fontSize: "12px" }}>
-          {payload[0].payload.hour}
+          {formatChartTick(item.x, isHourly)}
         </p>
         <p
           style={{
@@ -52,12 +94,21 @@ function DashboardHome() {
     published: 0,
   });
   const [recentBlogs, setRecentBlogs] = useState([]);
+  const [selectedRangeValue, setSelectedRangeValue] = useState("7d");
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analytics, setAnalytics] = useState({
     totalViews: 0,
-    hourlyViews: [],
+    trendViews: [],
     topPages: [],
     devices: [],
   });
+  const website = "buzingbee";
+
+  const selectedRange =
+    RANGE_OPTIONS.find((option) => option.value === selectedRangeValue) ||
+    RANGE_OPTIONS[1];
+
+  const isHourlyRange = selectedRange.mode === "hourly";
 
   const animateValue = (key, start, end, duration) => {
     const startTime = Date.now();
@@ -72,14 +123,11 @@ function DashboardHome() {
   };
 
   useEffect(() => {
-    const loadDashboard = async () => {
+    const loadDashboardStats = async () => {
       try {
-        const website = "buzingbee"; // Your website identifier
-
-        const [statsRes, blogs, analyticsRes] = await Promise.all([
+        const [statsRes, blogs] = await Promise.all([
           blogAPI.getStats(),
           blogAPI.getAll(),
-          analyticsAPI.getHourly({ website, hours: 24 }),
         ]);
 
         const total = statsRes.total || 0;
@@ -93,12 +141,6 @@ function DashboardHome() {
         }, 300);
 
         setRecentBlogs((blogs || []).slice(0, 4));
-        setAnalytics({
-          totalViews: analyticsRes.totalViews || 0,
-          hourlyViews: analyticsRes.hourlyViews || [],
-          topPages: analyticsRes.topPages || [],
-          devices: analyticsRes.devices || [],
-        });
 
         return () => clearTimeout(timeout);
       } catch {
@@ -106,8 +148,54 @@ function DashboardHome() {
       }
     };
 
-    loadDashboard();
+    loadDashboardStats();
   }, []);
+
+  useEffect(() => {
+    const loadTrafficTrend = async () => {
+      setAnalyticsLoading(true);
+      try {
+        const analyticsRes = isHourlyRange
+          ? await analyticsAPI.getHourly({ website, hours: selectedRange.hours })
+          : await analyticsAPI.getOverview({ website, days: selectedRange.days });
+
+        setAnalytics({
+          totalViews: analyticsRes.totalViews || 0,
+          trendViews: isHourlyRange
+            ? (analyticsRes.hourlyViews || []).map((item) => ({
+                x: item.time,
+                views: item.views,
+              }))
+            : (analyticsRes.dailyViews || []).map((item) => ({
+                x: item.date,
+                views: item.views,
+              })),
+          topPages: analyticsRes.topPages || [],
+          devices: analyticsRes.devices || [],
+        });
+      } catch {
+        setAnalytics({
+          totalViews: 0,
+          trendViews: [],
+          topPages: [],
+          devices: [],
+        });
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+
+    loadTrafficTrend();
+  }, [isHourlyRange, selectedRange.days, selectedRange.hours]);
+
+  const chartData = useMemo(
+    () =>
+      (analytics.trendViews || []).map((item) => ({
+        ...item,
+        label: formatChartTick(item.x, isHourlyRange),
+      })),
+    [analytics.trendViews, isHourlyRange],
+  );
 
   const formatDate = (value) => {
     if (!value) return "—";
@@ -195,7 +283,9 @@ function DashboardHome() {
             <div className="dark-stat-badge green">Traffic</div>
           </div>
           <div className="dark-stat-number">{analytics.totalViews}</div>
-          <div className="dark-stat-label">Page Views (24h)</div>
+          <div className="dark-stat-label">
+            Traffic & Clicks ({selectedRange.shortLabel})
+          </div>
           <div className="dark-stat-footer">
             <svg
               width="14"
@@ -214,12 +304,29 @@ function DashboardHome() {
 
       <div className="dark-analytics-card dark-card">
         <div className="dark-card-header">
-          <h2 className="dark-card-title">Traffic Trend (Last 24 Hours)</h2>
+          <div>
+            <h2 className="dark-card-title">Traffic Trend</h2>
+            <p className="dark-traffic-range-text">{selectedRange.label}</p>
+          </div>
+          <div className="dark-traffic-controls">
+            <select
+              className="dark-traffic-input"
+              value={selectedRangeValue}
+              onChange={(event) => setSelectedRangeValue(event.target.value)}
+              disabled={analyticsLoading}
+            >
+              {RANGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="dark-chart-container">
           <ResponsiveContainer width="100%" height={280}>
             <LineChart
-              data={analytics.hourlyViews}
+              data={chartData}
               margin={{ top: 20, right: 20, left: -10, bottom: 5 }}
             >
               <defs>
@@ -234,7 +341,7 @@ function DashboardHome() {
                 vertical={false}
               />
               <XAxis
-                dataKey="hour"
+                dataKey="label"
                 stroke="transparent"
                 tick={{ fill: "#64748b", fontSize: 11 }}
                 axisLine={false}
@@ -248,7 +355,7 @@ function DashboardHome() {
                 tickLine={false}
                 allowDecimals={false}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip isHourly={isHourlyRange} />} />
               <Line
                 type="monotone"
                 dataKey="views"
@@ -288,7 +395,9 @@ function DashboardHome() {
             </span>{" "}
             mobile visits
           </div>
-          <div className="dark-activity-time">7 days</div>
+          <div className="dark-activity-time">
+            {selectedRange.shortLabel}
+          </div>
         </div>
       </div>
 

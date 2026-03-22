@@ -248,10 +248,14 @@ export const analyticsAPI = {
     return handleResponse(response);
   },
 
-  getHourly: async ({ website, hours = 24 } = {}) => {
+  getHourly: async ({ website, hours = 24, startDate, endDate } = {}) => {
     const params = new URLSearchParams();
     if (website) params.append("website", website);
-    params.append("hours", String(hours));
+    if (startDate) params.append("startDate", String(startDate));
+    if (endDate) params.append("endDate", String(endDate));
+    if (!startDate || !endDate) {
+      params.append("hours", String(hours));
+    }
 
     const response = await fetch(
       `${API_BASE_URL}/analytics/hourly?${params.toString()}`,
