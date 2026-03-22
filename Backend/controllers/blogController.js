@@ -1,4 +1,5 @@
 const Blog = require("../models/Blog");
+const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 
 const normalizeTags = (tags) => {
   if (!tags) return [];
@@ -13,10 +14,9 @@ const normalizeTags = (tags) => {
   return [];
 };
 
-const buildImageUrlFromFile = (req) => {
+const buildImageUrlFromFile = async (req) => {
   if (!req.file) return "";
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
-  return `${baseUrl}/uploads/blogs/${req.file.filename}`;
+  return uploadBlogImageAndGetUrl(req, req.file);
 };
 
 const parseScheduledAt = (value) => {
@@ -91,7 +91,7 @@ const addBlog = async (req, res) => {
       });
     }
 
-    const uploadedImageUrl = buildImageUrlFromFile(req);
+    const uploadedImageUrl = await buildImageUrlFromFile(req);
 
     const scheduledDate = parseScheduledAt(scheduledAt);
     const resolvedStatus = status || "draft";
@@ -277,7 +277,7 @@ const updateBlog = async (req, res) => {
       scheduledAt,
     } = req.body;
 
-    const uploadedImageUrl = buildImageUrlFromFile(req);
+    const uploadedImageUrl = await buildImageUrlFromFile(req);
 
     const blog = await Blog.findById(req.params.id);
     if (!blog) {

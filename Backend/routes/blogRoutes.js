@@ -9,6 +9,7 @@ const {
 } = require("../controllers/blogController");
 const { protectAdmin } = require("../middleware/authMiddleware");
 const { uploadBlogImage } = require("../middleware/uploadMiddleware");
+const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.post(
   "/upload-image",
   protectAdmin,
   uploadBlogImage.single("image"),
-  (req, res) => {
+  async (req, res) => {
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -29,8 +30,7 @@ router.post(
       });
     }
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const imageUrl = `${baseUrl}/uploads/blogs/${req.file.filename}`;
+    const imageUrl = await uploadBlogImageAndGetUrl(req, req.file);
 
     return res.status(200).json({
       success: true,
