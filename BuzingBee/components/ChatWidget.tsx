@@ -61,6 +61,18 @@ const createMessage = (
   isNew,
 });
 
+const generateSessionId = () => {
+  if (
+    typeof globalThis !== "undefined" &&
+    globalThis.crypto &&
+    typeof globalThis.crypto.randomUUID === "function"
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 const initialBotMessage: Message = {
   id: "1",
   role: "bot",
@@ -74,7 +86,7 @@ export default function ChatWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [sessionId] = useState(generateSessionId);
   const [isMobile, setIsMobile] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const [nudgeButton, setNudgeButton] = useState(false);
@@ -336,7 +348,7 @@ export default function ChatWidget() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.96 }}
                     transition={{ duration: 0.2 }}
-                    className="pointer-events-none absolute bottom-full right-0 mb-3 hidden rounded-full border border-[#f0e0a0] bg-white/95 px-3 py-1.5 text-xs font-medium text-[#1a1a1a] shadow-lg sm:block"
+                    className="pointer-events-none absolute bottom-full right-0 mb-3 hidden w-max whitespace-nowrap rounded-full border border-[#f0e0a0] bg-white/95 px-3 py-1.5 text-xs font-medium text-[#1a1a1a] shadow-lg sm:block"
                   >
                     {tooltipText}
                   </motion.div>
