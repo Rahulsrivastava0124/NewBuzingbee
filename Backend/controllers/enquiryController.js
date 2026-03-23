@@ -75,7 +75,10 @@ const getAllEnquiries = async (req, res) => {
 
     const skip = (Number(page) - 1) * Number(limit);
     const [enquiries, total] = await Promise.all([
-      Enquiry.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      Enquiry.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
       Enquiry.countDocuments(query),
     ]);
 
@@ -99,7 +102,9 @@ const getEnquiryById = async (req, res) => {
   try {
     const enquiry = await Enquiry.findById(req.params.id);
     if (!enquiry) {
-      return res.status(404).json({ success: false, message: "Enquiry not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Enquiry not found" });
     }
 
     // Auto-mark as read
@@ -126,12 +131,18 @@ const updateEnquiry = async (req, res) => {
     if (status) update.status = status;
     if (adminNotes !== undefined) update.adminNotes = adminNotes;
 
-    const enquiry = await Enquiry.findByIdAndUpdate(req.params.id, update, { new: true });
+    const enquiry = await Enquiry.findByIdAndUpdate(req.params.id, update, {
+      new: true,
+    });
     if (!enquiry) {
-      return res.status(404).json({ success: false, message: "Enquiry not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Enquiry not found" });
     }
 
-    return res.status(200).json({ success: true, message: "Enquiry updated", enquiry });
+    return res
+      .status(200)
+      .json({ success: true, message: "Enquiry updated", enquiry });
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -146,7 +157,9 @@ const deleteEnquiry = async (req, res) => {
   try {
     const enquiry = await Enquiry.findByIdAndDelete(req.params.id);
     if (!enquiry) {
-      return res.status(404).json({ success: false, message: "Enquiry not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Enquiry not found" });
     }
     return res.status(200).json({ success: true, message: "Enquiry deleted" });
   } catch (error) {
@@ -169,7 +182,9 @@ const getEnquiryStats = async (req, res) => {
       Enquiry.countDocuments({ status: "archived" }),
     ]);
 
-    return res.status(200).json({ success: true, total, new: newCount, read, replied, archived });
+    return res
+      .status(200)
+      .json({ success: true, total, new: newCount, read, replied, archived });
   } catch (error) {
     return res.status(500).json({
       success: false,

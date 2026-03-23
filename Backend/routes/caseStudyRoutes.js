@@ -21,7 +21,12 @@ router.get("/slug/:slug", getCaseStudyBySlug);
 router.get("/stats", protectAdmin, getCaseStudyStats);
 router.post("/", protectAdmin, uploadBlogImage.single("image"), addCaseStudy);
 router.get("/:id", getCaseStudyById);
-router.put("/:id", protectAdmin, uploadBlogImage.single("image"), updateCaseStudy);
+router.put(
+  "/:id",
+  protectAdmin,
+  uploadBlogImage.single("image"),
+  updateCaseStudy,
+);
 router.delete("/:id", protectAdmin, deleteCaseStudy);
 
 module.exports = router;

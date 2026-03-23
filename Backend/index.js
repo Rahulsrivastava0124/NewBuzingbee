@@ -94,5 +94,8 @@ connectionPromise
     }, 60000);
   })
   .catch((error) => {
-    console.error("Scheduler not started due to DB connection failure:", error.message);
+    console.error(
+      "Scheduler not started due to DB connection failure:",
+      error.message,
+    );
   });

@@ -54,7 +54,9 @@ const addCaseStudy = async (req, res) => {
     } = req.body;
 
     if (!title) {
-      return res.status(400).json({ success: false, message: "Title is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Title is required" });
     }
 
     const uploadedImageUrl = await buildImageUrlFromFile(req);
@@ -86,9 +88,17 @@ const addCaseStudy = async (req, res) => {
 
     const saved = await newCaseStudy.save();
 
-    return res.status(201).json({ success: true, message: "Case study created", caseStudy: saved });
+    return res
+      .status(201)
+      .json({ success: true, message: "Case study created", caseStudy: saved });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to create case study", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to create case study",
+        error: error.message,
+      });
   }
 };
 
@@ -117,7 +127,13 @@ const getAllCaseStudies = async (req, res) => {
       caseStudies,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch case studies", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch case studies",
+        error: error.message,
+      });
   }
 };
 
@@ -134,12 +150,20 @@ const getCaseStudyById = async (req, res) => {
 
     const caseStudy = await CaseStudy.findById(id);
     if (!caseStudy) {
-      return res.status(404).json({ success: false, message: "Case study not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Case study not found" });
     }
 
     return res.status(200).json({ success: true, caseStudy });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch case study", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch case study",
+        error: error.message,
+      });
   }
 };
 
@@ -153,7 +177,9 @@ const getCaseStudyBySlug = async (req, res) => {
     const caseStudy = await CaseStudy.findOne({ slug });
 
     if (!caseStudy) {
-      return res.status(404).json({ success: false, message: "Case study not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Case study not found" });
     }
 
     if (shouldTrackView) {
@@ -163,7 +189,13 @@ const getCaseStudyBySlug = async (req, res) => {
 
     return res.status(200).json({ success: true, caseStudy });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch case study", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch case study",
+        error: error.message,
+      });
   }
 };
 
@@ -174,7 +206,9 @@ const updateCaseStudy = async (req, res) => {
     const existing = await CaseStudy.findById(id);
 
     if (!existing) {
-      return res.status(404).json({ success: false, message: "Case study not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Case study not found" });
     }
 
     const {
@@ -219,21 +253,44 @@ const updateCaseStudy = async (req, res) => {
         ...(category !== undefined && { category }),
         ...(status !== undefined && { status }),
         image: uploadedImageUrl || image || existing.image,
-        publishedAt: becomesPublished && !wasPublished ? new Date() : existing.publishedAt,
+        publishedAt:
+          becomesPublished && !wasPublished ? new Date() : existing.publishedAt,
         seo: {
           title: seoTitle !== undefined ? seoTitle : existing.seo?.title || "",
-          description: seoDescription !== undefined ? seoDescription : existing.seo?.description || "",
-          keywords: seoKeywords !== undefined ? normalizeTags(seoKeywords) : existing.seo?.keywords || [],
-          canonicalUrl: canonicalUrl !== undefined ? canonicalUrl : existing.seo?.canonicalUrl || "",
-          ogImage: ogImage !== undefined ? ogImage : existing.seo?.ogImage || "",
+          description:
+            seoDescription !== undefined
+              ? seoDescription
+              : existing.seo?.description || "",
+          keywords:
+            seoKeywords !== undefined
+              ? normalizeTags(seoKeywords)
+              : existing.seo?.keywords || [],
+          canonicalUrl:
+            canonicalUrl !== undefined
+              ? canonicalUrl
+              : existing.seo?.canonicalUrl || "",
+          ogImage:
+            ogImage !== undefined ? ogImage : existing.seo?.ogImage || "",
         },
       },
-      { new: true }
+      { new: true },
     );
 
-    return res.status(200).json({ success: true, message: "Case study updated", caseStudy: updated });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Case study updated",
+        caseStudy: updated,
+      });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to update case study", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to update case study",
+        error: error.message,
+      });
   }
 };
 
@@ -244,12 +301,22 @@ const deleteCaseStudy = async (req, res) => {
     const deleted = await CaseStudy.findByIdAndDelete(id);
 
     if (!deleted) {
-      return res.status(404).json({ success: false, message: "Case study not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Case study not found" });
     }
 
-    return res.status(200).json({ success: true, message: "Case study deleted" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Case study deleted" });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to delete case study", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to delete case study",
+        error: error.message,
+      });
   }
 };
 
@@ -264,7 +331,13 @@ const getCaseStudyStats = async (req, res) => {
 
     return res.status(200).json({ success: true, total, published, drafts });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to fetch stats", error: error.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch stats",
+        error: error.message,
+      });
   }
 };
 

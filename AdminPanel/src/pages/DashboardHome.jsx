@@ -151,7 +151,10 @@ function DashboardHome() {
         }, 300);
 
         setRecentBlogs((blogs || []).slice(0, 4));
-        setEnqStats({ total: enqStatsRes.total || 0, new: enqStatsRes.new || 0 });
+        setEnqStats({
+          total: enqStatsRes.total || 0,
+          new: enqStatsRes.new || 0,
+        });
         setRecentEnquiries((enqList.enquiries || []).slice(0, 4));
 
         return () => clearTimeout(timeout);
@@ -325,7 +328,10 @@ function DashboardHome() {
               <Inbox size={24} />
             </div>
             {enqStats.new > 0 && (
-              <div className="dark-stat-badge" style={{ background: "#fee2e2", color: "#dc2626" }}>
+              <div
+                className="dark-stat-badge"
+                style={{ background: "#fee2e2", color: "#dc2626" }}
+              >
                 {enqStats.new} new
               </div>
             )}
@@ -344,10 +350,11 @@ function DashboardHome() {
               <circle cx="12" cy="12" r="10" />
               <path d="M12 6v6l4 2" />
             </svg>
-            <span>{enqStats.new > 0 ? `${enqStats.new} unread` : "All caught up"}</span>
+            <span>
+              {enqStats.new > 0 ? `${enqStats.new} unread` : "All caught up"}
+            </span>
           </div>
         </div>
-
       </div>
 
       <div className="dark-analytics-card dark-card">
@@ -481,13 +488,19 @@ function DashboardHome() {
                   <tr key={enq._id}>
                     <td>
                       <div className="dark-post-title">{enq.name}</div>
-                      <div style={{ fontSize: "11px", color: "#94a3b8" }}>{enq.email}</div>
+                      <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                        {enq.email}
+                      </div>
                     </td>
                     <td>{enq.service || "—"}</td>
                     <td>
                       <span
                         className={`dark-status-badge ${enq.status === "new" ? "draft" : "published"}`}
-                        style={enq.status === "new" ? { background: "#fee2e2", color: "#dc2626" } : {}}
+                        style={
+                          enq.status === "new"
+                            ? { background: "#fee2e2", color: "#dc2626" }
+                            : {}
+                        }
                       >
                         <span className="dark-status-dot"></span>
                         {enq.status}
@@ -572,7 +585,10 @@ function DashboardHome() {
               </div>
               <div className="dark-quick-action-arrow">›</div>
             </div>
-            <div className="dark-quick-action" onClick={() => navigate("/dashboard/blogs")}>
+            <div
+              className="dark-quick-action"
+              onClick={() => navigate("/dashboard/blogs")}
+            >
               <div className="dark-quick-action-icon blue">
                 <FileText size={20} />
               </div>
@@ -584,14 +600,19 @@ function DashboardHome() {
               </div>
               <div className="dark-quick-action-arrow">›</div>
             </div>
-            <div className="dark-quick-action" onClick={() => navigate("/dashboard/enquiries")}>
+            <div
+              className="dark-quick-action"
+              onClick={() => navigate("/dashboard/enquiries")}
+            >
               <div className="dark-quick-action-icon red">
                 <Inbox size={20} />
               </div>
               <div className="dark-quick-action-content">
                 <div className="dark-quick-action-title">View Enquiries</div>
                 <div className="dark-quick-action-desc">
-                  {enqStats.new > 0 ? `${enqStats.new} unread messages` : "Manage contact requests"}
+                  {enqStats.new > 0
+                    ? `${enqStats.new} unread messages`
+                    : "Manage contact requests"}
                 </div>
               </div>
               <div className="dark-quick-action-arrow">›</div>

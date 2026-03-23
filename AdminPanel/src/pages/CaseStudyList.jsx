@@ -37,7 +37,8 @@ export default function CaseStudyList() {
   }, [filterStatus]);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this case study?")) return;
+    if (!window.confirm("Are you sure you want to delete this case study?"))
+      return;
     try {
       await caseStudyAPI.delete(id);
       setItems((prev) => prev.filter((i) => i._id !== id));
@@ -116,7 +117,10 @@ export default function CaseStudyList() {
 
       {filtered.length === 0 ? (
         <div className="empty-state">
-          <p>No case studies found. Use the &quot;Add Case Study&quot; button above to get started.</p>
+          <p>
+            No case studies found. Use the &quot;Add Case Study&quot; button
+            above to get started.
+          </p>
         </div>
       ) : (
         <div className="blog-table-wrapper">
@@ -145,7 +149,9 @@ export default function CaseStudyList() {
                       )}
                       <div>
                         <div className="blog-title-text">{item.title}</div>
-                        <div className="blog-excerpt-text">{item.summary || item.client}</div>
+                        <div className="blog-excerpt-text">
+                          {item.summary || item.client}
+                        </div>
                       </div>
                     </div>
                   </td>

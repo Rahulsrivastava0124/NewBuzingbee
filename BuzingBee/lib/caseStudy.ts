@@ -84,9 +84,11 @@ const normalizeImageUrl = (value?: string, apiOrigin?: string) => {
   const trimmed = value.trim();
   if (!trimmed) return "";
   if (trimmed.startsWith("//")) return `https:${trimmed}`;
-  if (trimmed.startsWith("http://")) return trimmed.replace(/^http:\/\//, "https://");
+  if (trimmed.startsWith("http://"))
+    return trimmed.replace(/^http:\/\//, "https://");
   if (trimmed.startsWith("https://")) return trimmed;
-  if (trimmed.startsWith("/")) return apiOrigin ? `${apiOrigin}${trimmed}` : trimmed;
+  if (trimmed.startsWith("/"))
+    return apiOrigin ? `${apiOrigin}${trimmed}` : trimmed;
   return apiOrigin ? `${apiOrigin}/${trimmed.replace(/^\/+/, "")}` : trimmed;
 };
 
@@ -110,7 +112,8 @@ const toSlug = (title = "") =>
     .replace(/-+/g, "-");
 
 const normalizeKeywords = (value?: string[] | string): string[] => {
-  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  if (Array.isArray(value))
+    return value.map((v) => String(v).trim()).filter(Boolean);
   if (typeof value === "string")
     return value
       .split(",")
@@ -123,13 +126,18 @@ const normalizePayload = (payload: unknown): CaseStudyApiItem[] => {
   if (Array.isArray(payload)) return payload as CaseStudyApiItem[];
   if (payload && typeof payload === "object") {
     const p = payload as Record<string, unknown>;
-    if (Array.isArray(p.caseStudies)) return p.caseStudies as CaseStudyApiItem[];
+    if (Array.isArray(p.caseStudies))
+      return p.caseStudies as CaseStudyApiItem[];
     if (Array.isArray(p.data)) return p.data as CaseStudyApiItem[];
   }
   return [];
 };
 
-const mapToDetail = (raw: CaseStudyApiItem, index: number, apiOrigin: string): CaseStudyDetail => ({
+const mapToDetail = (
+  raw: CaseStudyApiItem,
+  index: number,
+  apiOrigin: string,
+): CaseStudyDetail => ({
   id: String(raw._id || raw.id || index),
   title: raw.title || "Untitled Case Study",
   slug: raw.slug || toSlug(raw.title || `case-study-${index + 1}`),
@@ -158,12 +166,16 @@ export const fetchCaseStudies = async (): Promise<CaseStudyDetail[]> => {
   const response = await fetch(apiUrl, { cache: "no-store" });
 
   if (!response.ok) {
-    throw new Error(`Unable to fetch case studies from ${apiUrl} (${response.status})`);
+    throw new Error(
+      `Unable to fetch case studies from ${apiUrl} (${response.status})`,
+    );
   }
 
   const payload = await response.json();
   const items = normalizePayload(payload)
-    .filter((cs) => !cs?.status || cs.status.trim().toLowerCase() === "published")
+    .filter(
+      (cs) => !cs?.status || cs.status.trim().toLowerCase() === "published",
+    )
     .filter((cs) => cs?.title);
 
   return items.map((cs, i) => mapToDetail(cs, i, apiOrigin));
@@ -171,20 +183,49 @@ export const fetchCaseStudies = async (): Promise<CaseStudyDetail[]> => {
 
 export const fetchCaseStudyCards = async (): Promise<CaseStudyCardItem[]> => {
   const posts = await fetchCaseStudies();
-  return posts.map(({ id, title, slug, client, industry, summary, image, category, date, views, metrics }) => ({
-    id, title, slug, client, industry, summary, image, category, date, views, metrics,
-  }));
+  return posts.map(
+    ({
+      id,
+      title,
+      slug,
+      client,
+      industry,
+      summary,
+      image,
+      category,
+      date,
+      views,
+      metrics,
+    }) => ({
+      id,
+      title,
+      slug,
+      client,
+      industry,
+      summary,
+      image,
+      category,
+      date,
+      views,
+      metrics,
+    }),
+  );
 };
 
-export const fetchCaseStudyBySlug = async (slug: string): Promise<CaseStudyDetail | null> => {
+export const fetchCaseStudyBySlug = async (
+  slug: string,
+): Promise<CaseStudyDetail | null> => {
   try {
     const apiUrl = resolvedCsApiUrl();
     const apiOrigin = readApiOrigin(apiUrl);
     const encodedSlug = encodeURIComponent(String(slug || "").trim());
 
-    const response = await fetch(`${apiUrl}/slug/${encodedSlug}?trackView=true`, {
-      cache: "no-store",
-    });
+    const response = await fetch(
+      `${apiUrl}/slug/${encodedSlug}?trackView=true`,
+      {
+        cache: "no-store",
+      },
+    );
 
     if (response.ok) {
       const payload = await response.json();
@@ -196,7 +237,9 @@ export const fetchCaseStudyBySlug = async (slug: string): Promise<CaseStudyDetai
 
     // Fallback: find in full list
     const all = await fetchCaseStudies();
-    const requested = String(slug || "").trim().toLowerCase();
+    const requested = String(slug || "")
+      .trim()
+      .toLowerCase();
     return (
       all.find((cs) => cs.slug.toLowerCase() === requested) ||
       all.find((cs) => toSlug(cs.title).toLowerCase() === requested) ||

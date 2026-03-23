@@ -18,8 +18,17 @@ const quillModules = {
 };
 
 const quillFormats = [
-  "header", "bold", "italic", "underline", "strike",
-  "list", "bullet", "blockquote", "code-block", "link", "image",
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "list",
+  "bullet",
+  "blockquote",
+  "code-block",
+  "link",
+  "image",
 ];
 
 export default function CaseStudyForm() {
@@ -80,9 +89,7 @@ export default function CaseStudyForm() {
               : cs.seo?.keywords || "",
           });
           setMetrics(
-            cs.metrics?.length
-              ? cs.metrics
-              : [{ label: "", value: "" }]
+            cs.metrics?.length ? cs.metrics : [{ label: "", value: "" }],
           );
         }
       } catch (err) {
@@ -140,11 +147,12 @@ export default function CaseStudyForm() {
 
   const handleMetricChange = (index, field, value) => {
     setMetrics((prev) =>
-      prev.map((m, i) => (i === index ? { ...m, [field]: value } : m))
+      prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)),
     );
   };
 
-  const addMetric = () => setMetrics((prev) => [...prev, { label: "", value: "" }]);
+  const addMetric = () =>
+    setMetrics((prev) => [...prev, { label: "", value: "" }]);
 
   const removeMetric = (index) =>
     setMetrics((prev) => prev.filter((_, i) => i !== index));
@@ -171,7 +179,7 @@ export default function CaseStudyForm() {
         solution: formData.solution,
         results: formData.results,
         metrics: JSON.stringify(
-          metrics.filter((m) => m.label.trim() || m.value.trim())
+          metrics.filter((m) => m.label.trim() || m.value.trim()),
         ),
         category: formData.category,
         tags: formData.tags,
@@ -204,8 +212,17 @@ export default function CaseStudyForm() {
   };
 
   const INDUSTRIES = [
-    "Technology", "Healthcare", "E-Commerce", "Finance", "Education",
-    "Real Estate", "Marketing", "Retail", "SaaS", "Startup", "Other",
+    "Technology",
+    "Healthcare",
+    "E-Commerce",
+    "Finance",
+    "Education",
+    "Real Estate",
+    "Marketing",
+    "Retail",
+    "SaaS",
+    "Startup",
+    "Other",
   ];
 
   return (
@@ -224,7 +241,11 @@ export default function CaseStudyForm() {
             disabled={loading}
           >
             <Save size={18} />
-            {loading ? "Saving..." : isEditing ? "Update Case Study" : "Save Case Study"}
+            {loading
+              ? "Saving..."
+              : isEditing
+                ? "Update Case Study"
+                : "Save Case Study"}
           </button>
         </div>
       </div>
@@ -290,13 +311,17 @@ export default function CaseStudyForm() {
                 rows="3"
                 disabled={loading}
               />
-              <span className="char-count">{formData.summary.length} / 200</span>
+              <span className="char-count">
+                {formData.summary.length} / 200
+              </span>
             </div>
           </div>
 
           {/* Challenge / Solution / Results */}
           <div className="form-card">
-            <h3 style={{ color: "#f5c518", marginBottom: 16 }}>Case Study Content</h3>
+            <h3 style={{ color: "#f5c518", marginBottom: 16 }}>
+              Case Study Content
+            </h3>
 
             <div className="form-group">
               <label>The Challenge</label>
@@ -350,13 +375,20 @@ export default function CaseStudyForm() {
             {metrics.map((m, i) => (
               <div
                 key={i}
-                style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center" }}
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  marginBottom: 12,
+                  alignItems: "center",
+                }}
               >
                 <input
                   type="text"
                   placeholder="Label (e.g. Revenue Growth)"
                   value={m.label}
-                  onChange={(e) => handleMetricChange(i, "label", e.target.value)}
+                  onChange={(e) =>
+                    handleMetricChange(i, "label", e.target.value)
+                  }
                   disabled={loading}
                   style={{ flex: 1 }}
                 />
@@ -364,7 +396,9 @@ export default function CaseStudyForm() {
                   type="text"
                   placeholder="Value (e.g. +300%)"
                   value={m.value}
-                  onChange={(e) => handleMetricChange(i, "value", e.target.value)}
+                  onChange={(e) =>
+                    handleMetricChange(i, "value", e.target.value)
+                  }
                   disabled={loading}
                   style={{ flex: 1 }}
                 />
@@ -504,7 +538,9 @@ export default function CaseStudyForm() {
             >
               <option value="">Select Industry</option>
               {INDUSTRIES.map((ind) => (
-                <option key={ind} value={ind}>{ind}</option>
+                <option key={ind} value={ind}>
+                  {ind}
+                </option>
               ))}
             </select>
           </div>

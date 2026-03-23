@@ -49,7 +49,9 @@ export default function CaseStudyCard({
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-accent/5 to-transparent flex items-center justify-center">
-            <span className="text-accent/40 text-sm font-semibold">Case Study</span>
+            <span className="text-accent/40 text-sm font-semibold">
+              Case Study
+            </span>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-bgPrimary/60 via-transparent to-transparent" />

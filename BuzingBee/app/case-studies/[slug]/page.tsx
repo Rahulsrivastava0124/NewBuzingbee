@@ -26,7 +26,8 @@ export async function generateMetadata({
   const cs = await fetchCaseStudyBySlug(slug);
 
   const title = cs?.seoTitle || cs?.title || toTitleFromSlug(slug);
-  const description = cs?.seoDescription || cs?.summary || "Read this case study.";
+  const description =
+    cs?.seoDescription || cs?.summary || "Read this case study.";
   const image = cs?.image || "/og-image.png";
   const canonicalPath = `/case-studies/${slug}`;
 
@@ -126,7 +127,8 @@ export default async function CaseStudyDetailPage({
                 <div className="flex items-center gap-2 text-textMuted text-sm">
                   <Building2 className="w-4 h-4" />
                   <span>
-                    Client: <strong className="text-textBody">{cs.client}</strong>
+                    Client:{" "}
+                    <strong className="text-textBody">{cs.client}</strong>
                   </span>
                 </div>
               )}
@@ -188,7 +190,9 @@ export default async function CaseStudyDetailPage({
                     prose-strong:text-textHeading prose-a:text-accent
                     prose-blockquote:border-accent prose-blockquote:text-textMuted
                     prose-li:text-textBody prose-code:text-accent"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(cs.challenge) }}
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(cs.challenge),
+                  }}
                 />
               </div>
             )}
@@ -206,7 +210,9 @@ export default async function CaseStudyDetailPage({
                     prose-strong:text-textHeading prose-a:text-accent
                     prose-blockquote:border-accent prose-blockquote:text-textMuted
                     prose-li:text-textBody prose-code:text-accent"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(cs.solution) }}
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(cs.solution),
+                  }}
                 />
               </div>
             )}
@@ -280,12 +286,16 @@ export default async function CaseStudyDetailPage({
                           loading="lazy"
                         />
                       )}
-                      <span className="text-accent text-xs font-bold">{item.category}</span>
+                      <span className="text-accent text-xs font-bold">
+                        {item.category}
+                      </span>
                       <h4 className="text-textHeading font-semibold text-sm mt-1 group-hover:text-accent transition-colors line-clamp-2">
                         {item.title}
                       </h4>
                       {item.client && (
-                        <p className="text-textMuted text-xs mt-1">{item.client}</p>
+                        <p className="text-textMuted text-xs mt-1">
+                          {item.client}
+                        </p>
                       )}
                     </Link>
                   ))}

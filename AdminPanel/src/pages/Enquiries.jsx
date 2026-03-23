@@ -210,7 +210,10 @@ export default function Enquiries() {
       {/* Table */}
       {enquiries.length === 0 ? (
         <div className="empty-state">
-          <MessageSquare size={40} style={{ color: "#4b5563", marginBottom: 12 }} />
+          <MessageSquare
+            size={40}
+            style={{ color: "#4b5563", marginBottom: 12 }}
+          />
           <p>No enquiries found.</p>
         </div>
       ) : (
@@ -245,7 +248,9 @@ export default function Enquiries() {
                   <td>{SERVICE_LABELS[enq.service] || enq.service || "—"}</td>
                   <td>{BUDGET_LABELS[enq.budget] || enq.budget || "—"}</td>
                   <td>
-                    <span className={`enq-status-badge enq-status-${enq.status}`}>
+                    <span
+                      className={`enq-status-badge enq-status-${enq.status}`}
+                    >
                       {STATUS_LABELS[enq.status] || enq.status}
                     </span>
                   </td>
@@ -278,10 +283,7 @@ export default function Enquiries() {
       {/* Detail Drawer */}
       {selected && (
         <div className="enq-overlay" onClick={handleClose}>
-          <div
-            className="enq-drawer"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="enq-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="enq-drawer-header">
               <h2>Enquiry Detail</h2>
               <button className="enq-close-btn" onClick={handleClose}>
@@ -349,11 +351,15 @@ export default function Enquiries() {
                   )}
                   <div className="enq-info-item">
                     <span className="enq-label">Received</span>
-                    <span className="enq-value">{formatDate(selected.createdAt)}</span>
+                    <span className="enq-value">
+                      {formatDate(selected.createdAt)}
+                    </span>
                   </div>
                   <div className="enq-info-item">
                     <span className="enq-label">Source</span>
-                    <span className="enq-value">{selected.source || "contact-form"}</span>
+                    <span className="enq-value">
+                      {selected.source || "contact-form"}
+                    </span>
                   </div>
                 </div>
 

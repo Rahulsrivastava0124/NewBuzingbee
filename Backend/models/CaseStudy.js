@@ -82,7 +82,7 @@ const caseStudySchema = new mongoose.Schema(
       ref: "Admin",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("CaseStudy", caseStudySchema);

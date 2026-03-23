@@ -161,7 +161,10 @@ function Dashboard() {
             <Inbox size={20} />
             <span>Enquiries</span>
             {newEnqCount > 0 && (
-              <span className="dark-nav-badge" style={{ background: "#ef4444", color: "#fff" }}>
+              <span
+                className="dark-nav-badge"
+                style={{ background: "#ef4444", color: "#fff" }}
+              >
                 {newEnqCount}
               </span>
             )}

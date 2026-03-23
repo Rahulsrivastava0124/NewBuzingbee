@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
+  Send,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import { SITE_CONFIG } from "@/lib/constants";
 
 interface ContactFormData {
@@ -15,10 +23,9 @@ interface ContactFormData {
   message: string;
 }
 
-const ENQUIRY_API_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL
-    ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/enquiries/submit`
-    : "https://api.buzingbee.com/api/enquiries/submit";
+const ENQUIRY_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+  ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/enquiries/submit`
+  : "https://api.buzingbee.com/api/enquiries/submit";
 
 export default function ContactPage() {
   const {
@@ -28,7 +35,9 @@ export default function ContactPage() {
     reset,
   } = useForm<ContactFormData>();
 
-  const [submitState, setSubmitState] = useState<"idle" | "success" | "error">("idle");
+  const [submitState, setSubmitState] = useState<"idle" | "success" | "error">(
+    "idle",
+  );
   const [submitMessage, setSubmitMessage] = useState("");
 
   const onSubmit = async (data: ContactFormData) => {
@@ -43,12 +52,16 @@ export default function ContactPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Submission failed");
       setSubmitState("success");
-      setSubmitMessage(json.message || "Thank you! We'll get back to you within 24 hours.");
+      setSubmitMessage(
+        json.message || "Thank you! We'll get back to you within 24 hours.",
+      );
       reset();
     } catch (err: unknown) {
       setSubmitState("error");
       setSubmitMessage(
-        err instanceof Error ? err.message : "Something went wrong. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
       );
     }
   };
