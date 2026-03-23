@@ -7,7 +7,12 @@ const nextConfig = {
     forceSwcTransforms: true,
   },
   images: {
-    domains: ["buzingbee.com", "api.buzingbee.com", "images.unsplash.com"],
+    remotePatterns: [
+      { protocol: "https", hostname: "buzingbee.com" },
+      { protocol: "https", hostname: "api.buzingbee.com" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "pub-c140e4fa124a41a6b58ef5638192bafc.r2.dev" },
+    ],
   },
   webpack: (config) => {
     config.module.rules.push({

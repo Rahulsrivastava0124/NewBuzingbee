@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle, AlertCircle } from "lucide-react";
 import { SITE_CONFIG } from "@/lib/constants";
 
 interface ContactFormData {
@@ -14,6 +15,11 @@ interface ContactFormData {
   message: string;
 }
 
+const ENQUIRY_API_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL
+    ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/enquiries/submit`
+    : "https://api.buzingbee.com/api/enquiries/submit";
+
 export default function ContactPage() {
   const {
     register,
@@ -22,11 +28,29 @@ export default function ContactPage() {
     reset,
   } = useForm<ContactFormData>();
 
+  const [submitState, setSubmitState] = useState<"idle" | "success" | "error">("idle");
+  const [submitMessage, setSubmitMessage] = useState("");
+
   const onSubmit = async (data: ContactFormData) => {
-    // EmailJS integration placeholder
-    console.log("Form submitted:", data);
-    alert("Thank you! We'll get back to you within 24 hours.");
-    reset();
+    setSubmitState("idle");
+    setSubmitMessage("");
+    try {
+      const res = await fetch(ENQUIRY_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, source: "contact-form" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Submission failed");
+      setSubmitState("success");
+      setSubmitMessage(json.message || "Thank you! We'll get back to you within 24 hours.");
+      reset();
+    } catch (err: unknown) {
+      setSubmitState("error");
+      setSubmitMessage(
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      );
+    }
   };
 
   const contactInfo = [
@@ -171,6 +195,19 @@ export default function ContactPage() {
                 {isSubmitting ? "Sending..." : "Send Message"}{" "}
                 <Send className="w-4 h-4" />
               </button>
+
+              {submitState === "success" && (
+                <div className="flex items-start gap-3 bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3 text-green-400 text-sm">
+                  <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  {submitMessage}
+                </div>
+              )}
+              {submitState === "error" && (
+                <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  {submitMessage}
+                </div>
+              )}
             </form>
           </motion.div>
 

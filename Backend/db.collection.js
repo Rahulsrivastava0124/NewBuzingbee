@@ -20,12 +20,15 @@ const seedDefaultAdmin = async () => {
   }
 };
 
-mongoose
+const connectionPromise = mongoose
   .connect(process.env.MONGO_URI || "mongodb://localhost:27017/adminbuzingbee")
   .then(async () => {
     console.log("Connected to MongoDB");
     await seedDefaultAdmin();
   })
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    throw err;
+  });
 
-module.exports = mongoose;
+module.exports = { mongoose, connectionPromise };

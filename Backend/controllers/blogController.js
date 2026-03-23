@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Blog = require("../models/Blog");
 const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 
@@ -518,6 +519,11 @@ const getBlogStats = async (_req, res) => {
 };
 
 const autoPublishScheduledBlogs = async () => {
+  // Skip if MongoDB is not yet connected (readyState 1 = connected)
+  if (mongoose.connection.readyState !== 1) {
+    return;
+  }
+
   const now = new Date();
   const result = await Blog.updateMany(
     {

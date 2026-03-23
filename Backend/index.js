@@ -3,9 +3,11 @@ const cors = require("cors");
 const helmet = require("helmet");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
-require("./db.collection");
+const { connectionPromise } = require("./db.collection");
 const adminRoutes = require("./routes/adminRoutes");
 const blogRoutes = require("./routes/blogRoutes");
+const caseStudyRoutes = require("./routes/caseStudyRoutes");
+const enquiryRoutes = require("./routes/enquiryRoutes");
 const healthRoutes = require("./routes/healthRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const { autoPublishScheduledBlogs } = require("./controllers/blogController");
@@ -30,6 +32,8 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/blog", blogRoutes);
+app.use("/api/case-studies", caseStudyRoutes);
+app.use("/api/enquiries", enquiryRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/health", healthRoutes);
 
@@ -74,14 +78,21 @@ app.listen(PORT, () => {
     });
 });
 
-// Auto-publish scheduled blogs every minute
-setInterval(() => {
-  autoPublishScheduledBlogs().catch((error) => {
-    console.error("Error auto-publishing scheduled blogs:", error);
-  });
-}, 60000); // 60000ms = 1 minute
+// Start the scheduled blog publisher only after MongoDB is connected
+connectionPromise
+  .then(() => {
+    // Run immediately on startup
+    autoPublishScheduledBlogs().catch((error) => {
+      console.error("Error auto-publishing scheduled blogs on startup:", error);
+    });
 
-// Run on server start
-autoPublishScheduledBlogs().catch((error) => {
-  console.error("Error auto-publishing scheduled blogs on startup:", error);
-});
+    // Then run every minute
+    setInterval(() => {
+      autoPublishScheduledBlogs().catch((error) => {
+        console.error("Error auto-publishing scheduled blogs:", error);
+      });
+    }, 60000);
+  })
+  .catch((error) => {
+    console.error("Scheduler not started due to DB connection failure:", error.message);
+  });

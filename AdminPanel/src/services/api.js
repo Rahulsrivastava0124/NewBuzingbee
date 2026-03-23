@@ -338,6 +338,131 @@ export const analyticsAPI = {
   },
 };
 
+// Enquiry API
+export const enquiryAPI = {
+  // Get all enquiries
+  getAll: async (filters = {}) => {
+    const params = new URLSearchParams(filters);
+    const query = params.toString();
+    const response = await fetch(
+      `${API_BASE_URL}/enquiries${query ? `?${query}` : ""}`,
+      { headers: { Authorization: `Bearer ${getAuthToken()}` } },
+    );
+    const data = await handleResponse(response);
+    return { enquiries: data.enquiries || [], total: data.total || 0 };
+  },
+
+  // Get single enquiry by ID (auto-marks as read)
+  getById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/enquiries/${id}`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    const data = await handleResponse(response);
+    return data.enquiry;
+  },
+
+  // Update status / admin notes
+  update: async (id, payload) => {
+    const response = await fetch(`${API_BASE_URL}/enquiries/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${getAuthToken()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await handleResponse(response);
+    return data.enquiry;
+  },
+
+  // Delete
+  delete: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/enquiries/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    return handleResponse(response);
+  },
+
+  // Stats
+  getStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/enquiries/stats`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    return handleResponse(response);
+  },
+};
+
+// Case Study API
+export const caseStudyAPI = {
+  // Get all case studies
+  getAll: async (filters = {}) => {
+    const params = new URLSearchParams(filters);
+    const query = params.toString();
+    const response = await fetch(
+      `${API_BASE_URL}/case-studies${query ? `?${query}` : ""}`,
+    );
+    const data = await handleResponse(response);
+    return data.caseStudies || [];
+  },
+
+  // Get single case study by ID
+  getById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/case-studies/${id}`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    const data = await handleResponse(response);
+    return data.caseStudy;
+  },
+
+  // Create new case study
+  create: async (data) => {
+    const hasImageFile = data?.imageFile instanceof File;
+    const response = await fetch(`${API_BASE_URL}/case-studies`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getAuthToken()}`,
+        ...(hasImageFile ? {} : { "Content-Type": "application/json" }),
+      },
+      body: hasImageFile ? toFormData(data) : JSON.stringify(data),
+    });
+    const res = await handleResponse(response);
+    return res.caseStudy;
+  },
+
+  // Update case study
+  update: async (id, data) => {
+    const hasImageFile = data?.imageFile instanceof File;
+    const response = await fetch(`${API_BASE_URL}/case-studies/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${getAuthToken()}`,
+        ...(hasImageFile ? {} : { "Content-Type": "application/json" }),
+      },
+      body: hasImageFile ? toFormData(data) : JSON.stringify(data),
+    });
+    const res = await handleResponse(response);
+    return res.caseStudy;
+  },
+
+  // Delete case study
+  delete: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/case-studies/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    return handleResponse(response);
+  },
+
+  // Get stats
+  getStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/case-studies/stats`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    return handleResponse(response);
+  },
+};
+
 // Auth helpers
 export const authHelper = {
   saveToken: (token) => {

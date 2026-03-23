@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, Eye, Image } from "lucide-react";
+import { ArrowLeft, Save, Image } from "lucide-react";
 import ReactQuill from "react-quill-new";
 import { blogAPI } from "../services/api";
 import "react-quill-new/dist/quill.snow.css";
@@ -258,27 +258,12 @@ export default function BlogForm() {
         <div className="header-actions">
           <button
             type="button"
-            className="btn-secondary"
+            className="btn-primary"
             onClick={handleSave}
             disabled={loading}
           >
             <Save size={18} />
             {loading ? "Saving..." : isEditing ? "Update Blog" : "Save Blog"}
-          </button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={handlePublish}
-            disabled={loading}
-          >
-            <Eye size={18} />
-            {loading
-              ? isEditing
-                ? "Saving..."
-                : "Publishing..."
-              : isEditing
-                ? "Save Changes"
-                : "Save Status"}
           </button>
         </div>
       </div>

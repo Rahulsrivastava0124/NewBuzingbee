@@ -11,14 +11,18 @@ import {
   Users,
   Settings,
   TrendingUp,
+  Briefcase,
+  Inbox,
 } from "lucide-react";
-import { authHelper, blogAPI } from "../services/api";
+import { authHelper, blogAPI, caseStudyAPI, enquiryAPI } from "../services/api";
 import "./Dashboard.css";
 
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [counts, setCounts] = useState({ total: 0, drafts: 0, scheduled: 0 });
+  const [csCount, setCsCount] = useState(0);
+  const [newEnqCount, setNewEnqCount] = useState(0);
 
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(path + "/");
@@ -27,12 +31,18 @@ function Dashboard() {
   useEffect(() => {
     const loadCounts = async () => {
       try {
-        const stats = await blogAPI.getStats();
+        const [stats, csStats, enqStats] = await Promise.all([
+          blogAPI.getStats(),
+          caseStudyAPI.getStats().catch(() => ({ total: 0 })),
+          enquiryAPI.getStats().catch(() => ({ new: 0 })),
+        ]);
         setCounts({
           total: stats.total || 0,
           drafts: stats.drafts || 0,
           scheduled: stats.scheduled || 0,
         });
+        setCsCount(csStats.total || 0);
+        setNewEnqCount(enqStats.new || 0);
       } catch {
         // ignore sidebar count failure
       }
@@ -62,6 +72,14 @@ function Dashboard() {
       return { main: "Content", sub: "Create Blog" };
     } else if (path.startsWith("/dashboard/edit-blog")) {
       return { main: "Content", sub: "Edit Blog" };
+    } else if (path.startsWith("/dashboard/case-studies")) {
+      return { main: "Content", sub: "Case Studies" };
+    } else if (path.startsWith("/dashboard/create-case-study")) {
+      return { main: "Content", sub: "New Case Study" };
+    } else if (path.startsWith("/dashboard/edit-case-study")) {
+      return { main: "Content", sub: "Edit Case Study" };
+    } else if (path.startsWith("/dashboard/enquiries")) {
+      return { main: "Manage", sub: "Enquiries" };
     } else if (path.startsWith("/dashboard/traffic")) {
       return { main: "Analytics", sub: "Traffic & Leads" };
     } else if (path.startsWith("/dashboard/audience")) {
@@ -124,10 +142,30 @@ function Dashboard() {
             <span>Scheduled</span>
             <span className="dark-nav-badge">{counts.scheduled}</span>
           </div>
+          <div
+            className={`dark-nav-item ${isActive("/dashboard/case-studies") ? "active" : ""}`}
+            onClick={() => navigate("/dashboard/case-studies")}
+          >
+            <Briefcase size={20} />
+            <span>Case Studies</span>
+            <span className="dark-nav-badge">{csCount}</span>
+          </div>
         </nav>
 
         <nav className="dark-nav-section">
           <div className="dark-nav-label">MANAGE</div>
+          <div
+            className={`dark-nav-item ${isActive("/dashboard/enquiries") ? "active" : ""}`}
+            onClick={() => navigate("/dashboard/enquiries")}
+          >
+            <Inbox size={20} />
+            <span>Enquiries</span>
+            {newEnqCount > 0 && (
+              <span className="dark-nav-badge" style={{ background: "#ef4444", color: "#fff" }}>
+                {newEnqCount}
+              </span>
+            )}
+          </div>
           <div
             className={`dark-nav-item ${isActive("/dashboard/traffic") ? "active" : ""}`}
             onClick={() => navigate("/dashboard/traffic")}
@@ -202,12 +240,6 @@ function Dashboard() {
             </button>
             <button className="dark-icon-btn">
               <Sun size={20} />
-            </button>
-            <button
-              className="dark-cta-btn"
-              onClick={() => navigate("/dashboard/create-blog")}
-            >
-              + New Post
             </button>
           </div>
         </header>

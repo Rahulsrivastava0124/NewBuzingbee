@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, FileText, TrendingUp, Activity } from "lucide-react";
+import { Plus, FileText, TrendingUp, Activity, Inbox } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -10,7 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { blogAPI, analyticsAPI } from "../services/api";
+import { blogAPI, analyticsAPI, enquiryAPI } from "../services/api";
 import "./DashboardHome.css";
 
 const RANGE_OPTIONS = [
@@ -99,6 +99,8 @@ function DashboardHome() {
     drafts: 0,
     published: 0,
   });
+  const [enqStats, setEnqStats] = useState({ total: 0, new: 0 });
+  const [recentEnquiries, setRecentEnquiries] = useState([]);
   const [recentBlogs, setRecentBlogs] = useState([]);
   const [selectedRangeValue, setSelectedRangeValue] = useState("7d");
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
@@ -131,9 +133,11 @@ function DashboardHome() {
   useEffect(() => {
     const loadDashboardStats = async () => {
       try {
-        const [statsRes, blogs] = await Promise.all([
+        const [statsRes, blogs, enqStatsRes, enqList] = await Promise.all([
           blogAPI.getStats(),
           blogAPI.getAll(),
+          enquiryAPI.getStats().catch(() => ({ total: 0, new: 0 })),
+          enquiryAPI.getAll({ limit: 4 }).catch(() => ({ enquiries: [] })),
         ]);
 
         const total = statsRes.total || 0;
@@ -147,6 +151,8 @@ function DashboardHome() {
         }, 300);
 
         setRecentBlogs((blogs || []).slice(0, 4));
+        setEnqStats({ total: enqStatsRes.total || 0, new: enqStatsRes.new || 0 });
+        setRecentEnquiries((enqList.enquiries || []).slice(0, 4));
 
         return () => clearTimeout(timeout);
       } catch {
@@ -312,6 +318,36 @@ function DashboardHome() {
             <span>Tracked with analytics API</span>
           </div>
         </div>
+
+        <div className="dark-stat-card red">
+          <div className="dark-stat-header">
+            <div className="dark-stat-icon red">
+              <Inbox size={24} />
+            </div>
+            {enqStats.new > 0 && (
+              <div className="dark-stat-badge" style={{ background: "#fee2e2", color: "#dc2626" }}>
+                {enqStats.new} new
+              </div>
+            )}
+          </div>
+          <div className="dark-stat-number">{enqStats.total}</div>
+          <div className="dark-stat-label">Total Enquiries</div>
+          <div className="dark-stat-footer">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+            <span>{enqStats.new > 0 ? `${enqStats.new} unread` : "All caught up"}</span>
+          </div>
+        </div>
+
       </div>
 
       <div className="dark-analytics-card dark-card">
@@ -414,6 +450,59 @@ function DashboardHome() {
       <div className="dark-bottom-grid">
         <div className="dark-card">
           <div className="dark-card-header">
+            <h2 className="dark-card-title">Recent Enquiries</h2>
+            <a
+              href="#"
+              className="dark-card-link"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/dashboard/enquiries");
+              }}
+            >
+              View all →
+            </a>
+          </div>
+          <table className="dark-posts-table">
+            <thead>
+              <tr>
+                <th>NAME</th>
+                <th>SERVICE</th>
+                <th>STATUS</th>
+                <th>DATE</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentEnquiries.length === 0 ? (
+                <tr>
+                  <td colSpan="4">No enquiries yet.</td>
+                </tr>
+              ) : (
+                recentEnquiries.map((enq) => (
+                  <tr key={enq._id}>
+                    <td>
+                      <div className="dark-post-title">{enq.name}</div>
+                      <div style={{ fontSize: "11px", color: "#94a3b8" }}>{enq.email}</div>
+                    </td>
+                    <td>{enq.service || "—"}</td>
+                    <td>
+                      <span
+                        className={`dark-status-badge ${enq.status === "new" ? "draft" : "published"}`}
+                        style={enq.status === "new" ? { background: "#fee2e2", color: "#dc2626" } : {}}
+                      >
+                        <span className="dark-status-dot"></span>
+                        {enq.status}
+                      </span>
+                    </td>
+                    <td>{formatDate(enq.createdAt)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="dark-card">
+          <div className="dark-card-header">
             <h2 className="dark-card-title">Recent Posts</h2>
             <a
               href="#"
@@ -483,10 +572,7 @@ function DashboardHome() {
               </div>
               <div className="dark-quick-action-arrow">›</div>
             </div>
-            <div
-              className="dark-quick-action"
-              onClick={() => navigate("/dashboard/blogs")}
-            >
+            <div className="dark-quick-action" onClick={() => navigate("/dashboard/blogs")}>
               <div className="dark-quick-action-icon blue">
                 <FileText size={20} />
               </div>
@@ -494,6 +580,18 @@ function DashboardHome() {
                 <div className="dark-quick-action-title">View All Blogs</div>
                 <div className="dark-quick-action-desc">
                   Browse your content library
+                </div>
+              </div>
+              <div className="dark-quick-action-arrow">›</div>
+            </div>
+            <div className="dark-quick-action" onClick={() => navigate("/dashboard/enquiries")}>
+              <div className="dark-quick-action-icon red">
+                <Inbox size={20} />
+              </div>
+              <div className="dark-quick-action-content">
+                <div className="dark-quick-action-title">View Enquiries</div>
+                <div className="dark-quick-action-desc">
+                  {enqStats.new > 0 ? `${enqStats.new} unread messages` : "Manage contact requests"}
                 </div>
               </div>
               <div className="dark-quick-action-arrow">›</div>
