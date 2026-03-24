@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -164,10 +164,66 @@ type HomeBlogPost = {
   slug: string;
 };
 
+const ENQUIRY_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+  ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/enquiries/submit`
+  : "https://api.buzingbee.com/api/enquiries/submit";
+
 export default function HomePage() {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    service: "",
+    budget: "",
+    message: "",
+  });
+  const [leadSubmitState, setLeadSubmitState] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
+  const [leadSubmitMessage, setLeadSubmitMessage] = useState("");
   const [blogSectionPosts, setBlogSectionPosts] =
     useState<HomeBlogPost[]>(blogPosts);
+
+  const handleLeadSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    setLeadSubmitState("submitting");
+    setLeadSubmitMessage("");
+
+    try {
+      const response = await fetch(ENQUIRY_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, source: "home-cta" }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Failed to submit enquiry");
+      }
+
+      setLeadSubmitState("success");
+      setLeadSubmitMessage(
+        payload?.message || "Thank you! We will connect with you shortly.",
+      );
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        service: "",
+        budget: "",
+        message: "",
+      });
+    } catch (error) {
+      setLeadSubmitState("error");
+      setLeadSubmitMessage(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
+      );
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -972,44 +1028,112 @@ export default function HomePage() {
               <h3 className="text-xl font-bold text-textHeading font-heading mb-6">
                 Get Your Free Audit
               </h3>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  window.location.href = "/contact";
-                }}
-                className="flex flex-col gap-4"
-              >
-                <input
-                  type="text"
-                  placeholder="Your Name"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                  className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors"
-                />
-                <input
-                  type="email"
-                  placeholder="Your Email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                  className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors"
-                />
+              <form onSubmit={handleLeadSubmit} className="flex flex-col gap-4">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Your Name *"
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    required
+                    className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Your Email *"
+                    value={form.email}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, email: e.target.value }))
+                    }
+                    required
+                    className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors"
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <input
+                    type="tel"
+                    placeholder="Phone Number"
+                    value={form.phone}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, phone: e.target.value }))
+                    }
+                    className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors"
+                  />
+                  <select
+                    value={form.service}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, service: e.target.value }))
+                    }
+                    className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm outline-none focus:border-accent transition-colors"
+                  >
+                    <option value="">Select Service</option>
+                    <option value="web-development">Web Development</option>
+                    <option value="mobile-app">Mobile App Development</option>
+                    <option value="ai-ml">AI & ML Development</option>
+                    <option value="seo">SEO Optimization</option>
+                    <option value="social-media">Social Media Marketing</option>
+                    <option value="ppc">Google & Meta Ads</option>
+                    <option value="email-marketing">Email Marketing</option>
+                    <option value="branding">Brand Identity & Logo</option>
+                    <option value="ecommerce">E-Commerce Solutions</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <select
+                  value={form.budget}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, budget: e.target.value }))
+                  }
+                  className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm outline-none focus:border-accent transition-colors"
+                >
+                  <option value="">Select Budget Range</option>
+                  <option value="below-5k">Below ₹5,000</option>
+                  <option value="5k-10k">₹5,000 — ₹10,000</option>
+                  <option value="10k-25k">₹10,000 — ₹25,000</option>
+                  <option value="25k-50k">₹25,000 — ₹50,000</option>
+                  <option value="50k-1l">₹50,000 — ₹1,00,000</option>
+                  <option value="above-1l">Above ₹1,00,000</option>
+                </select>
+
                 <textarea
-                  placeholder="Tell us about your project..."
+                  placeholder="Tell us about your project *"
                   value={form.message}
                   onChange={(e) =>
-                    setForm({ ...form, message: e.target.value })
+                    setForm((prev) => ({ ...prev, message: e.target.value }))
                   }
                   rows={4}
+                  required
                   className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors resize-none"
                 />
+
                 <button
                   type="submit"
-                  className="btn-primary w-full gap-2 justify-center"
+                  disabled={leadSubmitState === "submitting"}
+                  className="btn-primary w-full gap-2 justify-center disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Start Your Project <ArrowRight className="w-5 h-5" />
+                  {leadSubmitState === "submitting"
+                    ? "Submitting..."
+                    : "Start Your Project"}{" "}
+                  <ArrowRight className="w-5 h-5" />
                 </button>
+
+                {leadSubmitState === "success" && (
+                  <div className="flex items-start gap-2 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm text-green-700">
+                    <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>{leadSubmitMessage}</span>
+                  </div>
+                )}
+
+                {leadSubmitState === "error" && (
+                  <div className="flex items-start gap-2 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-600">
+                    <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>{leadSubmitMessage}</span>
+                  </div>
+                )}
               </form>
             </motion.div>
           </div>

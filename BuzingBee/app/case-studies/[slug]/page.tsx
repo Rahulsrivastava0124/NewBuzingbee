@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, Building2, Tag, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { fetchCaseStudyBySlug, fetchCaseStudyCards } from "@/lib/caseStudy";
+import type { CaseStudyCardItem } from "@/lib/caseStudy";
 import { SITE_CONFIG } from "@/lib/constants";
 
 const toTitleFromSlug = (slug = "") =>
@@ -60,7 +61,9 @@ export default async function CaseStudyDetailPage({
   const { slug } = await params;
   const [cs, allCards] = await Promise.all([
     fetchCaseStudyBySlug(slug),
-    fetchCaseStudyCards().catch(() => []),
+    fetchCaseStudyCards().catch(
+      (): CaseStudyCardItem[] => [] as CaseStudyCardItem[],
+    ),
   ]);
 
   const title = cs?.title || toTitleFromSlug(slug);
