@@ -28,10 +28,17 @@ function PrivateRoute({ children }) {
 }
 
 function App() {
+  const isAuthenticated = authHelper.isAuthenticated();
+
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+          }
+        />
         <Route
           path="/dashboard"
           element={
@@ -57,7 +64,12 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="enquiries" element={<Enquiries />} />
         </Route>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route
+          path="/"
+          element={
+            <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />
+          }
+        />
       </Routes>
     </Router>
   );

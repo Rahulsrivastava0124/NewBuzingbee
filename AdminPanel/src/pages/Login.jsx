@@ -27,7 +27,7 @@ export default function Login() {
       });
 
       if (response.token) {
-        authHelper.saveToken(response.token);
+        authHelper.saveToken(response.token, response.expiresAt);
         navigate("/dashboard");
       }
     } catch (err) {

@@ -101,7 +101,6 @@ function DashboardHome() {
   });
   const [enqStats, setEnqStats] = useState({ total: 0, new: 0 });
   const [recentEnquiries, setRecentEnquiries] = useState([]);
-  const [recentBlogs, setRecentBlogs] = useState([]);
   const [selectedRangeValue, setSelectedRangeValue] = useState("7d");
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analytics, setAnalytics] = useState({
@@ -133,9 +132,8 @@ function DashboardHome() {
   useEffect(() => {
     const loadDashboardStats = async () => {
       try {
-        const [statsRes, blogs, enqStatsRes, enqList] = await Promise.all([
+        const [statsRes, enqStatsRes, enqList] = await Promise.all([
           blogAPI.getStats(),
-          blogAPI.getAll(),
           enquiryAPI.getStats().catch(() => ({ total: 0, new: 0 })),
           enquiryAPI.getAll({ limit: 4 }).catch(() => ({ enquiries: [] })),
         ]);
@@ -150,7 +148,6 @@ function DashboardHome() {
           animateValue("published", 0, published, 800);
         }, 300);
 
-        setRecentBlogs((blogs || []).slice(0, 4));
         setEnqStats({
           total: enqStatsRes.total || 0,
           new: enqStatsRes.new || 0,
@@ -159,7 +156,7 @@ function DashboardHome() {
 
         return () => clearTimeout(timeout);
       } catch {
-        setRecentBlogs([]);
+        setRecentEnquiries([]);
       }
     };
 
@@ -508,61 +505,6 @@ function DashboardHome() {
                         </span>
                       </td>
                       <td>{formatDate(enq.createdAt)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="dark-card">
-          <div className="dark-card-header">
-            <h2 className="dark-card-title">Recent Posts</h2>
-            <a
-              href="#"
-              className="dark-card-link"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/dashboard/blogs");
-              }}
-            >
-              View all →
-            </a>
-          </div>
-          <div className="dark-table-wrapper">
-            <table className="dark-posts-table">
-              <thead>
-                <tr>
-                  <th>TITLE</th>
-                  <th>STATUS</th>
-                  <th>DATE</th>
-                  <th>VIEWS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBlogs.length === 0 ? (
-                  <tr>
-                    <td colSpan="4">
-                      No blog data yet. Create your first post.
-                    </td>
-                  </tr>
-                ) : (
-                  recentBlogs.map((blog) => (
-                    <tr key={blog._id}>
-                      <td>
-                        <div className="dark-post-title">{blog.title}</div>
-                      </td>
-                      <td>
-                        <span
-                          className={`dark-status-badge ${blog.status || "draft"}`}
-                        >
-                          <span className="dark-status-dot"></span>
-                          {blog.status || "draft"}
-                        </span>
-                      </td>
-                      <td>{formatDate(blog.createdAt)}</td>
-                      <td>{blog.views || "—"}</td>
                     </tr>
                   ))
                 )}

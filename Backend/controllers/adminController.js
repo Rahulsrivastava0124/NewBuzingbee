@@ -1,15 +1,23 @@
 const Admin = require("../models/Admin");
 const jwt = require("jsonwebtoken");
 
+const JWT_SECRET = process.env.JWT_SECRET || "change-me-jwt-secret";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "10d";
+
 const generateToken = (admin) => {
-  return jwt.sign(
+  const token = jwt.sign(
     {
       id: admin._id,
       username: admin.username,
     },
-    process.env.JWT_SECRET || "change-me-jwt-secret",
-    { expiresIn: "10d" },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN },
   );
+
+  const decoded = jwt.decode(token);
+  const expiresAt = decoded?.exp ? Number(decoded.exp) * 1000 : null;
+
+  return { token, expiresAt };
 };
 
 const adminRegister = async (req, res) => {
@@ -111,12 +119,13 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    const token = generateToken(admin);
+    const { token, expiresAt } = generateToken(admin);
 
     return res.status(200).json({
       success: true,
       message: "Login successful",
       token,
+      expiresAt,
       data: {
         id: admin._id,
         username: admin.username,

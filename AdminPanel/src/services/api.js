@@ -465,8 +465,14 @@ export const caseStudyAPI = {
 
 // Auth helpers
 export const authHelper = {
-  saveToken: (token) => {
-    const expiryTime = decodeTokenExpiry(token) || Date.now() + TEN_DAYS_MS;
+  saveToken: (token, expiresAt) => {
+    const parsedExpiresAt = Number(expiresAt);
+    const expiryTime =
+      (Number.isFinite(parsedExpiresAt) && parsedExpiresAt > 0
+        ? parsedExpiresAt
+        : null) ||
+      decodeTokenExpiry(token) ||
+      Date.now() + TEN_DAYS_MS;
     localStorage.setItem(AUTH_TOKEN_KEY, token);
     localStorage.setItem(AUTH_TOKEN_EXPIRY_KEY, String(expiryTime));
   },
