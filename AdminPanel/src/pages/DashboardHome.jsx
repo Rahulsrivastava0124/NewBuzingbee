@@ -469,49 +469,51 @@ function DashboardHome() {
               View all →
             </a>
           </div>
-          <table className="dark-posts-table">
-            <thead>
-              <tr>
-                <th>NAME</th>
-                <th>SERVICE</th>
-                <th>STATUS</th>
-                <th>DATE</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentEnquiries.length === 0 ? (
+          <div className="dark-table-wrapper">
+            <table className="dark-posts-table">
+              <thead>
                 <tr>
-                  <td colSpan="4">No enquiries yet.</td>
+                  <th>NAME</th>
+                  <th>SERVICE</th>
+                  <th>STATUS</th>
+                  <th>DATE</th>
                 </tr>
-              ) : (
-                recentEnquiries.map((enq) => (
-                  <tr key={enq._id}>
-                    <td>
-                      <div className="dark-post-title">{enq.name}</div>
-                      <div style={{ fontSize: "11px", color: "#94a3b8" }}>
-                        {enq.email}
-                      </div>
-                    </td>
-                    <td>{enq.service || "—"}</td>
-                    <td>
-                      <span
-                        className={`dark-status-badge ${enq.status === "new" ? "draft" : "published"}`}
-                        style={
-                          enq.status === "new"
-                            ? { background: "#fee2e2", color: "#dc2626" }
-                            : {}
-                        }
-                      >
-                        <span className="dark-status-dot"></span>
-                        {enq.status}
-                      </span>
-                    </td>
-                    <td>{formatDate(enq.createdAt)}</td>
+              </thead>
+              <tbody>
+                {recentEnquiries.length === 0 ? (
+                  <tr>
+                    <td colSpan="4">No enquiries yet.</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  recentEnquiries.map((enq) => (
+                    <tr key={enq._id}>
+                      <td>
+                        <div className="dark-post-title">{enq.name}</div>
+                        <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                          {enq.email}
+                        </div>
+                      </td>
+                      <td>{enq.service || "—"}</td>
+                      <td>
+                        <span
+                          className={`dark-status-badge ${enq.status === "new" ? "draft" : "published"}`}
+                          style={
+                            enq.status === "new"
+                              ? { background: "#fee2e2", color: "#dc2626" }
+                              : {}
+                          }
+                        >
+                          <span className="dark-status-dot"></span>
+                          {enq.status}
+                        </span>
+                      </td>
+                      <td>{formatDate(enq.createdAt)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="dark-card">
@@ -528,41 +530,45 @@ function DashboardHome() {
               View all →
             </a>
           </div>
-          <table className="dark-posts-table">
-            <thead>
-              <tr>
-                <th>TITLE</th>
-                <th>STATUS</th>
-                <th>DATE</th>
-                <th>VIEWS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentBlogs.length === 0 ? (
+          <div className="dark-table-wrapper">
+            <table className="dark-posts-table">
+              <thead>
                 <tr>
-                  <td colSpan="4">No blog data yet. Create your first post.</td>
+                  <th>TITLE</th>
+                  <th>STATUS</th>
+                  <th>DATE</th>
+                  <th>VIEWS</th>
                 </tr>
-              ) : (
-                recentBlogs.map((blog) => (
-                  <tr key={blog._id}>
-                    <td>
-                      <div className="dark-post-title">{blog.title}</div>
+              </thead>
+              <tbody>
+                {recentBlogs.length === 0 ? (
+                  <tr>
+                    <td colSpan="4">
+                      No blog data yet. Create your first post.
                     </td>
-                    <td>
-                      <span
-                        className={`dark-status-badge ${blog.status || "draft"}`}
-                      >
-                        <span className="dark-status-dot"></span>
-                        {blog.status || "draft"}
-                      </span>
-                    </td>
-                    <td>{formatDate(blog.createdAt)}</td>
-                    <td>{blog.views || "—"}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  recentBlogs.map((blog) => (
+                    <tr key={blog._id}>
+                      <td>
+                        <div className="dark-post-title">{blog.title}</div>
+                      </td>
+                      <td>
+                        <span
+                          className={`dark-status-badge ${blog.status || "draft"}`}
+                        >
+                          <span className="dark-status-dot"></span>
+                          {blog.status || "draft"}
+                        </span>
+                      </td>
+                      <td>{formatDate(blog.createdAt)}</td>
+                      <td>{blog.views || "—"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="dark-card">
