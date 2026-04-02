@@ -4,6 +4,7 @@ import Link from "next/link";
 import { fetchCaseStudyBySlug, fetchCaseStudyCards } from "@/lib/caseStudy";
 import type { CaseStudyCardItem } from "@/lib/caseStudy";
 import { SITE_CONFIG } from "@/lib/constants";
+import { canonicalForPath, resolveCmsCanonical } from "@/lib/seo";
 
 const toTitleFromSlug = (slug = "") =>
   slug
@@ -31,17 +32,18 @@ export async function generateMetadata({
     cs?.seoDescription || cs?.summary || "Read this case study.";
   const image = cs?.image || "/og-image.png";
   const canonicalPath = `/case-studies/${slug}`;
+  const canonicalUrl = resolveCmsCanonical(cs?.canonicalUrl, canonicalPath);
 
   return {
     title,
     description,
     keywords: cs?.seoKeywords,
-    alternates: { canonical: cs?.canonicalUrl || canonicalPath },
+    alternates: { canonical: canonicalUrl },
     openGraph: {
       title,
       description,
       type: "article",
-      url: canonicalPath,
+      url: canonicalUrl,
       images: [{ url: image }],
     },
     twitter: {
@@ -76,7 +78,7 @@ export default async function CaseStudyDetailPage({
     headline: title,
     description: cs?.summary || "",
     image: image || `${SITE_CONFIG.url}/og-image.png`,
-    url: `${SITE_CONFIG.url}/case-studies/${slug}`,
+    url: canonicalForPath(`/case-studies/${slug}`),
     author: { "@type": "Organization", name: SITE_CONFIG.name },
     publisher: {
       "@type": "Organization",

@@ -25,6 +25,16 @@ const nextConfig = {
 
     return config;
   },
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.buzingbee.com" }],
+        destination: "https://buzingbee.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

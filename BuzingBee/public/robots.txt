@@ -17,6 +17,7 @@ Disallow: /
 # Allow all other crawlers
 User-agent: *
 Allow: /
+Disallow: /api/
 
 # Sitemap location
 Sitemap: https://buzingbee.com/sitemap.xml

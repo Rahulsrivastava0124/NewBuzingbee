@@ -5,6 +5,7 @@ import BlogCard from "@/components/BlogCard";
 import { fetchBlogBySlug } from "@/lib/blog";
 import { fetchBlogCards } from "@/lib/blog";
 import { SITE_CONFIG } from "@/lib/constants";
+import { canonicalForPath, resolveCmsCanonical } from "@/lib/seo";
 
 const toTitleFromSlug = (slug = "") =>
   slug
@@ -32,19 +33,20 @@ export async function generateMetadata({
     post?.seoDescription || post?.excerpt || "Read this blog article.";
   const image = post?.image || "/og-image.png";
   const canonicalPath = `/blog/${slug}`;
+  const canonicalUrl = resolveCmsCanonical(post?.canonicalUrl, canonicalPath);
 
   return {
     title,
     description,
     keywords: post?.seoKeywords,
     alternates: {
-      canonical: post?.canonicalUrl || canonicalPath,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title,
       description,
       type: "article",
-      url: canonicalPath,
+      url: canonicalUrl,
       images: [{ url: image }],
     },
     twitter: {
@@ -71,7 +73,7 @@ export default async function BlogDetailPage({
   const category = post?.category || "Blog";
   const date = post?.date || "";
   const contentHtml = sanitizeBlogHtml(post?.content || "");
-  const articleUrl = `${SITE_CONFIG.url}/blog/${slug}`;
+  const articleUrl = canonicalForPath(`/blog/${slug}`);
   const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(`${title} ${articleUrl}`)}`;
   const recommendedBlogs = blogCards
     .filter((blog) => blog.slug !== slug)
