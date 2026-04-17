@@ -167,9 +167,9 @@ export default function Navbar() {
         }`}
       >
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
+          <div className="flex items-center h-16 md:h-20 gap-4 xl:gap-6">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 shrink-0">
               <img
                 src="/bee1-removebg-preview.png"
                 alt={SITE_CONFIG.name}
@@ -181,7 +181,7 @@ export default function Navbar() {
             </Link>
 
             {/* Desktop nav */}
-            <div className="hidden lg:flex items-center gap-8">
+            <div className="hidden xl:flex flex-1 items-center justify-center gap-8 px-4 min-w-0">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
@@ -201,11 +201,11 @@ export default function Navbar() {
             </div>
 
             {/* CTA + Hamburger */}
-            <div className="flex items-center gap-4">
+            <div className="ml-auto flex items-center gap-3 md:gap-4 shrink-0">
               <a
                 href={`tel:${SITE_CONFIG.phone}`}
                 aria-label="Call us"
-                className="hidden md:inline-flex w-20 h-10 items-center justify-center rounded-full border border-[#FACC15]  text-[#FACC15]  shadow-[0_8px_22px_rgba(31,27,18,0.18)] transition-colors"
+                className="hidden xl:inline-flex w-20 h-10 items-center justify-center rounded-full border border-[#FACC15] text-[#FACC15] shadow-[0_8px_22px_rgba(31,27,18,0.18)] transition-colors"
               >
                 <Phone className="w-4.5 h-4.5" />
               </a>
@@ -214,7 +214,7 @@ export default function Navbar() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="WhatsApp us"
-                className="hidden md:inline-flex w-10 h-10 items-center justify-center rounded-full border border-green-600  text-green-600 shadow-[0_8px_22px_rgba(31,27,18,0.18)] transition-colors"
+                className="hidden xl:inline-flex w-10 h-10 items-center justify-center rounded-full border border-green-600 text-green-600 shadow-[0_8px_22px_rgba(31,27,18,0.18)] transition-colors"
               >
                 <MessageCircle className="w-4.5 h-4.5" />
               </a>
@@ -224,13 +224,13 @@ export default function Navbar() {
                   setMobileOpen(false);
                   setEnquiryOpen(true);
                 }}
-                className="hidden md:inline-flex btn-primary bg-green-500 hover:bg-green-600 text-sm"
+                className="hidden xl:inline-flex btn-primary bg-green-500 hover:bg-green-600 text-sm"
               >
                 Get Free Call
               </button>
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden text-textHeading p-2"
+                className="xl:hidden text-textHeading p-2"
                 aria-label="Toggle menu"
               >
                 {mobileOpen ? (
@@ -251,7 +251,7 @@ export default function Navbar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="lg:hidden bg-bgPrimary/95 backdrop-blur-xl border-t border-border overflow-hidden"
+              className="xl:hidden bg-bgPrimary/95 backdrop-blur-xl border-t border-border overflow-hidden"
             >
               <div className="px-4 py-6 space-y-4">
                 {NAV_LINKS.map((link) => (
