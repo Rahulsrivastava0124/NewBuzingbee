@@ -41,7 +41,7 @@ export const NAV_LINKS = [
   { label: "About", href: "/about" },
   { label: "Services", href: "/services" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Startup Plans", href: "/startup" },
+  { label: "Startups", href: "/startup" },
   { label: "Portfolio", href: "/portfolio" },
   { label: "Blog", href: "/blog" },
   { label: "Restaurant", href: "https://restro.buzingbee.com" },
