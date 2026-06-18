@@ -4,7 +4,7 @@ export const SITE_CONFIG = {
   url: "https://buzingbee.com",
   email: "hello@buzingbee.com",
   phone: "+91 7360879787",
-  whatsapp: "917360879787",
+  whatsapp: "918603089777",
   address: "Kolkata, West Bengal, India",
   workingHours: "Mon - Sat: 9:00 AM - 7:00 PM",
   socials: {
