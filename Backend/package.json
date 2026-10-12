@@ -1,11 +1,15 @@
 {
   "name": "adminbuzingbee",
   "version": "1.0.0",
-  "description": "",
+  "description": "BuzingBee admin API",
   "license": "ISC",
   "author": "Rahul kumar",
   "type": "commonjs",
   "main": "index.js",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
@@ -21,7 +25,8 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.4",
-    "multer": "^2.1.1"
+    "multer": "^2.1.1",
+    "nodemailer": "^10.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

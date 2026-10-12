@@ -1,22 +1,22 @@
-import { Users, Eye } from "lucide-react";
-import "./SimplePage.css";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import { Users } from "lucide-react";
 
 export default function Audience() {
   return (
-    <div className="simple-page">
-      <div className="simple-page-card">
-        <div className="simple-page-icon">
-          <Users size={24} />
-        </div>
-        <h2>Audience</h2>
-        <p>
-          This section is active. You can add audience analytics API here next.
-        </p>
-        <div className="simple-page-meta">
-          <Eye size={16} />
-          <span>Menu is connected and working</span>
-        </div>
-      </div>
-    </div>
+    <Box sx={{ maxWidth: 560 }}>
+      <Paper sx={{ p: 4 }}>
+        <Stack spacing={1.5}>
+          <Users size={36} color="var(--mui-palette-primary-main)" />
+          <Typography variant="h5">Audience</Typography>
+          <Typography color="text.secondary">
+            Audience analytics are not available yet. Visit Traffic &amp; Leads
+            for visit-level data.
+          </Typography>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }

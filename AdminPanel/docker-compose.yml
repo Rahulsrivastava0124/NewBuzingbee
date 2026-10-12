@@ -1,18 +1,16 @@
-version: "3.8"
-
+# Admin panel (nginx) + API. Secrets live in ../Backend/.env (copy .env.example).
 services:
   admin-panel:
     build:
       context: .
       dockerfile: Dockerfile
+      # The browser calls the API directly; bake its public URL in at build time
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000/api}
     container_name: buzingbee-admin-panel
     ports:
-      - "3000:80"
+      - "8080:80"
     restart: unless-stopped
-    env_file:
-      - .env
-    networks:
-      - buzingbee-network
     depends_on:
       - backend
 
@@ -22,14 +20,15 @@ services:
       dockerfile: Dockerfile
     container_name: buzingbee-backend
     ports:
-      - "3001:3001"
+      - "3000:3000"
     restart: unless-stopped
+    env_file:
+      - ../Backend/.env
     environment:
-      - NODE_ENV=production
-      - PORT=3001
-    networks:
-      - buzingbee-network
+      NODE_ENV: production
+      PORT: "3000"
+    volumes:
+      - backend-uploads:/app/uploads
 
-networks:
-  buzingbee-network:
-    driver: bridge
+volumes:
+  backend-uploads:

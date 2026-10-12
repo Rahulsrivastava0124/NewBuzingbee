@@ -63,7 +63,7 @@ Base URL (local): `http://localhost:3000`
 
 - **Method:** `POST`
 - **Path:** `/api/admin/register`
-- **Description:** Create new admin account.
+- **Description:** Create a new admin account. **Requires an admin token** (`Authorization: Bearer <token>`).
 
 ### Request Body
 
@@ -171,18 +171,53 @@ Base URL (local): `http://localhost:3000`
 
 ---
 
-## Default Admin Account
+## 6) Finance (admin only)
 
-A default admin is auto-created when DB connects (if not already present):
+All routes need `Authorization: Bearer <token>` and live under `/api/finance`.
 
-- `username`: `admin`
-- `email`: `admin@example.com`
-- `password`: `admin123`
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/summary` | Wallet balance, invoiced, received, outstanding, 6-month series |
+| GET / POST | `/clients` | List (with billing totals) / create client |
+| PUT / DELETE | `/clients/:id` | Update / delete (blocked while the client has invoices) |
+| GET / POST | `/invoices` | List (`status`, `client`, `search`) / create |
+| GET / PUT / DELETE | `/invoices/:id` | Detail with payments / edit / delete |
+| POST | `/invoices/:id/payments` | Record a payment (credits the wallet) |
+| GET | `/payments` | Payment history (`client`, `invoice`, `method`, `from`, `to`) |
+| DELETE | `/payments/:id` | Remove a payment (recalculates the invoice) |
+| GET / POST | `/expenses` | List / create (debits the wallet) |
+| PUT / DELETE | `/expenses/:id` | Update / delete (ledger stays in sync) |
+| GET / POST | `/wallet` | Ledger with running balance / manual credit or debit |
+| DELETE | `/wallet/:id` | Delete a manual entry |
 
-You can override using `.env`:
+## 7) Email and company settings (admin only)
+
+Outgoing email is configured in the database, not in `.env`. Use the admin
+panel (Settings > Email) or these endpoints:
+
+- `GET /api/settings` - company details and the saved SMTP settings (the password is never returned, only `passSet`).
+- `PUT /api/settings/company` - save company details.
+- `POST /api/settings/company/logo` / `DELETE /api/settings/company/logo` - upload or remove the logo.
+- `PUT /api/settings/smtp` - save host, port, secure, user, from and password; the connection is checked straight away.
+- `POST /api/settings/smtp/test` with `{ "to": "you@example.com" }` - sends a test email.
+- `GET /api/admin/smtp/status` - re-checks the saved SMTP login.
+
+---
+
+## First admin account
+
+On first start with an empty database the API creates one admin from these
+environment variables (all three are required in production):
 
 - `DEFAULT_ADMIN_USERNAME`
 - `DEFAULT_ADMIN_EMAIL`
 - `DEFAULT_ADMIN_PASSWORD`
-- `MONGO_URI`
-- `JWT_SECRET`
+
+There are no built-in credentials. Registering further admins
+(`POST /api/admin/register`) requires an existing admin's token.
+
+## Environment
+
+See `.env.example` for every setting. In production (`NODE_ENV=production`)
+the server refuses to start without `MONGO_URI` and a `JWT_SECRET` of at least
+32 characters, and hides internal error details from API responses.

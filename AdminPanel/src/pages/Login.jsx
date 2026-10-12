@@ -1,18 +1,23 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
+import CircularProgress from "@mui/material/CircularProgress";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { adminAPI, authHelper } from "../services/api";
-import "./Login.css";
+import { PasswordField } from "../components/common";
+import BrandMark from "../components/Brand";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    loginId: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ loginId: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,91 +42,79 @@ export default function Login() {
     }
   };
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const handleChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   return (
-    <div className="login-container">
-      <div className="login-background"></div>
-
-      <div className="login-card">
-        <div className="login-header">
-          <div className="login-logo">
-            <div className="bee-icon">🐝</div>
-            <h1>BuzingBee</h1>
-          </div>
-          <p className="login-subtitle">
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        p: 2,
+        background:
+          "radial-gradient(circle at 20% 10%, rgba(245,166,35,0.22), transparent 45%), radial-gradient(circle at 85% 90%, rgba(255,140,0,0.14), transparent 40%)",
+        bgcolor: "background.default",
+      }}
+    >
+      <Paper sx={{ width: "100%", maxWidth: 420, p: { xs: 3, sm: 5 }, borderRadius: 4 }}>
+        <Stack spacing={1} sx={{ alignItems: "center", mb: 3, textAlign: "center" }}>
+          <BrandMark size={56} />
+          <Typography variant="h5">BuzingBee</Typography>
+          <Typography color="text.secondary">
             Welcome back to your creative workspace
-          </p>
-        </div>
+          </Typography>
+        </Stack>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          {error && <div className="error-message">{error}</div>}
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2.5}>
+            {error && <Alert severity="error">{error}</Alert>}
 
-          <div className="form-group">
-            <label htmlFor="loginId">Username or Email</label>
-            <input
-              type="text"
-              id="loginId"
+            <TextField
+              label="Username or Email"
               name="loginId"
               value={formData.loginId}
               onChange={handleChange}
-              placeholder="Admin or admin@buzingbee.com"
+              placeholder="admin or admin@buzingbee.com"
               required
+              autoFocus
+              autoComplete="username"
               disabled={loading}
             />
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <div className="password-field-wrap">
-              <input
-                disabled={loading}
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle-btn"
-                onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                disabled={loading}
+            <PasswordField
+              label="Password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              autoComplete="current-password"
+              disabled={loading}
+            />
+
+            <Box sx={{ textAlign: "right", mt: -1 }}>
+              <Link
+                component={RouterLink}
+                to="/forgot-password"
+                underline="hover"
+                sx={{ fontSize: 14, fontWeight: 600 }}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
+                Forgot password?
+              </Link>
+            </Box>
 
-          <div className="form-options">
-            <label className="remember-me">
-              <input type="checkbox" />
-              <span>Remember me</span>
-            </label>
-            <a href="#" className="forgot-password">
-              Forgot password?
-            </a>
-          </div>
-
-          <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? "Signing In..." : "Sign In"}
-          </button>
-        </form>
-
-        <div className="login-footer">
-          <p>
-            Don't have an account? <a href="#">Contact Admin</a>
-          </p>
-        </div>
-      </div>
-    </div>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={18} color="inherit" /> : null}
+            >
+              {loading ? "Signing In..." : "Sign In"}
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

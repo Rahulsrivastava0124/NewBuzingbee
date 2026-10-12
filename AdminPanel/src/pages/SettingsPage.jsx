@@ -1,17 +1,29 @@
 import { useEffect, useState } from "react";
-import {
-  Settings,
-  Shield,
-  Save,
-  UserCircle2,
-  LockKeyhole,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import Alert from "@mui/material/Alert";
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { adminAPI } from "../services/api";
-import "./SettingsPage.css";
+import { LoadingState, PageHeader, PasswordField } from "../components/common";
+import CompanyTab from "./settings/CompanyTab";
+import EmailTab from "./settings/EmailTab";
+import { Building2, Lock, Mail, Save, User } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
-export default function SettingsPage() {
+const EMPTY_PASSWORDS = {
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+};
+
+function ProfileSettings() {
   const [loading, setLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -21,20 +33,8 @@ export default function SettingsPage() {
   const [profileSuccess, setProfileSuccess] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [profile, setProfile] = useState(null);
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-  });
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [showPassword, setShowPassword] = useState({
-    currentPassword: false,
-    newPassword: false,
-    confirmPassword: false,
-  });
+  const [form, setForm] = useState({ username: "", email: "" });
+  const [passwordForm, setPasswordForm] = useState(EMPTY_PASSWORDS);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -43,7 +43,6 @@ export default function SettingsPage() {
       try {
         const response = await adminAPI.getProfile();
         const admin = response?.admin || null;
-
         setProfile(admin);
         setForm({
           username: admin?.username || "",
@@ -59,37 +58,26 @@ export default function SettingsPage() {
     loadProfile();
   }, []);
 
-  const handleInputChange = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const handleInputChange = (key) => (event) => {
+    setForm((prev) => ({ ...prev, [key]: event.target.value }));
     setProfileSuccess("");
     setProfileError("");
   };
 
-  const handlePasswordInputChange = (key, value) => {
-    setPasswordForm((prev) => ({ ...prev, [key]: value }));
+  const handlePasswordInputChange = (key) => (event) => {
+    setPasswordForm((prev) => ({ ...prev, [key]: event.target.value }));
     setPasswordSuccess("");
     setPasswordError("");
   };
 
-  const togglePasswordVisibility = (key) => {
-    setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
   const handleReset = () => {
-    setForm({
-      username: profile?.username || "",
-      email: profile?.email || "",
-    });
+    setForm({ username: profile?.username || "", email: profile?.email || "" });
     setProfileError("");
     setProfileSuccess("");
   };
 
   const handlePasswordReset = () => {
-    setPasswordForm({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+    setPasswordForm(EMPTY_PASSWORDS);
     setPasswordError("");
     setPasswordSuccess("");
   };
@@ -99,11 +87,7 @@ export default function SettingsPage() {
     setProfileError("");
     setProfileSuccess("");
 
-    const payload = {
-      username: form.username.trim(),
-      email: form.email.trim(),
-    };
-
+    const payload = { username: form.username.trim(), email: form.email.trim() };
     if (!payload.username || !payload.email) {
       setProfileError("Username and email are required.");
       return;
@@ -131,26 +115,15 @@ export default function SettingsPage() {
     setPasswordError("");
     setPasswordSuccess("");
 
-    const payload = {
-      currentPassword: passwordForm.currentPassword,
-      newPassword: passwordForm.newPassword,
-      confirmPassword: passwordForm.confirmPassword,
-    };
-
-    if (
-      !payload.currentPassword ||
-      !payload.newPassword ||
-      !payload.confirmPassword
-    ) {
+    const payload = { ...passwordForm };
+    if (!payload.currentPassword || !payload.newPassword || !payload.confirmPassword) {
       setPasswordError("All password fields are required.");
       return;
     }
-
     if (payload.newPassword.length < 8) {
       setPasswordError("New password must be at least 8 characters.");
       return;
     }
-
     if (payload.newPassword !== payload.confirmPassword) {
       setPasswordError("New password and confirm password do not match.");
       return;
@@ -160,11 +133,7 @@ export default function SettingsPage() {
     try {
       const response = await adminAPI.updateProfile(payload);
       setPasswordSuccess(response?.message || "Password updated successfully.");
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      setPasswordForm(EMPTY_PASSWORDS);
     } catch (err) {
       setPasswordError(err.message || "Failed to update password");
     } finally {
@@ -172,247 +141,162 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="settings-page">
-        <div className="settings-card">
-          <p className="settings-muted">Loading profile settings...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState text="Loading profile settings..." />;
 
   return (
-    <div className="settings-page">
-      <div className="settings-card">
-        <div className="settings-icon">
-          <Settings size={24} />
-        </div>
-        <h2>Settings</h2>
-        <p>View and update your admin profile details.</p>
+    <Box sx={{ maxWidth: 640 }}>
 
-        <div className="settings-meta">
-          <Shield size={16} />
-          <span>Protected admin route</span>
-        </div>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-        <div className="settings-profile-head">
-          <div className="settings-avatar">
-            <UserCircle2 size={24} />
-          </div>
-          <div>
-            <h3>Profile</h3>
-            <p>ID: {profile?._id || profile?.id || "—"}</p>
-          </div>
-        </div>
+      <Paper sx={{ p: { xs: 2.5, sm: 4 } }}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: "center", mb: 3 }}>
+          <Avatar sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
+            <User />
+          </Avatar>
+          <Box>
+            <Typography variant="h6">Profile</Typography>
+            <Typography variant="body2" color="text.secondary">
+              ID: {profile?._id || profile?.id || "—"}
+            </Typography>
+          </Box>
+        </Stack>
 
-        {error && <div className="settings-alert error">{error}</div>}
-
-        <div className="settings-section">
-          <form className="settings-form" onSubmit={handleProfileSubmit}>
-            {profileError && (
-              <div className="settings-alert error">{profileError}</div>
-            )}
-            {profileSuccess && (
-              <div className="settings-alert success">{profileSuccess}</div>
-            )}
-
-            <div className="settings-field">
-              <label htmlFor="username">Username</label>
-              <input
-                id="username"
-                type="text"
-                value={form.username}
-                onChange={(event) =>
-                  handleInputChange("username", event.target.value)
-                }
-                placeholder="Enter username"
-                autoComplete="username"
-              />
-            </div>
-
-            <div className="settings-field">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                value={form.email}
-                onChange={(event) =>
-                  handleInputChange("email", event.target.value)
-                }
-                placeholder="Enter email"
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="settings-actions">
-              <button
-                type="button"
-                className="settings-btn ghost"
-                onClick={handleReset}
+        <Box component="form" onSubmit={handleProfileSubmit}>
+          <Stack spacing={2.5}>
+            {profileError && <Alert severity="error">{profileError}</Alert>}
+            {profileSuccess && <Alert severity="success">{profileSuccess}</Alert>}
+            <TextField
+              label="Username"
+              value={form.username}
+              onChange={handleInputChange("username")}
+              autoComplete="username"
+            />
+            <TextField
+              label="Email"
+              type="email"
+              value={form.email}
+              onChange={handleInputChange("email")}
+              autoComplete="email"
+            />
+            <Stack direction="row" spacing={1.5} sx={{ justifyContent: "flex-end" }}>
+              <Button color="inherit" onClick={handleReset} disabled={profileSaving}>
+                Reset
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                startIcon={<Save />}
                 disabled={profileSaving}
               >
+                {profileSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </Stack>
+          </Stack>
+        </Box>
+
+        <Divider sx={{ my: 4 }} />
+
+        <Stack direction="row" spacing={2} sx={{ alignItems: "center", mb: 3 }}>
+          <Avatar sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
+            <Lock />
+          </Avatar>
+          <Box>
+            <Typography variant="h6">Change Password</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Keep your account secure by updating your password regularly.
+            </Typography>
+          </Box>
+        </Stack>
+
+        <Box component="form" onSubmit={handlePasswordSubmit}>
+          <Stack spacing={2.5}>
+            {passwordError && <Alert severity="error">{passwordError}</Alert>}
+            {passwordSuccess && <Alert severity="success">{passwordSuccess}</Alert>}
+            <PasswordField
+              label="Current password"
+              value={passwordForm.currentPassword}
+              onChange={handlePasswordInputChange("currentPassword")}
+              autoComplete="current-password"
+              disabled={passwordSaving}
+            />
+            <PasswordField
+              label="New password"
+              value={passwordForm.newPassword}
+              onChange={handlePasswordInputChange("newPassword")}
+              autoComplete="new-password"
+              disabled={passwordSaving}
+            />
+            <PasswordField
+              label="Confirm new password"
+              value={passwordForm.confirmPassword}
+              onChange={handlePasswordInputChange("confirmPassword")}
+              autoComplete="new-password"
+              disabled={passwordSaving}
+            />
+            <Stack direction="row" spacing={1.5} sx={{ justifyContent: "flex-end" }}>
+              <Button color="inherit" onClick={handlePasswordReset} disabled={passwordSaving}>
                 Reset
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="settings-btn primary"
-                disabled={profileSaving}
-              >
-                <Save size={16} />
-                <span>{profileSaving ? "Saving..." : "Save Changes"}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div className="settings-divider" />
-
-        <div className="settings-profile-head">
-          <div className="settings-avatar">
-            <LockKeyhole size={20} />
-          </div>
-          <div>
-            <h3>Change Password</h3>
-            <p>Keep your account secure by updating password regularly.</p>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <form className="settings-form" onSubmit={handlePasswordSubmit}>
-            {passwordError && (
-              <div className="settings-alert error">{passwordError}</div>
-            )}
-            {passwordSuccess && (
-              <div className="settings-alert success">{passwordSuccess}</div>
-            )}
-
-            <div className="settings-field">
-              <label htmlFor="currentPassword">Current Password</label>
-              <div className="settings-password-wrap">
-                <input
-                  id="currentPassword"
-                  type={showPassword.currentPassword ? "text" : "password"}
-                  value={passwordForm.currentPassword}
-                  onChange={(event) =>
-                    handlePasswordInputChange(
-                      "currentPassword",
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Enter current password"
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  className="settings-password-toggle"
-                  onClick={() => togglePasswordVisibility("currentPassword")}
-                  aria-label={
-                    showPassword.currentPassword
-                      ? "Hide current password"
-                      : "Show current password"
-                  }
-                  disabled={passwordSaving}
-                >
-                  {showPassword.currentPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
-                    <Eye size={18} />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="settings-field">
-              <label htmlFor="newPassword">New Password</label>
-              <div className="settings-password-wrap">
-                <input
-                  id="newPassword"
-                  type={showPassword.newPassword ? "text" : "password"}
-                  value={passwordForm.newPassword}
-                  onChange={(event) =>
-                    handlePasswordInputChange("newPassword", event.target.value)
-                  }
-                  placeholder="Enter new password"
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  className="settings-password-toggle"
-                  onClick={() => togglePasswordVisibility("newPassword")}
-                  aria-label={
-                    showPassword.newPassword
-                      ? "Hide new password"
-                      : "Show new password"
-                  }
-                  disabled={passwordSaving}
-                >
-                  {showPassword.newPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
-                    <Eye size={18} />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="settings-field">
-              <label htmlFor="confirmPassword">Confirm New Password</label>
-              <div className="settings-password-wrap">
-                <input
-                  id="confirmPassword"
-                  type={showPassword.confirmPassword ? "text" : "password"}
-                  value={passwordForm.confirmPassword}
-                  onChange={(event) =>
-                    handlePasswordInputChange(
-                      "confirmPassword",
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Re-enter new password"
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  className="settings-password-toggle"
-                  onClick={() => togglePasswordVisibility("confirmPassword")}
-                  aria-label={
-                    showPassword.confirmPassword
-                      ? "Hide confirm password"
-                      : "Show confirm password"
-                  }
-                  disabled={passwordSaving}
-                >
-                  {showPassword.confirmPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
-                    <Eye size={18} />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="settings-actions">
-              <button
-                type="button"
-                className="settings-btn ghost"
-                onClick={handlePasswordReset}
+                variant="contained"
+                startIcon={<Save />}
                 disabled={passwordSaving}
               >
-                Reset
-              </button>
-              <button
-                type="submit"
-                className="settings-btn primary"
-                disabled={passwordSaving}
-              >
-                <Save size={16} />
-                <span>{passwordSaving ? "Saving..." : "Update Password"}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+                {passwordSaving ? "Saving..." : "Update Password"}
+              </Button>
+            </Stack>
+          </Stack>
+        </Box>
+      </Paper>
+    </Box>
+  );
+}
+
+const TABS = [
+  { key: "profile", label: "Profile & password", icon: <User size={18} /> },
+  { key: "company", label: "Company", icon: <Building2 size={18} /> },
+  { key: "email", label: "Email (SMTP)", icon: <Mail size={18} /> },
+];
+
+export default function SettingsPage() {
+  const [params, setParams] = useSearchParams();
+  const current = TABS.some((t) => t.key === params.get("tab"))
+    ? params.get("tab")
+    : "profile";
+
+  return (
+    <Box sx={{ maxWidth: 900 }}>
+      <PageHeader
+        title="Settings"
+        subtitle="Your profile, company details and outgoing email."
+      />
+      <Tabs
+        value={current}
+        onChange={(_, value) => setParams({ tab: value }, { replace: true })}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
+      >
+        {TABS.map((t) => (
+          <Tab
+            key={t.key}
+            value={t.key}
+            label={t.label}
+            icon={t.icon}
+            iconPosition="start"
+            sx={{ minHeight: 48 }}
+          />
+        ))}
+      </Tabs>
+
+      {current === "profile" && <ProfileSettings />}
+      {current === "company" && <CompanyTab />}
+      {current === "email" && <EmailTab />}
+    </Box>
   );
 }

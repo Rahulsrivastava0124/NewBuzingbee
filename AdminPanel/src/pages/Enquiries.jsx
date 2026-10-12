@@ -1,14 +1,37 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, Trash2, Eye, X, MessageSquare, RefreshCw } from "lucide-react";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
+import Drawer from "@mui/material/Drawer";
+import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import { enquiryAPI } from "../services/api";
-import "./BlogList.css";
-import "./Enquiries.css";
+import { useFeedback } from "../components/Feedback";
+import { EmptyState, LoadingState, PageHeader } from "../components/common";
+import { Eye, MessagesSquare, RefreshCw, Search, Trash2, X } from "lucide-react";
 
 const STATUS_COLORS = {
-  new: "status-published",
-  read: "status-draft",
-  replied: "status-review",
-  archived: "status-scheduled",
+  new: "success",
+  read: "info",
+  replied: "warning",
+  archived: "default",
 };
 
 const STATUS_LABELS = {
@@ -40,7 +63,32 @@ const BUDGET_LABELS = {
   "above-1l": "Above ₹1,00,000",
 };
 
+const formatDate = (d) =>
+  new Date(d).toLocaleString("en-IN", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+function Field({ label, children }) {
+  return (
+    <Box>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}
+      >
+        {label}
+      </Typography>
+      <Typography sx={{ fontWeight: 600 }}>{children}</Typography>
+    </Box>
+  );
+}
+
 export default function Enquiries() {
+  const { confirm, notify } = useFeedback();
   const [enquiries, setEnquiries] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -62,6 +110,7 @@ export default function Enquiries() {
         const data = await enquiryAPI.getAll(filters);
         setEnquiries(data.enquiries || []);
         setTotal(data.total || 0);
+        setError("");
       } catch (err) {
         setError(err.message);
       } finally {
@@ -83,9 +132,7 @@ export default function Enquiries() {
         setDetailLoading(true);
         const updated = await enquiryAPI.getById(enquiry._id);
         setSelected(updated);
-        setEnquiries((prev) =>
-          prev.map((e) => (e._id === updated._id ? updated : e)),
-        );
+        setEnquiries((prev) => prev.map((e) => (e._id === updated._id ? updated : e)));
       } catch {
         /* ignore */
       } finally {
@@ -105,7 +152,7 @@ export default function Enquiries() {
       setEnquiries((prev) => prev.map((e) => (e._id === id ? updated : e)));
       if (selected?._id === id) setSelected(updated);
     } catch (err) {
-      alert("Failed to update status: " + err.message);
+      notify("Failed to update status: " + err.message, "error");
     }
   };
 
@@ -113,294 +160,285 @@ export default function Enquiries() {
     if (!selected) return;
     try {
       setSaving(true);
-      const updated = await enquiryAPI.update(selected._id, {
-        adminNotes: noteText,
-      });
+      const updated = await enquiryAPI.update(selected._id, { adminNotes: noteText });
       setSelected(updated);
-      setEnquiries((prev) =>
-        prev.map((e) => (e._id === updated._id ? updated : e)),
-      );
+      setEnquiries((prev) => prev.map((e) => (e._id === updated._id ? updated : e)));
+      notify("Note saved", "success");
     } catch (err) {
-      alert("Failed to save note: " + err.message);
+      notify("Failed to save note: " + err.message, "error");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this enquiry permanently?")) return;
+    const ok = await confirm({
+      title: "Delete enquiry",
+      message: "Delete this enquiry permanently?",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     try {
       await enquiryAPI.delete(id);
       setEnquiries((prev) => prev.filter((e) => e._id !== id));
       if (selected?._id === id) handleClose();
+      notify("Enquiry deleted", "success");
     } catch (err) {
-      alert("Failed to delete: " + err.message);
+      notify("Failed to delete: " + err.message, "error");
     }
   };
 
-  const formatDate = (d) =>
-    new Date(d).toLocaleString("en-IN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  if (loading) return <LoadingState text="Loading enquiries..." />;
 
-  if (loading) {
-    return (
-      <div className="blog-list-container">
-        <div className="loading-state">
-          <div className="loading-spinner" />
-          <p>Loading enquiries...</p>
-        </div>
-      </div>
-    );
-  }
+  const newCount = enquiries.filter((e) => e.status === "new").length;
 
   return (
-    <div className="blog-list-container">
-      {/* Header */}
-      <div className="blog-list-header">
-        <div className="header-left">
-          <h1>Enquiries</h1>
-          <p className="subtitle">
-            {total} total &nbsp;·&nbsp;
-            <span className="enq-new-badge">
-              {enquiries.filter((e) => e.status === "new").length} new
-            </span>
-          </p>
-        </div>
-        <button
-          className="btn-create"
-          onClick={() => fetchEnquiries({ showLoader: true })}
-          title="Refresh"
-        >
-          <RefreshCw size={16} />
-          Refresh
-        </button>
-      </div>
+    <Box sx={{ maxWidth: 1400 }}>
+      <PageHeader
+        title="Enquiries"
+        subtitle={`${total} total · ${newCount} new`}
+        actions={
+          <Button
+            variant="outlined"
+            startIcon={<RefreshCw />}
+            onClick={() => fetchEnquiries({ showLoader: true })}
+          >
+            Refresh
+          </Button>
+        }
+      />
 
-      {error && <p style={{ color: "#f87171", marginBottom: 12 }}>{error}</p>}
-
-      {/* Controls */}
-      <div className="blog-list-controls">
-        <div className="search-box">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="Search by name, email or service..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="filter-group">
-          {["all", "new", "read", "replied", "archived"].map((s) => (
-            <button
-              key={s}
-              className={`filter-btn ${filterStatus === s ? "active" : ""}`}
-              onClick={() => setFilterStatus(s)}
-            >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Table */}
-      {enquiries.length === 0 ? (
-        <div className="empty-state">
-          <MessageSquare
-            size={40}
-            style={{ color: "#4b5563", marginBottom: 12 }}
-          />
-          <p>No enquiries found.</p>
-        </div>
-      ) : (
-        <div className="blog-table-wrapper">
-          <table className="blog-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Service</th>
-                <th>Budget</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {enquiries.map((enq) => (
-                <tr
-                  key={enq._id}
-                  className={enq.status === "new" ? "enq-row-new" : ""}
-                >
-                  <td>
-                    <div className="enq-name-cell">
-                      {enq.status === "new" && (
-                        <span className="enq-dot" title="New enquiry" />
-                      )}
-                      <span className="enq-name-text">{enq.name}</span>
-                    </div>
-                  </td>
-                  <td>{enq.email}</td>
-                  <td>{SERVICE_LABELS[enq.service] || enq.service || "—"}</td>
-                  <td>{BUDGET_LABELS[enq.budget] || enq.budget || "—"}</td>
-                  <td>
-                    <span
-                      className={`enq-status-badge enq-status-${enq.status}`}
-                    >
-                      {STATUS_LABELS[enq.status] || enq.status}
-                    </span>
-                  </td>
-                  <td>{formatDate(enq.createdAt)}</td>
-                  <td>
-                    <div className="blog-actions">
-                      <button
-                        className="action-btn view"
-                        title="View"
-                        onClick={() => handleOpen(enq)}
-                      >
-                        <Eye size={15} />
-                      </button>
-                      <button
-                        className="action-btn danger"
-                        title="Delete"
-                        onClick={() => handleDelete(enq._id)}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
       )}
 
-      {/* Detail Drawer */}
-      {selected && (
-        <div className="enq-overlay" onClick={handleClose}>
-          <div className="enq-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="enq-drawer-header">
-              <h2>Enquiry Detail</h2>
-              <button className="enq-close-btn" onClick={handleClose}>
-                <X size={20} />
-              </button>
-            </div>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
+        <TextField
+          placeholder="Search by name, email or service..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ maxWidth: { md: 420 } }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={18} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          color="primary"
+          value={filterStatus}
+          onChange={(_, v) => v && setFilterStatus(v)}
+          sx={{ flexWrap: "wrap" }}
+        >
+          {["all", "new", "read", "replied", "archived"].map((s) => (
+            <ToggleButton key={s} value={s} sx={{ px: 2 }}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </Stack>
+
+      {enquiries.length === 0 ? (
+        <EmptyState icon={<MessagesSquare size={48} />}>
+          No enquiries found.
+        </EmptyState>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Service</TableCell>
+                <TableCell>Budget</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {enquiries.map((enq) => (
+                <TableRow
+                  key={enq._id}
+                  hover
+                  sx={enq.status === "new" ? { bgcolor: "action.hover" } : undefined}
+                >
+                  <TableCell sx={{ fontWeight: enq.status === "new" ? 700 : 500 }}>
+                    {enq.name}
+                  </TableCell>
+                  <TableCell>{enq.email}</TableCell>
+                  <TableCell>{SERVICE_LABELS[enq.service] || enq.service || "—"}</TableCell>
+                  <TableCell>{BUDGET_LABELS[enq.budget] || enq.budget || "—"}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={STATUS_LABELS[enq.status] || enq.status}
+                      color={STATUS_COLORS[enq.status] || "default"}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(enq.createdAt)}</TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="View">
+                      <IconButton size="small" aria-label="View" onClick={() => handleOpen(enq)}>
+                        <Eye size={18} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        aria-label="Delete"
+                        onClick={() => handleDelete(enq._id)}
+                      >
+                        <Trash2 size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      <Drawer
+        anchor="right"
+        open={Boolean(selected)}
+        onClose={handleClose}
+        slotProps={{ paper: { sx: { width: { xs: "100%", sm: 480 } } } }}
+      >
+        {selected && (
+          <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+            <Stack
+              direction="row"
+              sx={{
+                p: 2,
+                px: 3,
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderBottom: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Typography variant="h6">Enquiry detail</Typography>
+              <IconButton onClick={handleClose} aria-label="Close">
+                <X />
+              </IconButton>
+            </Stack>
 
             {detailLoading ? (
-              <div className="loading-state">
-                <div className="loading-spinner" />
-              </div>
+              <Box sx={{ display: "grid", placeItems: "center", flex: 1 }}>
+                <CircularProgress />
+              </Box>
             ) : (
-              <div className="enq-drawer-body">
-                {/* Status control */}
-                <div className="enq-field-row">
-                  <label>Status</label>
-                  <div className="enq-status-pills">
+              <Stack spacing={3} sx={{ p: 3, overflowY: "auto" }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                    Status
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, mt: 0.5 }}>
                     {Object.entries(STATUS_LABELS).map(([val, label]) => (
-                      <button
+                      <Chip
                         key={val}
-                        className={`enq-status-pill ${selected.status === val ? "active" : ""}`}
+                        label={label}
+                        clickable
+                        color={selected.status === val ? "primary" : "default"}
+                        variant={selected.status === val ? "filled" : "outlined"}
                         onClick={() => handleStatusChange(selected._id, val)}
-                      >
-                        {label}
-                      </button>
+                      />
                     ))}
-                  </div>
-                </div>
+                  </Stack>
+                </Box>
 
-                {/* Caller info */}
-                <div className="enq-info-grid">
-                  <div className="enq-info-item">
-                    <span className="enq-label">Name</span>
-                    <span className="enq-value">{selected.name}</span>
-                  </div>
-                  <div className="enq-info-item">
-                    <span className="enq-label">Email</span>
-                    <a href={`mailto:${selected.email}`} className="enq-link">
-                      {selected.email}
-                    </a>
-                  </div>
-                  {selected.phone && (
-                    <div className="enq-info-item">
-                      <span className="enq-label">Phone</span>
-                      <a href={`tel:${selected.phone}`} className="enq-link">
-                        {selected.phone}
-                      </a>
-                    </div>
-                  )}
-                  {selected.service && (
-                    <div className="enq-info-item">
-                      <span className="enq-label">Service</span>
-                      <span className="enq-value">
-                        {SERVICE_LABELS[selected.service] || selected.service}
-                      </span>
-                    </div>
-                  )}
-                  {selected.budget && (
-                    <div className="enq-info-item">
-                      <span className="enq-label">Budget</span>
-                      <span className="enq-value">
-                        {BUDGET_LABELS[selected.budget] || selected.budget}
-                      </span>
-                    </div>
-                  )}
-                  <div className="enq-info-item">
-                    <span className="enq-label">Received</span>
-                    <span className="enq-value">
-                      {formatDate(selected.createdAt)}
-                    </span>
-                  </div>
-                  <div className="enq-info-item">
-                    <span className="enq-label">Source</span>
-                    <span className="enq-value">
-                      {selected.source || "contact-form"}
-                    </span>
-                  </div>
-                </div>
+                <Paper sx={{ p: 2 }}>
+                  <Grid container spacing={2}>
+                    <Grid size={6}>
+                      <Field label="Name">{selected.name}</Field>
+                    </Grid>
+                    <Grid size={6}>
+                      <Field label="Email">
+                        <Link href={`mailto:${selected.email}`} underline="hover">
+                          {selected.email}
+                        </Link>
+                      </Field>
+                    </Grid>
+                    {selected.phone && (
+                      <Grid size={6}>
+                        <Field label="Phone">
+                          <Link href={`tel:${selected.phone}`} underline="hover">
+                            {selected.phone}
+                          </Link>
+                        </Field>
+                      </Grid>
+                    )}
+                    {selected.service && (
+                      <Grid size={6}>
+                        <Field label="Service">
+                          {SERVICE_LABELS[selected.service] || selected.service}
+                        </Field>
+                      </Grid>
+                    )}
+                    {selected.budget && (
+                      <Grid size={6}>
+                        <Field label="Budget">
+                          {BUDGET_LABELS[selected.budget] || selected.budget}
+                        </Field>
+                      </Grid>
+                    )}
+                    <Grid size={6}>
+                      <Field label="Received">{formatDate(selected.createdAt)}</Field>
+                    </Grid>
+                    <Grid size={6}>
+                      <Field label="Source">{selected.source || "contact-form"}</Field>
+                    </Grid>
+                  </Grid>
+                </Paper>
 
-                {/* Message */}
-                <div className="enq-message-block">
-                  <span className="enq-label">Message</span>
-                  <p className="enq-message-text">{selected.message}</p>
-                </div>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                    Message
+                  </Typography>
+                  <Paper sx={{ p: 2, mt: 0.5, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+                    {selected.message}
+                  </Paper>
+                </Box>
 
-                {/* Quick reply button */}
-                <a
-                  href={`mailto:${selected.email}?subject=Re: Your Enquiry at BuzingBee`}
-                  className="enq-reply-btn"
+                <Button
+                  variant="contained"
+                  href={`mailto:${selected.email}?subject=${encodeURIComponent("Re: Your Enquiry at BuzingBee")}`}
                   onClick={() => handleStatusChange(selected._id, "replied")}
                 >
-                  Reply via Email
-                </a>
+                  Reply via email
+                </Button>
 
-                {/* Admin notes */}
-                <div className="enq-notes-block">
-                  <span className="enq-label">Admin Notes</span>
-                  <textarea
-                    className="enq-notes-input"
-                    rows={3}
+                <Stack spacing={1}>
+                  <TextField
+                    label="Admin notes"
+                    multiline
+                    minRows={3}
                     placeholder="Add internal notes about this enquiry..."
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
                   />
-                  <button
-                    className="enq-save-note-btn"
-                    onClick={handleSaveNote}
-                    disabled={saving}
-                  >
-                    {saving ? "Saving..." : "Save Note"}
-                  </button>
-                </div>
-              </div>
+                  <Box>
+                    <Button variant="outlined" onClick={handleSaveNote} disabled={saving}>
+                      {saving ? "Saving..." : "Save note"}
+                    </Button>
+                  </Box>
+                </Stack>
+              </Stack>
             )}
-          </div>
-        </div>
-      )}
-    </div>
+          </Box>
+        )}
+      </Drawer>
+    </Box>
   );
 }

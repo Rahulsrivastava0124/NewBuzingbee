@@ -1,3 +1,4 @@
+const { errorDetail } = require("../utils/errors");
 const Analytics = require("../models/Analytics");
 
 const normalizeDevice = (device = "") => {
@@ -75,7 +76,7 @@ const trackAnalyticsEvent = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to track analytics event",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -144,7 +145,7 @@ const getAnalyticsOverview = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch analytics overview",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -269,7 +270,7 @@ const getHourlyAnalytics = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch hourly analytics",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -316,7 +317,7 @@ const getDetailedAnalytics = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch detailed analytics",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };

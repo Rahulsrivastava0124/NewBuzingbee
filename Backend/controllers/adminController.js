@@ -1,7 +1,9 @@
+const crypto = require("crypto");
 const Admin = require("../models/Admin");
+const { sendMail } = require("../services/mailService");
 const jwt = require("jsonwebtoken");
+const { getJwtSecret } = require("../config");
 
-const JWT_SECRET = process.env.JWT_SECRET || "change-me-jwt-secret";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "10d";
 
 const generateToken = (admin) => {
@@ -10,7 +12,7 @@ const generateToken = (admin) => {
       id: admin._id,
       username: admin.username,
     },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: JWT_EXPIRES_IN },
   );
 
@@ -303,9 +305,160 @@ const updateAdminProfile = async (req, res) => {
   }
 };
 
+// Team members that a client can be assigned to ("managed by")
+const listAdmins = async (_req, res) => {
+  try {
+    const admins = await Admin.find({}, "username email").sort({ username: 1 });
+    return res.json({ success: true, admins });
+  } catch (_error) {
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ── Forgot / reset password ───────────────────────────────────────────────
+
+const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
+
+const hashToken = (token) =>
+  crypto.createHash("sha256").update(token).digest("hex");
+
+const escapeHtml = (value) =>
+  String(value).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[ch]);
+
+const buildResetEmail = (admin, link) => {
+  const name = escapeHtml(admin.username);
+  const url = escapeHtml(link);
+  return {
+    subject: "Reset your BuzingBee admin password",
+    text: [
+      `Hi ${admin.username},`,
+      "",
+      "We received a request to reset your BuzingBee admin password.",
+      `Open this link within 30 minutes to choose a new one:`,
+      link,
+      "",
+      "If you did not ask for this, you can ignore this email; your password stays the same.",
+    ].join("\n"),
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0f172a">
+        <h2 style="margin:0 0 12px">Reset your password</h2>
+        <p>Hi ${name},</p>
+        <p>We received a request to reset your BuzingBee admin password.
+        This link works for 30 minutes and can be used once.</p>
+        <p style="margin:24px 0">
+          <a href="${url}" style="background:#f5a623;color:#0f172a;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Choose a new password</a>
+        </p>
+        <p style="color:#64748b;font-size:13px">If the button does not work, paste this link into your browser:<br>${url}</p>
+        <p style="color:#64748b;font-size:13px">If you did not request this, ignore this email. Your password stays the same.</p>
+      </div>`,
+  };
+};
+
+// Always answers the same way so the endpoint cannot be used to discover
+// which usernames or emails belong to admins.
+const GENERIC_FORGOT_RESPONSE = {
+  success: true,
+  message:
+    "If an account matches, a password reset link has been sent to its email address.",
+};
+
+const forgotPassword = async (req, res) => {
+  try {
+    const identifier = String(req.body?.email || req.body?.username || "")
+      .trim()
+      .toLowerCase();
+
+    if (!identifier) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email or username is required" });
+    }
+
+    const admin = await Admin.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    });
+
+    if (admin) {
+      const token = crypto.randomBytes(32).toString("hex");
+      admin.resetPasswordToken = hashToken(token);
+      admin.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+      await admin.save();
+
+      const base = (
+        process.env.ADMIN_PANEL_URL || "http://localhost:5173"
+      ).replace(/\/+$/, "");
+      const link = `${base}/reset-password?token=${token}`;
+
+      // Not awaited: response time must not reveal whether the account exists
+      sendMail({ to: admin.email, ...buildResetEmail(admin, link) }).catch(
+        (error) => {
+          console.error("[forgot-password] email failed:", error.message);
+        },
+      );
+    }
+
+    return res.status(200).json(GENERIC_FORGOT_RESPONSE);
+  } catch (error) {
+    console.error("[forgot-password]", error);
+    return res.status(200).json(GENERIC_FORGOT_RESPONSE);
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token and new password are required",
+      });
+    }
+    if (String(password).length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    const admin = await Admin.findOne({
+      resetPasswordToken: hashToken(String(token)),
+      resetPasswordExpires: { $gt: new Date() },
+    }).select("+resetPasswordToken +resetPasswordExpires");
+
+    if (!admin) {
+      return res.status(400).json({
+        success: false,
+        message: "This reset link is invalid or has expired",
+      });
+    }
+
+    admin.password = String(password);
+    admin.resetPasswordToken = undefined;
+    admin.resetPasswordExpires = undefined;
+    await admin.save();
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Password updated. You can sign in now." });
+  } catch (error) {
+    console.error("[reset-password]", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 module.exports = {
   adminRegister,
   adminLogin,
   getAdminProfile,
   updateAdminProfile,
+  forgotPassword,
+  resetPassword,
+  listAdmins,
 };

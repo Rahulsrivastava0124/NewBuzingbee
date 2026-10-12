@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { getJwtSecret } = require("../config");
 
 const protectAdmin = (req, res, next) => {
   try {
@@ -14,7 +15,7 @@ const protectAdmin = (req, res, next) => {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || "change-me-jwt-secret",
+      getJwtSecret(),
     );
 
     req.admin = {

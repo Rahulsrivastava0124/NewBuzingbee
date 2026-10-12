@@ -1,3 +1,4 @@
+const { errorDetail } = require("../utils/errors");
 const mongoose = require("mongoose");
 const Blog = require("../models/Blog");
 const { uploadBlogImageAndGetUrl } = require("../services/storageService");
@@ -44,8 +45,11 @@ const getClientIP = (req) => {
 };
 
 const traceBlogApiCall = (req, payload = {}) => {
+  // Opt-in in production; on by default while developing.
+  const traceDefault = process.env.NODE_ENV === "production" ? "false" : "true";
   const traceEnabled =
-    String(process.env.BLOG_TRACE_ENABLED || "true").toLowerCase() !== "false";
+    String(process.env.BLOG_TRACE_ENABLED || traceDefault).toLowerCase() ===
+    "true";
 
   if (!traceEnabled) return;
 
@@ -150,7 +154,7 @@ const addBlog = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to add blog",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -185,7 +189,7 @@ const getAllBlogs = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch blogs",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -245,14 +249,14 @@ const getBlogById = async (req, res) => {
     traceBlogApiCall(req, {
       route: "getBlogById",
       statusCode: 500,
-      error: error.message,
+      error: errorDetail(error),
       durationMs: Date.now() - startedAt,
     });
 
     return res.status(500).json({
       success: false,
       message: "Failed to fetch blog",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -330,14 +334,14 @@ const getBlogBySlug = async (req, res) => {
       route: "getBlogBySlug",
       statusCode: 500,
       slug: req.params?.slug || "",
-      error: error.message,
+      error: errorDetail(error),
       durationMs: Date.now() - startedAt,
     });
 
     return res.status(500).json({
       success: false,
       message: "Failed to fetch blog",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -460,7 +464,7 @@ const updateBlog = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to update blog",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -486,7 +490,7 @@ const deleteBlog = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to delete blog",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -513,7 +517,7 @@ const getBlogStats = async (_req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch stats",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };

@@ -1,3 +1,4 @@
+const { errorDetail } = require("../utils/errors");
 const CaseStudy = require("../models/CaseStudy");
 const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 
@@ -97,7 +98,7 @@ const addCaseStudy = async (req, res) => {
       .json({
         success: false,
         message: "Failed to create case study",
-        error: error.message,
+        error: errorDetail(error),
       });
   }
 };
@@ -132,7 +133,7 @@ const getAllCaseStudies = async (req, res) => {
       .json({
         success: false,
         message: "Failed to fetch case studies",
-        error: error.message,
+        error: errorDetail(error),
       });
   }
 };
@@ -162,7 +163,7 @@ const getCaseStudyById = async (req, res) => {
       .json({
         success: false,
         message: "Failed to fetch case study",
-        error: error.message,
+        error: errorDetail(error),
       });
   }
 };
@@ -194,7 +195,7 @@ const getCaseStudyBySlug = async (req, res) => {
       .json({
         success: false,
         message: "Failed to fetch case study",
-        error: error.message,
+        error: errorDetail(error),
       });
   }
 };
@@ -289,7 +290,7 @@ const updateCaseStudy = async (req, res) => {
       .json({
         success: false,
         message: "Failed to update case study",
-        error: error.message,
+        error: errorDetail(error),
       });
   }
 };
@@ -315,7 +316,7 @@ const deleteCaseStudy = async (req, res) => {
       .json({
         success: false,
         message: "Failed to delete case study",
-        error: error.message,
+        error: errorDetail(error),
       });
   }
 };
@@ -336,7 +337,7 @@ const getCaseStudyStats = async (req, res) => {
       .json({
         success: false,
         message: "Failed to fetch stats",
-        error: error.message,
+        error: errorDetail(error),
       });
   }
 };

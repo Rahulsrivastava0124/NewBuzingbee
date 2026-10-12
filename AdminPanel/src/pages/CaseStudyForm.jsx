@@ -1,35 +1,43 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, Image, Plus, Trash2 } from "lucide-react";
-import ReactQuill from "react-quill-new";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import MenuItem from "@mui/material/MenuItem";
+import Paper from "@mui/material/Paper";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { caseStudyAPI } from "../services/api";
-import "react-quill-new/dist/quill.snow.css";
-import "./BlogForm.css";
+import { LoadingState } from "../components/common";
+import RichTextField from "../components/RichTextField";
+import { ArrowLeft, ImagePlus, Plus, Save, Trash2 } from "lucide-react";
 
-const quillModules = {
-  toolbar: [
-    [{ header: [1, 2, 3, false] }],
-    ["bold", "italic", "underline", "strike"],
-    [{ list: "ordered" }, { list: "bullet" }],
-    ["blockquote", "code-block"],
-    ["link", "image"],
-    ["clean"],
-  ],
-};
-
-const quillFormats = [
-  "header",
-  "bold",
-  "italic",
-  "underline",
-  "strike",
-  "list",
-  "bullet",
-  "blockquote",
-  "code-block",
-  "link",
-  "image",
+const INDUSTRIES = [
+  "Technology",
+  "Healthcare",
+  "E-Commerce",
+  "Finance",
+  "Education",
+  "Real Estate",
+  "Marketing",
+  "Retail",
+  "SaaS",
+  "Startup",
+  "Other",
 ];
+
+const slugify = (value) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
 export default function CaseStudyForm() {
   const navigate = useNavigate();
@@ -53,7 +61,6 @@ export default function CaseStudyForm() {
     seoDescription: "",
     seoKeywords: "",
   });
-
   const [metrics, setMetrics] = useState([{ label: "", value: "" }]);
   const [imageFile, setImageFile] = useState(null);
   const [previewError, setPreviewError] = useState(false);
@@ -88,9 +95,7 @@ export default function CaseStudyForm() {
               ? cs.seo.keywords.join(", ")
               : cs.seo?.keywords || "",
           });
-          setMetrics(
-            cs.metrics?.length ? cs.metrics : [{ label: "", value: "" }],
-          );
+          setMetrics(cs.metrics?.length ? cs.metrics : [{ label: "", value: "" }]);
         }
       } catch (err) {
         setError(err.message || "Failed to load case study");
@@ -107,21 +112,16 @@ export default function CaseStudyForm() {
       setPreviewError(false);
       setImageFile(null);
     }
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (name === "title") {
-      const slug = value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
-      setFormData((prev) => ({ ...prev, slug }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      // Only auto-generate for new entries so edits never change a live URL
+      ...(name === "title" && !isEditing ? { slug: slugify(value) } : {}),
+    }));
   };
 
-  const handleImageUploadClick = () => {
-    if (loading) return;
-    fileInputRef.current?.click();
-  };
+  const setRich = (key) => (value) =>
+    setFormData((prev) => ({ ...prev, [key]: value }));
 
   const handleImageFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -129,36 +129,29 @@ export default function CaseStudyForm() {
     if (formData.featuredImage?.startsWith("blob:")) {
       URL.revokeObjectURL(formData.featuredImage);
     }
-    const localPreviewUrl = URL.createObjectURL(file);
     setImageFile(file);
-    setFormData((prev) => ({ ...prev, featuredImage: localPreviewUrl }));
+    setFormData((prev) => ({ ...prev, featuredImage: URL.createObjectURL(file) }));
     setPreviewError(false);
     setMessage("Image selected. It will be uploaded when you save.");
     e.target.value = "";
   };
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (imageFile && formData.featuredImage?.startsWith("blob:")) {
         URL.revokeObjectURL(formData.featuredImage);
       }
-    };
-  }, [imageFile, formData.featuredImage]);
+    },
+    [imageFile, formData.featuredImage],
+  );
 
-  const handleMetricChange = (index, field, value) => {
+  const handleMetricChange = (index, field, value) =>
     setMetrics((prev) =>
       prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)),
     );
-  };
-
-  const addMetric = () =>
-    setMetrics((prev) => [...prev, { label: "", value: "" }]);
-
-  const removeMetric = (index) =>
-    setMetrics((prev) => prev.filter((_, i) => i !== index));
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     try {
       setLoading(true);
       setError("");
@@ -184,9 +177,8 @@ export default function CaseStudyForm() {
         category: formData.category,
         tags: formData.tags,
         status: formData.status,
-        image: imageFile
-          ? ""
-          : formData.featuredImage?.startsWith("blob:")
+        image:
+          imageFile || formData.featuredImage?.startsWith("blob:")
             ? ""
             : formData.featuredImage || "",
         imageFile,
@@ -202,7 +194,6 @@ export default function CaseStudyForm() {
         await caseStudyAPI.create(payload);
         setMessage("Case study created successfully");
       }
-
       setTimeout(() => navigate("/dashboard/case-studies"), 500);
     } catch (err) {
       setError(err.message || "Failed to save case study");
@@ -211,385 +202,329 @@ export default function CaseStudyForm() {
     }
   };
 
-  const INDUSTRIES = [
-    "Technology",
-    "Healthcare",
-    "E-Commerce",
-    "Finance",
-    "Education",
-    "Real Estate",
-    "Marketing",
-    "Retail",
-    "SaaS",
-    "Startup",
-    "Other",
-  ];
+  if (isEditing && loading && !formData.title && !error) {
+    return <LoadingState text="Loading case study..." />;
+  }
 
   return (
-    <div className="blog-form-container">
-      <div className="blog-form-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={18} />
-          Back
-        </button>
-        <h1>{isEditing ? "Edit Case Study" : "New Case Study"}</h1>
-        <div className="header-actions">
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            <Save size={18} />
-            {loading
-              ? "Saving..."
-              : isEditing
-                ? "Update Case Study"
-                : "Save Case Study"}
-          </button>
-        </div>
-      </div>
+    <Box sx={{ maxWidth: 1300 }} component="form" onSubmit={handleSubmit}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        sx={{ mb: 3, alignItems: { sm: "center" }, justifyContent: "space-between" }}
+      >
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+          <Button color="inherit" startIcon={<ArrowLeft />} onClick={() => navigate(-1)}>
+            Back
+          </Button>
+          <Typography variant="h5" component="h1">
+            {isEditing ? "Edit Case Study" : "New Case Study"}
+          </Typography>
+        </Stack>
+        <Button
+          type="submit"
+          variant="contained"
+          startIcon={<Save />}
+          disabled={loading}
+        >
+          {loading ? "Saving..." : isEditing ? "Update Case Study" : "Save Case Study"}
+        </Button>
+      </Stack>
 
-      {error && <div className="error-message">{error}</div>}
-      {message && <div className="success-message">{message}</div>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      {message && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {message}
+        </Alert>
+      )}
 
-      <form onSubmit={handleSubmit} className="blog-form">
-        <div className="form-main">
-          {/* Basic Info */}
-          <div className="form-card">
-            <div className="form-group">
-              <label htmlFor="title">Case Study Title *</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g. How We Helped Acme Grow 300% in 6 Months"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="slug">URL Slug</label>
-              <div className="slug-input">
-                <span className="slug-prefix">buzingbee.com/case-studies/</span>
-                <input
-                  type="text"
-                  id="slug"
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12, lg: 8 }}>
+          <Stack spacing={3}>
+            <Paper sx={{ p: 3 }}>
+              <Stack spacing={2.5}>
+                <TextField
+                  label="Case study title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="e.g. How We Helped Acme Grow 300% in 6 Months"
+                  required
+                  disabled={loading}
+                />
+                <TextField
+                  label="URL slug"
                   name="slug"
                   value={formData.slug}
                   onChange={handleChange}
                   placeholder="auto-generated-from-title"
                   disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="client">Client Name</label>
-              <input
-                type="text"
-                id="client"
-                name="client"
-                value={formData.client}
-                onChange={handleChange}
-                placeholder="e.g. Acme Corporation"
-                disabled={loading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="summary">Summary / Excerpt</label>
-              <textarea
-                id="summary"
-                name="summary"
-                value={formData.summary}
-                onChange={handleChange}
-                placeholder="Brief overview of the case study (shown on listing page)"
-                rows="3"
-                disabled={loading}
-              />
-              <span className="char-count">
-                {formData.summary.length} / 200
-              </span>
-            </div>
-          </div>
-
-          {/* Challenge / Solution / Results */}
-          <div className="form-card">
-            <h3 style={{ color: "#f5c518", marginBottom: 16 }}>
-              Case Study Content
-            </h3>
-
-            <div className="form-group">
-              <label>The Challenge</label>
-              <ReactQuill
-                className="content-editor"
-                value={formData.challenge}
-                onChange={(v) => setFormData((p) => ({ ...p, challenge: v }))}
-                modules={quillModules}
-                formats={quillFormats}
-                placeholder="Describe the problem the client faced..."
-                readOnly={loading}
-                theme="snow"
-              />
-            </div>
-
-            <div className="form-group" style={{ marginTop: 24 }}>
-              <label>Our Solution</label>
-              <ReactQuill
-                className="content-editor"
-                value={formData.solution}
-                onChange={(v) => setFormData((p) => ({ ...p, solution: v }))}
-                modules={quillModules}
-                formats={quillFormats}
-                placeholder="Describe the approach and solution provided..."
-                readOnly={loading}
-                theme="snow"
-              />
-            </div>
-
-            <div className="form-group" style={{ marginTop: 24 }}>
-              <label>Results & Outcomes</label>
-              <ReactQuill
-                className="content-editor"
-                value={formData.results}
-                onChange={(v) => setFormData((p) => ({ ...p, results: v }))}
-                modules={quillModules}
-                formats={quillFormats}
-                placeholder="Describe the measurable outcomes and results..."
-                readOnly={loading}
-                theme="snow"
-              />
-            </div>
-          </div>
-
-          {/* Metrics */}
-          <div className="form-card">
-            <h3 style={{ color: "#f5c518", marginBottom: 16 }}>Key Metrics</h3>
-            <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 16 }}>
-              Add key performance indicators (e.g. "Revenue Growth" → "300%")
-            </p>
-            {metrics.map((m, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  marginBottom: 12,
-                  alignItems: "center",
-                }}
-              >
-                <input
-                  type="text"
-                  placeholder="Label (e.g. Revenue Growth)"
-                  value={m.label}
-                  onChange={(e) =>
-                    handleMetricChange(i, "label", e.target.value)
-                  }
-                  disabled={loading}
-                  style={{ flex: 1 }}
-                />
-                <input
-                  type="text"
-                  placeholder="Value (e.g. +300%)"
-                  value={m.value}
-                  onChange={(e) =>
-                    handleMetricChange(i, "value", e.target.value)
-                  }
-                  disabled={loading}
-                  style={{ flex: 1 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeMetric(i)}
-                  disabled={loading || metrics.length === 1}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#ef4444",
-                    cursor: "pointer",
-                    padding: 4,
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          buzingbee.com/case-studies/
+                        </InputAdornment>
+                      ),
+                    },
                   }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addMetric}
-              disabled={loading}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "transparent",
-                border: "1px dashed #4b5563",
-                color: "#9ca3af",
-                padding: "8px 16px",
-                borderRadius: 8,
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-            >
-              <Plus size={14} /> Add Metric
-            </button>
-          </div>
+                />
+                <TextField
+                  label="Client name"
+                  name="client"
+                  value={formData.client}
+                  onChange={handleChange}
+                  placeholder="e.g. Acme Corporation"
+                  disabled={loading}
+                />
+                <TextField
+                  label="Summary / excerpt"
+                  name="summary"
+                  value={formData.summary}
+                  onChange={handleChange}
+                  multiline
+                  minRows={3}
+                  placeholder="Brief overview shown on the listing page"
+                  disabled={loading}
+                  helperText={`${formData.summary.length} / 200`}
+                />
+              </Stack>
+            </Paper>
 
-          {/* SEO */}
-          <div className="form-card">
-            <h3 style={{ color: "#f5c518", marginBottom: 16 }}>SEO Settings</h3>
-            <div className="form-group">
-              <label htmlFor="seoTitle">SEO Title</label>
-              <input
-                type="text"
-                id="seoTitle"
-                name="seoTitle"
-                value={formData.seoTitle}
-                onChange={handleChange}
-                placeholder="SEO title for search engines"
-                disabled={loading}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="seoDescription">Meta Description</label>
-              <textarea
-                id="seoDescription"
-                name="seoDescription"
-                value={formData.seoDescription}
-                onChange={handleChange}
-                placeholder="150-160 characters for Google preview"
-                rows="3"
-                disabled={loading}
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="seoKeywords">SEO Keywords</label>
-              <input
-                type="text"
-                id="seoKeywords"
-                name="seoKeywords"
-                value={formData.seoKeywords}
-                onChange={handleChange}
-                placeholder="keyword1, keyword2"
-                disabled={loading}
-              />
-            </div>
-          </div>
-        </div>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Case study content
+              </Typography>
+              <Stack spacing={3}>
+                <RichTextField
+                  label="The challenge"
+                  value={formData.challenge}
+                  onChange={setRich("challenge")}
+                  placeholder="Describe the problem the client faced..."
+                  disabled={loading}
+                  minHeight={180}
+                />
+                <RichTextField
+                  label="Our solution"
+                  value={formData.solution}
+                  onChange={setRich("solution")}
+                  placeholder="Describe the approach and solution provided..."
+                  disabled={loading}
+                  minHeight={180}
+                />
+                <RichTextField
+                  label="Results & outcomes"
+                  value={formData.results}
+                  onChange={setRich("results")}
+                  placeholder="Describe the measurable outcomes and results..."
+                  disabled={loading}
+                  minHeight={180}
+                />
+              </Stack>
+            </Paper>
 
-        {/* Sidebar */}
-        <div className="form-sidebar">
-          <div className="sidebar-card">
-            <h3>Featured Image</h3>
-            <div className="image-upload">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageFileChange}
-                hidden
-              />
-              <input
-                type="text"
-                name="featuredImage"
-                value={formData.featuredImage}
-                onChange={handleChange}
-                placeholder="Image URL"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                className="upload-btn"
-                onClick={handleImageUploadClick}
-                disabled={loading}
-              >
-                <Image size={18} />
-                Upload Image
-              </button>
-              {formData.featuredImage && (
-                <div className="image-preview">
-                  <img
-                    src={formData.featuredImage}
-                    alt="Preview"
-                    onError={() => setPreviewError(true)}
-                    onLoad={() => setPreviewError(false)}
-                  />
-                  {previewError && (
-                    <div className="image-preview-error">
-                      Could not preview image. Check URL or upload again.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="sidebar-card">
-            <h3>Industry</h3>
-            <select
-              name="industry"
-              value={formData.industry}
-              onChange={handleChange}
-              disabled={loading}
-            >
-              <option value="">Select Industry</option>
-              {INDUSTRIES.map((ind) => (
-                <option key={ind} value={ind}>
-                  {ind}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="sidebar-card">
-            <h3>Category</h3>
-            <input
-              type="text"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              placeholder="e.g. SEO, Web Design, Branding"
-              disabled={loading}
-            />
-          </div>
-
-          <div className="sidebar-card">
-            <h3>Tags</h3>
-            <input
-              type="text"
-              name="tags"
-              value={formData.tags}
-              onChange={handleChange}
-              placeholder="seo, growth, startup"
-              disabled={loading}
-            />
-            <p className="helper-text">Separate tags with commas</p>
-          </div>
-
-          <div className="sidebar-card">
-            <h3>Status</h3>
-            <div className="status-options">
-              {["draft", "published"].map((s) => (
-                <label className="radio-label" key={s}>
-                  <input
-                    type="radio"
-                    name="status"
-                    value={s}
-                    checked={formData.status === s}
-                    onChange={handleChange}
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6">Key metrics</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Add key performance indicators, e.g. &quot;Revenue Growth&quot; →
+                &quot;300%&quot;
+              </Typography>
+              <Stack spacing={1.5}>
+                {metrics.map((m, i) => (
+                  <Stack key={i} direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                    <TextField
+                      placeholder="Label (e.g. Revenue Growth)"
+                      value={m.label}
+                      onChange={(e) => handleMetricChange(i, "label", e.target.value)}
+                      disabled={loading}
+                    />
+                    <TextField
+                      placeholder="Value (e.g. +300%)"
+                      value={m.value}
+                      onChange={(e) => handleMetricChange(i, "value", e.target.value)}
+                      disabled={loading}
+                    />
+                    <IconButton
+                      color="error"
+                      aria-label="Remove metric"
+                      disabled={loading || metrics.length === 1}
+                      onClick={() =>
+                        setMetrics((prev) => prev.filter((_, idx) => idx !== i))
+                      }
+                    >
+                      <Trash2 />
+                    </IconButton>
+                  </Stack>
+                ))}
+                <Box>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Plus />}
                     disabled={loading}
+                    onClick={() =>
+                      setMetrics((prev) => [...prev, { label: "", value: "" }])
+                    }
+                  >
+                    Add metric
+                  </Button>
+                </Box>
+              </Stack>
+            </Paper>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                SEO settings
+              </Typography>
+              <Stack spacing={2.5}>
+                <TextField
+                  label="SEO title"
+                  name="seoTitle"
+                  value={formData.seoTitle}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+                <TextField
+                  label="Meta description"
+                  name="seoDescription"
+                  value={formData.seoDescription}
+                  onChange={handleChange}
+                  multiline
+                  minRows={3}
+                  disabled={loading}
+                />
+                <TextField
+                  label="SEO keywords"
+                  name="seoKeywords"
+                  value={formData.seoKeywords}
+                  onChange={handleChange}
+                  placeholder="keyword1, keyword2"
+                  disabled={loading}
+                />
+              </Stack>
+            </Paper>
+          </Stack>
+        </Grid>
+
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Stack spacing={3}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Featured image
+              </Typography>
+              <Stack spacing={1.5}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  hidden
+                />
+                <TextField
+                  name="featuredImage"
+                  value={formData.featuredImage}
+                  onChange={handleChange}
+                  placeholder="Image URL"
+                  disabled={loading}
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={<ImagePlus />}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                >
+                  Upload image
+                </Button>
+                {formData.featuredImage && (
+                  <Box>
+                    <Box
+                      component="img"
+                      src={formData.featuredImage}
+                      alt="Preview"
+                      onError={() => setPreviewError(true)}
+                      onLoad={() => setPreviewError(false)}
+                      sx={{ width: "100%", borderRadius: 2, display: previewError ? "none" : "block" }}
+                    />
+                    {previewError && (
+                      <Alert severity="warning">
+                        Could not preview image. Check the URL or upload again.
+                      </Alert>
+                    )}
+                  </Box>
+                )}
+              </Stack>
+            </Paper>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Industry
+              </Typography>
+              <TextField
+                select
+                name="industry"
+                value={formData.industry}
+                onChange={handleChange}
+                disabled={loading}
+                slotProps={{ select: { displayEmpty: true } }}
+              >
+                <MenuItem value="">Select industry</MenuItem>
+                {INDUSTRIES.map((ind) => (
+                  <MenuItem key={ind} value={ind}>
+                    {ind}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Paper>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Category
+              </Typography>
+              <TextField
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                placeholder="e.g. SEO, Web Design, Branding"
+                disabled={loading}
+              />
+            </Paper>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Tags
+              </Typography>
+              <TextField
+                name="tags"
+                value={formData.tags}
+                onChange={handleChange}
+                placeholder="seo, growth, startup"
+                disabled={loading}
+                helperText="Separate tags with commas"
+              />
+            </Paper>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Status
+              </Typography>
+              <RadioGroup name="status" value={formData.status} onChange={handleChange}>
+                {["draft", "published"].map((s) => (
+                  <FormControlLabel
+                    key={s}
+                    value={s}
+                    control={<Radio />}
+                    disabled={loading}
+                    label={s.charAt(0).toUpperCase() + s.slice(1)}
                   />
-                  <span>{s.charAt(0).toUpperCase() + s.slice(1)}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      </form>
-    </div>
+                ))}
+              </RadioGroup>
+            </Paper>
+          </Stack>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }

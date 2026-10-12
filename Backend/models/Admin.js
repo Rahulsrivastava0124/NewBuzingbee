@@ -21,6 +21,9 @@ const adminSchema = new mongoose.Schema(
       required: true,
       minlength: 8,
     },
+    // SHA-256 of the emailed token; the token itself is never stored
+    resetPasswordToken: { type: String, select: false, default: undefined },
+    resetPasswordExpires: { type: Date, select: false, default: undefined },
   },
   {
     timestamps: true,

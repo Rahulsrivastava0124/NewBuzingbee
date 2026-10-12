@@ -1,3 +1,4 @@
+const { errorDetail } = require("../utils/errors");
 const Enquiry = require("../models/Enquiry");
 
 const getClientIP = (req) => {
@@ -52,7 +53,7 @@ const submitEnquiry = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to submit enquiry. Please try again.",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -92,7 +93,7 @@ const getAllEnquiries = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch enquiries",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -118,7 +119,7 @@ const getEnquiryById = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch enquiry",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -147,7 +148,7 @@ const updateEnquiry = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to update enquiry",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -166,7 +167,7 @@ const deleteEnquiry = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to delete enquiry",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };
@@ -189,7 +190,7 @@ const getEnquiryStats = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch enquiry stats",
-      error: error.message,
+      error: errorDetail(error),
     });
   }
 };

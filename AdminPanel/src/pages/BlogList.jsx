@@ -1,55 +1,79 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Search, Plus, Eye, Edit2, Trash2, MoreVertical } from "lucide-react";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardActions from "@mui/material/CardActions";
+import CardContent from "@mui/material/CardContent";
+import CardMedia from "@mui/material/CardMedia";
+import Chip from "@mui/material/Chip";
+import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import { blogAPI } from "../services/api";
-import "./BlogList.css";
+import { useFeedback } from "../components/Feedback";
+import { EmptyState, LoadingState, PageHeader } from "../components/common";
+import { Eye, FileText, Pencil, Plus, Search, Trash2 } from "lucide-react";
+
+const STATUS_FILTERS = [
+  ["all", "All"],
+  ["published", "Published"],
+  ["draft", "Drafts"],
+  ["review", "In Review"],
+  ["scheduled", "Scheduled"],
+];
+
+const STATUS_COLOR = {
+  published: "success",
+  draft: "default",
+  review: "warning",
+  scheduled: "info",
+};
 
 export default function BlogList() {
   const navigate = useNavigate();
+  const { confirm, notify } = useFeedback();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState(
-    searchParams.get("status") || "all",
-  );
+  const filterStatus = searchParams.get("status") || "all";
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Keep the box in sync when the top-bar search navigates here
+  const urlSearch = searchParams.get("search") || "";
   useEffect(() => {
-    const status = searchParams.get("status") || "all";
-    setFilterStatus(status);
-  }, [searchParams]);
+    setSearchTerm(urlSearch);
+  }, [urlSearch]);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchBlogs = async ({ showLoader = false } = {}) => {
       try {
-        if (showLoader) {
-          setLoading(true);
-        }
+        if (showLoader) setLoading(true);
         const filters = filterStatus !== "all" ? { status: filterStatus } : {};
         const response = await blogAPI.getAll(filters);
         if (isMounted) {
           setBlogs(response || []);
+          setError("");
         }
       } catch (err) {
-        if (isMounted) {
-          setError(err.message);
-        }
-        console.error("Error fetching blogs:", err);
+        if (isMounted) setError(err.message);
       } finally {
-        if (showLoader && isMounted) {
-          setLoading(false);
-        }
+        if (showLoader && isMounted) setLoading(false);
       }
     };
 
     fetchBlogs({ showLoader: true });
-
-    const intervalId = window.setInterval(() => {
-      fetchBlogs();
-    }, 15000);
+    const intervalId = window.setInterval(() => fetchBlogs(), 15000);
 
     return () => {
       isMounted = false;
@@ -58,22 +82,27 @@ export default function BlogList() {
   }, [filterStatus]);
 
   const updateStatusFilter = (status) => {
-    setFilterStatus(status);
-    if (status === "all") {
-      setSearchParams({});
-    } else {
-      setSearchParams({ status });
-    }
+    if (!status) return;
+    const next = {};
+    if (status !== "all") next.status = status;
+    if (searchTerm.trim()) next.search = searchTerm.trim();
+    setSearchParams(next);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this blog?")) return;
+    const ok = await confirm({
+      title: "Delete blog",
+      message: "Are you sure you want to delete this blog?",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
 
     try {
       await blogAPI.delete(id);
-      setBlogs(blogs.filter((blog) => blog._id !== id));
+      setBlogs((prev) => prev.filter((blog) => (blog._id || blog.id) !== id));
+      notify("Blog deleted", "success");
     } catch (err) {
-      alert("Error deleting blog: " + err.message);
+      notify("Error deleting blog: " + err.message, "error");
     }
   };
 
@@ -86,177 +115,166 @@ export default function BlogList() {
     return matchesSearch && matchesFilter;
   });
 
-  const getStatusClass = (status) => {
-    const classes = {
-      published: "status-published",
-      draft: "status-draft",
-      review: "status-review",
-    };
-    return classes[status] || "";
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
 
-  if (loading) {
-    return (
-      <div className="blog-list-container">
-        <div className="loading-state">
-          <div className="loading-spinner"></div>
-          <p>Loading blogs...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState text="Loading blogs..." />;
 
   return (
-    <div className="blog-list-container">
-      <div className="blog-list-header">
-        <div className="header-left">
-          <h1>All Blogs</h1>
-          <p className="subtitle">{filteredBlogs.length} total posts</p>
-        </div>
-        <button
-          className="btn-create"
-          onClick={() => navigate("/dashboard/create-blog")}
+    <Box sx={{ maxWidth: 1400 }}>
+      <PageHeader
+        title="All Blogs"
+        subtitle={`${filteredBlogs.length} total posts`}
+        actions={
+          <Button
+            variant="contained"
+            startIcon={<Plus />}
+            onClick={() => navigate("/dashboard/create-blog")}
+          >
+            Create New Post
+          </Button>
+        }
+      />
+
+      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
+        <TextField
+          placeholder="Search blogs..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ maxWidth: { md: 380 } }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={18} />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          color="primary"
+          value={filterStatus}
+          onChange={(_, v) => updateStatusFilter(v)}
+          sx={{ flexWrap: "wrap" }}
         >
-          <Plus size={18} />
-          Create New Post
-        </button>
-      </div>
+          {STATUS_FILTERS.map(([value, label]) => (
+            <ToggleButton key={value} value={value} sx={{ px: 2 }}>
+              {label}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </Stack>
 
-      <div className="blog-list-controls">
-        <div className="search-box">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="Search blogs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="filter-group">
-          <button
-            className={`filter-btn ${filterStatus === "all" ? "active" : ""}`}
-            onClick={() => updateStatusFilter("all")}
-          >
-            All
-          </button>
-          <button
-            className={`filter-btn ${filterStatus === "published" ? "active" : ""}`}
-            onClick={() => updateStatusFilter("published")}
-          >
-            Published
-          </button>
-          <button
-            className={`filter-btn ${filterStatus === "draft" ? "active" : ""}`}
-            onClick={() => updateStatusFilter("draft")}
-          >
-            Drafts
-          </button>
-          <button
-            className={`filter-btn ${filterStatus === "review" ? "active" : ""}`}
-            onClick={() => updateStatusFilter("review")}
-          >
-            In Review
-          </button>
-          <button
-            className={`filter-btn ${filterStatus === "scheduled" ? "active" : ""}`}
-            onClick={() => updateStatusFilter("scheduled")}
-          >
-            Scheduled
-          </button>
-        </div>
-      </div>
-
-      {error && <div className="error-message">{error}</div>}
-
-      <div className="blog-grid">
-        {filteredBlogs.map((blog) => (
-          <div key={blog._id || blog.id} className="blog-card">
-            <div className="blog-card-header">
-              <div className="blog-thumbnail">
-                {blog.image ? (
-                  <img
-                    src={blog.image}
-                    alt={blog.title}
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.parentElement.innerHTML = "📝";
-                    }}
-                  />
-                ) : (
-                  <span className="blog-thumbnail-placeholder">📝</span>
-                )}
-              </div>
-              <button className="blog-menu-btn">
-                <MoreVertical size={18} />
-              </button>
-            </div>
-
-            <div className="blog-card-content">
-              <h3>{blog.title}</h3>
-              <div className="blog-meta">
-                <span className="blog-author">{blog.author || "Admin"}</span>
-                <span className="blog-date">
-                  {formatDate(blog.createdAt || blog.date)}
-                </span>
-              </div>
-              <div className={`blog-status ${getStatusClass(blog.status)}`}>
-                {blog.status
-                  ? blog.status.charAt(0).toUpperCase() + blog.status.slice(1)
-                  : "Draft"}
-              </div>
-            </div>
-
-            <div className="blog-card-footer">
-              <div className="blog-views">
-                <Eye size={16} />
-                <span>{(blog.views || 0).toLocaleString()} views</span>
-              </div>
-              <div className="blog-actions">
-                <button
-                  className="action-btn"
-                  onClick={() =>
-                    navigate(`/dashboard/blog/${blog._id || blog.id}`)
-                  }
-                  title="View Details"
-                >
-                  <Eye size={16} />
-                </button>
-                <button
-                  className="action-btn"
-                  onClick={() =>
-                    navigate(`/dashboard/edit-blog/${blog._id || blog.id}`)
-                  }
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button
-                  className="action-btn danger"
-                  onClick={() => handleDelete(blog._id || blog.id)}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredBlogs.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-icon">📝</div>
-          <h3>No blogs found</h3>
-          <p>Try adjusting your search or filter criteria</p>
-        </div>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
       )}
-    </div>
+
+      {filteredBlogs.length === 0 ? (
+        <EmptyState
+          icon={<FileText size={48} />}
+          title="No blogs found"
+        >
+          Try adjusting your search or filter criteria
+        </EmptyState>
+      ) : (
+        <Grid container spacing={2}>
+          {filteredBlogs.map((blog) => {
+            const id = blog._id || blog.id;
+            return (
+              <Grid key={id} size={{ xs: 12, sm: 6, lg: 4 }}>
+                <Card
+                  variant="outlined"
+                  sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+                >
+                  {blog.image ? (
+                    <CardMedia
+                      component="img"
+                      height="160"
+                      image={blog.image}
+                      alt={blog.title}
+                      sx={{ objectFit: "cover" }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        height: 160,
+                        display: "grid",
+                        placeItems: "center",
+                        bgcolor: "action.hover",
+                      }}
+                    >
+                      <FileText size={44} color="var(--mui-palette-text-disabled)" />
+                    </Box>
+                  )}
+                  <CardContent sx={{ flex: 1 }}>
+                    <Chip
+                      size="small"
+                      label={
+                        blog.status
+                          ? blog.status.charAt(0).toUpperCase() + blog.status.slice(1)
+                          : "Draft"
+                      }
+                      color={STATUS_COLOR[blog.status] || "default"}
+                      sx={{ mb: 1 }}
+                    />
+                    <Typography variant="h6" sx={{ fontSize: 16, mb: 0.5 }}>
+                      {blog.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {blog.author || "Admin"} ·{" "}
+                      {formatDate(blog.createdAt || blog.date)}
+                    </Typography>
+                  </CardContent>
+                  <CardActions sx={{ justifyContent: "space-between", px: 2, pb: 1.5 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {(blog.views || 0).toLocaleString()} views
+                    </Typography>
+                    <Box>
+                      <Tooltip title="View details">
+                        <IconButton
+                          size="small"
+                          aria-label="View details"
+                          onClick={() => navigate(`/dashboard/blog/${id}`)}
+                        >
+                          <Eye size={18} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Edit">
+                        <IconButton
+                          size="small"
+                          aria-label="Edit"
+                          onClick={() => navigate(`/dashboard/edit-blog/${id}`)}
+                        >
+                          <Pencil size={18} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          aria-label="Delete"
+                          onClick={() => handleDelete(id)}
+                        >
+                          <Trash2 size={18} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </CardActions>
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
+      )}
+    </Box>
   );
 }

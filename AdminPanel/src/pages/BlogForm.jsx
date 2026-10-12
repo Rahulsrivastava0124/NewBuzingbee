@@ -1,49 +1,56 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, Image } from "lucide-react";
-import ReactQuill from "react-quill-new";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormHelperText from "@mui/material/FormHelperText";
+import Grid from "@mui/material/Grid";
+import InputAdornment from "@mui/material/InputAdornment";
+import MenuItem from "@mui/material/MenuItem";
+import Paper from "@mui/material/Paper";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { blogAPI } from "../services/api";
-import "react-quill-new/dist/quill.snow.css";
-import "./BlogForm.css";
+import { LoadingState } from "../components/common";
+import RichTextField from "../components/RichTextField";
+import { ArrowLeft, ImagePlus, Save } from "lucide-react";
 
-const quillModules = {
-  toolbar: [
-    [{ header: [1, 2, 3, false] }],
-    ["bold", "italic", "underline", "strike"],
-    [{ list: "ordered" }, { list: "bullet" }],
-    ["blockquote", "code-block"],
-    ["link", "image"],
-    ["clean"],
-  ],
-};
+const CATEGORIES = ["technology", "design", "business", "lifestyle", "development"];
 
-const quillFormats = [
-  "header",
-  "bold",
-  "italic",
-  "underline",
-  "strike",
-  "list",
-  "bullet",
-  "blockquote",
-  "code-block",
-  "link",
-  "image",
+const STATUSES = [
+  ["draft", "Draft"],
+  ["review", "In Review"],
+  ["published", "Published"],
+  ["scheduled", "Scheduled"],
 ];
 
-const isContentEmpty = (html = "") => {
-  const text = html
-    .replace(/<[^>]*>/g, "")
-    .replace(/&nbsp;/g, "")
-    .trim();
-  return text.length === 0;
-};
+const isContentEmpty = (html = "") =>
+  html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, "").trim().length === 0;
 
 const toScheduledIso = (value = "") => {
   if (!value) return "";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 };
+
+const pad = (n) => String(n).padStart(2, "0");
+const toDatetimeLocal = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const slugify = (value) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
 export default function BlogForm() {
   const navigate = useNavigate();
@@ -72,30 +79,19 @@ export default function BlogForm() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
+    if (!isEditing) return;
     const loadBlog = async () => {
-      if (!isEditing) return;
-
       try {
         setLoading(true);
         const blog = await blogAPI.getById(id);
         if (blog) {
-          const toDatetimeLocal = (value) => {
-            if (!value) return "";
-            const d = new Date(value);
-            if (Number.isNaN(d.getTime())) return "";
-            const pad = (n) => String(n).padStart(2, "0");
-            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-          };
-
           setFormData({
             title: blog.title || "",
             slug: blog.slug || "",
             excerpt: blog.excerpt || "",
             content: blog.content || "",
             category: blog.category || "",
-            tags: Array.isArray(blog.tags)
-              ? blog.tags.join(", ")
-              : blog.tags || "",
+            tags: Array.isArray(blog.tags) ? blog.tags.join(", ") : blog.tags || "",
             status: blog.status || "draft",
             scheduledAt: toDatetimeLocal(blog.scheduledAt),
             featuredImage: blog.image || "",
@@ -112,7 +108,6 @@ export default function BlogForm() {
         setLoading(false);
       }
     };
-
     loadBlog();
   }, [id, isEditing]);
 
@@ -122,75 +117,50 @@ export default function BlogForm() {
       setPreviewError(false);
       setImageFile(null);
     }
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      ...(name === "status" && value !== "scheduled"
-        ? { scheduledAt: "" }
-        : {}),
+      // Auto-generate the slug only for new posts so edits never change a live URL
+      ...(name === "title" && !isEditing ? { slug: slugify(value) } : {}),
+      ...(name === "status" && value !== "scheduled" ? { scheduledAt: "" } : {}),
     }));
-
-    // Auto-generate slug from title
-    if (name === "title") {
-      const slug = value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
-      setFormData((prev) => ({
-        ...prev,
-        slug,
-      }));
-    }
-  };
-
-  const handleImageUploadClick = () => {
-    if (loading) return;
-    fileInputRef.current?.click();
   };
 
   const handleImageFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (formData.featuredImage?.startsWith("blob:")) {
       URL.revokeObjectURL(formData.featuredImage);
     }
-
-    const localPreviewUrl = URL.createObjectURL(file);
     setImageFile(file);
-    setFormData((prev) => ({ ...prev, featuredImage: localPreviewUrl }));
+    setFormData((prev) => ({ ...prev, featuredImage: URL.createObjectURL(file) }));
     setPreviewError(false);
-    setMessage("Image selected. It will be uploaded when you save/publish.");
+    setMessage("Image selected. It will be uploaded when you save.");
     e.target.value = "";
   };
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (imageFile && formData.featuredImage?.startsWith("blob:")) {
         URL.revokeObjectURL(formData.featuredImage);
       }
-    };
-  }, [imageFile, formData.featuredImage]);
+    },
+    [imageFile, formData.featuredImage],
+  );
 
-  const submitWithStatus = async (statusOverride) => {
+  const submit = async (e) => {
+    e?.preventDefault();
     try {
       setLoading(true);
       setError("");
       setMessage("");
 
-      const effectiveStatus = statusOverride || formData.status;
-      if (effectiveStatus === "scheduled" && !formData.scheduledAt) {
-        setError(
-          "Please select schedule date & time for scheduled publishing.",
-        );
-        setLoading(false);
+      if (formData.status === "scheduled" && !formData.scheduledAt) {
+        setError("Please select schedule date & time for scheduled publishing.");
         return;
       }
-
       if (isContentEmpty(formData.content)) {
         setError("Please add blog content before saving.");
-        setLoading(false);
         return;
       }
 
@@ -201,18 +171,14 @@ export default function BlogForm() {
         content: formData.content,
         category: formData.category,
         tags: formData.tags,
-        // Only include image if there's a new file or existing URL (not blob)
-        image: imageFile
-          ? ""
-          : formData.featuredImage?.startsWith("blob:")
+        image:
+          imageFile || formData.featuredImage?.startsWith("blob:")
             ? ""
             : formData.featuredImage || "",
         imageFile,
-        status: effectiveStatus,
+        status: formData.status,
         scheduledAt:
-          effectiveStatus === "scheduled"
-            ? toScheduledIso(formData.scheduledAt)
-            : "",
+          formData.status === "scheduled" ? toScheduledIso(formData.scheduledAt) : "",
         seoTitle: formData.seoTitle,
         seoDescription: formData.seoDescription,
         seoKeywords: formData.seoKeywords,
@@ -225,7 +191,6 @@ export default function BlogForm() {
         await blogAPI.create(payload);
         setMessage("Blog created successfully");
       }
-
       setTimeout(() => navigate("/dashboard/blogs"), 500);
     } catch (err) {
       setError(err.message || "Failed to save blog");
@@ -234,51 +199,52 @@ export default function BlogForm() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    await submitWithStatus();
-  };
-
-  const handleSave = async () => {
-    await submitWithStatus();
-  };
-
-  const handlePublish = async () => {
-    await submitWithStatus();
-  };
+  if (isEditing && loading && !formData.title && !error) {
+    return <LoadingState text="Loading blog..." />;
+  }
 
   return (
-    <div className="blog-form-container">
-      <div className="blog-form-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={18} />
-          Back
-        </button>
-        <h1>{isEditing ? "Edit Blog Post" : "Create New Blog Post"}</h1>
-        <div className="header-actions">
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={handleSave}
-            disabled={loading}
-          >
-            <Save size={18} />
-            {loading ? "Saving..." : isEditing ? "Update Blog" : "Save Blog"}
-          </button>
-        </div>
-      </div>
+    <Box sx={{ maxWidth: 1300 }} component="form" onSubmit={submit}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        sx={{ mb: 3, alignItems: { sm: "center" }, justifyContent: "space-between" }}
+      >
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+          <Button color="inherit" startIcon={<ArrowLeft />} onClick={() => navigate(-1)}>
+            Back
+          </Button>
+          <Typography variant="h5" component="h1">
+            {isEditing ? "Edit Blog Post" : "Create New Blog Post"}
+          </Typography>
+        </Stack>
+        <Button
+          type="submit"
+          variant="contained"
+          startIcon={<Save />}
+          disabled={loading}
+        >
+          {loading ? "Saving..." : isEditing ? "Update Blog" : "Save Blog"}
+        </Button>
+      </Stack>
 
-      {error && <div className="error-message">{error}</div>}
-      {message && <div className="success-message">{message}</div>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      {message && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {message}
+        </Alert>
+      )}
 
-      <form onSubmit={handleSubmit} className="blog-form">
-        <div className="form-main">
-          <div className="form-card">
-            <div className="form-group">
-              <label htmlFor="title">Blog Title *</label>
-              <input
-                type="text"
-                id="title"
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12, lg: 8 }}>
+          <Paper sx={{ p: 3 }}>
+            <Stack spacing={2.5}>
+              <TextField
+                label="Blog title"
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
@@ -286,241 +252,192 @@ export default function BlogForm() {
                 required
                 disabled={loading}
               />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="slug">URL Slug</label>
-              <div className="slug-input">
-                <span className="slug-prefix">buzingbee.com/blog/</span>
-                <input
-                  type="text"
-                  id="slug"
-                  name="slug"
-                  value={formData.slug}
-                  onChange={handleChange}
-                  placeholder="auto-generated-from-title"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="excerpt">Excerpt</label>
-              <textarea
-                id="excerpt"
+              <TextField
+                label="URL slug"
+                name="slug"
+                value={formData.slug}
+                onChange={handleChange}
+                placeholder="auto-generated-from-title"
+                disabled={loading}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">buzingbee.com/blog/</InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <TextField
+                label="Excerpt"
                 name="excerpt"
                 value={formData.excerpt}
                 onChange={handleChange}
-                placeholder="Write a brief summary of your blog post (150-160 characters recommended)"
-                rows="3"
+                multiline
+                minRows={3}
+                placeholder="Brief summary (150-160 characters recommended)"
                 disabled={loading}
-              ></textarea>
-              <span className="char-count">
-                {formData.excerpt.length} / 160
-              </span>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="seoTitle">SEO Title</label>
-              <input
-                type="text"
-                id="seoTitle"
+                helperText={`${formData.excerpt.length} / 160`}
+              />
+              <TextField
+                label="SEO title"
                 name="seoTitle"
                 value={formData.seoTitle}
                 onChange={handleChange}
-                placeholder="SEO title for search engines"
                 disabled={loading}
               />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="seoDescription">Meta Description</label>
-              <textarea
-                id="seoDescription"
+              <TextField
+                label="Meta description"
                 name="seoDescription"
                 value={formData.seoDescription}
                 onChange={handleChange}
-                placeholder="Short SEO description (150-160 chars)"
-                rows="3"
+                multiline
+                minRows={3}
                 disabled={loading}
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="seoKeywords">SEO Keywords</label>
-              <input
-                type="text"
-                id="seoKeywords"
+              />
+              <TextField
+                label="SEO keywords"
                 name="seoKeywords"
                 value={formData.seoKeywords}
                 onChange={handleChange}
                 placeholder="keyword1, keyword2, keyword3"
                 disabled={loading}
               />
-            </div>
 
-            <div className="form-group">
-              <label>Content *</label>
-              <ReactQuill
-                className="content-editor"
+              <RichTextField
+                label="Content *"
                 value={formData.content}
                 onChange={(value) =>
                   setFormData((prev) => ({ ...prev, content: value }))
                 }
-                modules={quillModules}
-                formats={quillFormats}
                 placeholder="Start writing your blog content here..."
-                readOnly={loading}
-                theme="snow"
+                disabled={loading}
+                minHeight={320}
               />
-            </div>
-          </div>
-        </div>
+            </Stack>
+          </Paper>
+        </Grid>
 
-        <div className="form-sidebar">
-          <div className="sidebar-card">
-            <h3>Featured Image</h3>
-            <div className="image-upload">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageFileChange}
-                hidden
-              />
-              <input
-                type="text"
-                name="featuredImage"
-                value={formData.featuredImage}
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Stack spacing={3}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Featured image
+              </Typography>
+              <Stack spacing={1.5}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  hidden
+                />
+                <TextField
+                  name="featuredImage"
+                  value={formData.featuredImage}
+                  onChange={handleChange}
+                  placeholder="Image URL"
+                  disabled={loading}
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={<ImagePlus />}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                >
+                  Upload image
+                </Button>
+                {formData.featuredImage && (
+                  <Box>
+                    <Box
+                      component="img"
+                      src={formData.featuredImage}
+                      alt="Featured"
+                      onError={() => setPreviewError(true)}
+                      onLoad={() => setPreviewError(false)}
+                      sx={{ width: "100%", borderRadius: 2, display: previewError ? "none" : "block" }}
+                    />
+                    {previewError && (
+                      <Alert severity="warning">
+                        Could not preview this image. Check the URL or upload again.
+                      </Alert>
+                    )}
+                  </Box>
+                )}
+              </Stack>
+            </Paper>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Category
+              </Typography>
+              <TextField
+                select
+                name="category"
+                value={formData.category}
                 onChange={handleChange}
-                placeholder="Image URL"
                 disabled={loading}
+                slotProps={{ select: { displayEmpty: true } }}
+              >
+                <MenuItem value="">Select category</MenuItem>
+                {CATEGORIES.map((c) => (
+                  <MenuItem key={c} value={c}>
+                    {c.charAt(0).toUpperCase() + c.slice(1)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Paper>
+
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Tags
+              </Typography>
+              <TextField
+                name="tags"
+                value={formData.tags}
+                onChange={handleChange}
+                placeholder="react, javascript, web-dev"
+                disabled={loading}
+                helperText="Separate tags with commas"
               />
-              <button
-                type="button"
-                className="upload-btn"
-                onClick={handleImageUploadClick}
-                disabled={loading}
-              >
-                <Image size={18} />
-                Upload Image
-              </button>
-              {formData.featuredImage && (
-                <div className="image-preview">
-                  <img
-                    src={formData.featuredImage}
-                    alt="Featured"
-                    onError={() => setPreviewError(true)}
-                    onLoad={() => setPreviewError(false)}
-                  />
-                  {previewError && (
-                    <div className="image-preview-error">
-                      Could not preview this image. Check URL or upload again.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+            </Paper>
 
-          <div className="sidebar-card">
-            <h3>Category</h3>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              disabled={loading}
-            >
-              <option value="">Select Category</option>
-              <option value="technology">Technology</option>
-              <option value="design">Design</option>
-              <option value="business">Business</option>
-              <option value="lifestyle">Lifestyle</option>
-              <option value="development">Development</option>
-            </select>
-          </div>
-
-          <div className="sidebar-card">
-            <h3>Tags</h3>
-            <input
-              type="text"
-              name="tags"
-              value={formData.tags}
-              onChange={handleChange}
-              placeholder="react, javascript, web-dev"
-              disabled={loading}
-            />
-            <p className="helper-text">Separate tags with commas</p>
-          </div>
-
-          <div className="sidebar-card">
-            <h3>Status</h3>
-            <div className="status-options">
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="status"
-                  value="draft"
-                  checked={formData.status === "draft"}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-                <span>Draft</span>
-              </label>
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="status"
-                  value="review"
-                  checked={formData.status === "review"}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-                <span>In Review</span>
-              </label>
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="status"
-                  value="published"
-                  checked={formData.status === "published"}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-                <span>Published</span>
-              </label>
-              <label className="radio-label">
-                <input
-                  type="radio"
-                  name="status"
-                  value="scheduled"
-                  checked={formData.status === "scheduled"}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-                <span>Scheduled</span>
-              </label>
-            </div>
-            {formData.status === "scheduled" && (
-              <div
-                className="form-group"
-                style={{ marginTop: "12px", marginBottom: 0 }}
-              >
-                <label htmlFor="scheduledAt">Publish At</label>
-                <input
-                  type="datetime-local"
-                  id="scheduledAt"
-                  name="scheduledAt"
-                  value={formData.scheduledAt}
-                  onChange={handleChange}
-                  min={new Date().toISOString().slice(0, 16)}
-                  disabled={loading}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </form>
-    </div>
+            <Paper sx={{ p: 3 }}>
+              <FormControl disabled={loading} sx={{ width: "100%" }}>
+                <Typography variant="h6" sx={{ mb: 1 }}>
+                  Status
+                </Typography>
+                <RadioGroup name="status" value={formData.status} onChange={handleChange}>
+                  {STATUSES.map(([value, label]) => (
+                    <FormControlLabel
+                      key={value}
+                      value={value}
+                      control={<Radio />}
+                      label={label}
+                    />
+                  ))}
+                </RadioGroup>
+                {formData.status === "scheduled" && (
+                  <Box sx={{ mt: 1.5 }}>
+                    <TextField
+                      label="Publish at"
+                      type="datetime-local"
+                      name="scheduledAt"
+                      value={formData.scheduledAt}
+                      onChange={handleChange}
+                      disabled={loading}
+                      slotProps={{
+                        inputLabel: { shrink: true },
+                        htmlInput: { min: toDatetimeLocal(new Date()) },
+                      }}
+                    />
+                    <FormHelperText>Uses your local time zone</FormHelperText>
+                  </Box>
+                )}
+              </FormControl>
+            </Paper>
+          </Stack>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }

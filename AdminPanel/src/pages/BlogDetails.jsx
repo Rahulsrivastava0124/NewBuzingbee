@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar, User, Tag } from "lucide-react";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { blogAPI } from "../services/api";
-import "./SimplePage.css";
+import { LoadingState } from "../components/common";
+import { ArrowLeft, Eye, Flag, Pencil, Tag, User } from "lucide-react";
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -17,6 +26,20 @@ const formatDate = (value) => {
   });
 };
 
+function Fact({ icon, label, children }) {
+  return (
+    <Paper sx={{ p: 2 }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center", color: "text.secondary", mb: 0.5 }}>
+        {icon}
+        <Typography variant="caption" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+          {label}
+        </Typography>
+      </Stack>
+      <Typography sx={{ fontWeight: 700, fontSize: 18 }}>{children}</Typography>
+    </Paper>
+  );
+}
+
 export default function BlogDetails() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -30,12 +53,7 @@ export default function BlogDetails() {
         setLoading(true);
         setError("");
         const data = await blogAPI.getById(id, { trackView: true });
-        if (!data) {
-          setBlog(null);
-          return;
-        }
-
-        setBlog(data);
+        setBlog(data || null);
       } catch (err) {
         setError(err.message || "Failed to load blog details");
       } finally {
@@ -46,119 +64,94 @@ export default function BlogDetails() {
     fetchBlogDetails();
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="simple-page">
-        <h1>Blog Details</h1>
-        <p>Loading blog details...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="simple-page">
-        <h1>Blog Details</h1>
-        <p>{error}</p>
-      </div>
-    );
-  }
-
-  if (!blog) {
-    return (
-      <div className="simple-page">
-        <h1>Blog Details</h1>
-        <p>Blog not found.</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState text="Loading blog details..." />;
+  if (error) return <Alert severity="error">{error}</Alert>;
+  if (!blog) return <Alert severity="warning">Blog not found.</Alert>;
 
   return (
-    <div className="simple-page">
-      <button className="back-btn" onClick={() => navigate(-1)}>
-        <ArrowLeft size={18} />
-        Back
-      </button>
+    <Box sx={{ maxWidth: 1100 }}>
+      <Stack direction="row" sx={{ justifyContent: "space-between", mb: 2 }}>
+        <Button startIcon={<ArrowLeft />} color="inherit" onClick={() => navigate(-1)}>
+          Back
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<Pencil />}
+          onClick={() => navigate(`/dashboard/edit-blog/${blog._id || id}`)}
+        >
+          Edit
+        </Button>
+      </Stack>
 
-      <h1>{blog.title}</h1>
+      <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
+        {blog.title}
+      </Typography>
 
-      <div className="traffic-stats" style={{ marginBottom: "16px" }}>
-        <div className="stat-card">
-          <div className="stat-header">
-            <User size={16} />
-            <span>Author</span>
-          </div>
-          <div className="stat-value" style={{ fontSize: "18px" }}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <Fact icon={<User size={18} />} label="Author">
             {blog.author || "Admin"}
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-header">
-            <Calendar size={16} />
-            <span>Status</span>
-          </div>
-          <div className="stat-value" style={{ fontSize: "18px" }}>
-            {blog.status || "draft"}
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-header">
-            <Tag size={16} />
-            <span>Category</span>
-          </div>
-          <div className="stat-value" style={{ fontSize: "18px" }}>
+          </Fact>
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <Fact icon={<Flag size={18} />} label="Status">
+            <Chip size="small" label={blog.status || "draft"} />
+          </Fact>
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <Fact icon={<Tag size={18} />} label="Category">
             {blog.category || "General"}
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-header">
-            <Tag size={16} />
-            <span>Views</span>
-          </div>
-          <div className="stat-value" style={{ fontSize: "18px" }}>
+          </Fact>
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <Fact icon={<Eye size={18} />} label="Views">
             {(blog.views || 0).toLocaleString()}
-          </div>
-        </div>
-      </div>
+          </Fact>
+        </Grid>
+      </Grid>
 
       {blog.image && (
-        <div style={{ marginBottom: "20px" }}>
-          <img
-            src={blog.image}
-            alt={blog.title}
-            style={{
-              width: "100%",
-              maxHeight: "420px",
-              objectFit: "cover",
-              borderRadius: "12px",
-            }}
-          />
-        </div>
+        <Box
+          component="img"
+          src={blog.image}
+          alt={blog.title}
+          sx={{ width: "100%", maxHeight: 420, objectFit: "cover", borderRadius: 3, mb: 3 }}
+        />
       )}
 
-      <div className="traffic-card" style={{ marginBottom: "16px" }}>
-        <h3>Metadata</h3>
-        <p>
-          <strong>Published:</strong> {formatDate(blog.publishedAt)}
-        </p>
-        <p>
-          <strong>Scheduled:</strong> {formatDate(blog.scheduledAt)}
-        </p>
-        <p>
-          <strong>Created:</strong> {formatDate(blog.createdAt)}
-        </p>
-        <p>
-          <strong>Updated:</strong> {formatDate(blog.updatedAt)}
-        </p>
-      </div>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 1.5 }}>
+          Metadata
+        </Typography>
+        <Grid container spacing={1}>
+          {[
+            ["Published", blog.publishedAt],
+            ["Scheduled", blog.scheduledAt],
+            ["Created", blog.createdAt],
+            ["Updated", blog.updatedAt],
+          ].map(([label, value]) => (
+            <Grid key={label} size={{ xs: 12, sm: 6 }}>
+              <Typography variant="body2" color="text.secondary">
+                {label}
+              </Typography>
+              <Typography>{formatDate(value)}</Typography>
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
 
-      <div className="traffic-card">
-        <h3>Content</h3>
-        <div dangerouslySetInnerHTML={{ __html: blog.content || "" }} />
-      </div>
-    </div>
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h6">Content</Typography>
+        <Divider sx={{ my: 1.5 }} />
+        <Box
+          sx={{
+            "& img": { maxWidth: "100%" },
+            "& h1, & h2, & h3": { mt: 2, mb: 1 },
+            lineHeight: 1.7,
+          }}
+          dangerouslySetInnerHTML={{ __html: blog.content || "" }}
+        />
+      </Paper>
+    </Box>
   );
 }

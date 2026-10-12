@@ -103,10 +103,10 @@ const getR2Client = () => {
   return r2Client;
 };
 
-const createObjectKey = (file, folder = "blogs") => {
+const createObjectKey = (file, folder = "blogs", prefix = "blog") => {
   const ext = path.extname(file?.originalname || "").toLowerCase() || ".jpg";
   const safeFolder = String(folder || "blogs").replace(/^\/+|\/+$/g, "");
-  return `${safeFolder}/blog-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+  return `${safeFolder}/${prefix}-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
 };
 
 const readFileBody = async (file) => {
@@ -197,7 +197,39 @@ const uploadBlogImageAndGetUrl = async (_req, file) => {
   return getPublicUrl(key);
 };
 
+// Company logo. Uses R2 when configured; otherwise a small logo is returned as
+// a data URL so branding still works on installs without object storage.
+const INLINE_LOGO_MAX_BYTES = 512 * 1024;
+
+const uploadLogoAndGetUrl = async (file) => {
+  if (!file?.buffer) return "";
+
+  if (!isR2Configured()) {
+    if (file.buffer.length > INLINE_LOGO_MAX_BYTES) {
+      const tooBig = new Error(
+        "Object storage (R2) is not configured, so the logo must be under 512 KB.",
+      );
+      tooBig.status = 400;
+      throw tooBig;
+    }
+    return `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+  }
+
+  const key = createObjectKey(file, "branding", "logo");
+  await getR2Client().send(
+    new PutObjectCommand({
+      Bucket: getR2Bucket(),
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype || "application/octet-stream",
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+  );
+  return getPublicUrl(key);
+};
+
 module.exports = {
+  uploadLogoAndGetUrl,
   checkR2Connection,
   getR2StatusSummary,
   isR2Configured,

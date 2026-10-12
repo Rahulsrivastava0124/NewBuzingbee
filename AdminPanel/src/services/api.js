@@ -99,6 +99,18 @@ const toFormData = (payload) => {
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {
+  // An expired/invalid session sends the admin back to the login screen
+  if (
+    response.status === 401 &&
+    typeof window !== "undefined" &&
+    window.location.pathname !== "/login" &&
+    localStorage.getItem(AUTH_TOKEN_KEY)
+  ) {
+    clearStoredAuth();
+    window.location.assign("/login");
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+
   if (!response.ok) {
     const error = await response
       .json()
@@ -118,6 +130,34 @@ export const adminAPI = {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(credentials),
+    });
+    return handleResponse(response);
+  },
+
+  // Team members (for "managed by")
+  listUsers: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/users`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    const data = await handleResponse(response);
+    return data.admins || [];
+  },
+
+  // Forgot / reset password (public)
+  forgotPassword: async (payload) => {
+    const response = await fetch(`${API_BASE_URL}/admin/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  resetPassword: async (payload) => {
+    const response = await fetch(`${API_BASE_URL}/admin/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
     return handleResponse(response);
   },
@@ -460,6 +500,104 @@ export const caseStudyAPI = {
       headers: { Authorization: `Bearer ${getAuthToken()}` },
     });
     return handleResponse(response);
+  },
+};
+
+// Settings API (company details, SMTP)
+const settingsRequest = async (path, { method = "GET", body } = {}) => {
+  const response = await fetch(`${API_BASE_URL}/settings${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${getAuthToken()}`,
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return handleResponse(response);
+};
+
+export const settingsAPI = {
+  get: () => settingsRequest(""),
+  saveCompany: (body) => settingsRequest("/company", { method: "PUT", body }),
+  saveSmtp: (body) => settingsRequest("/smtp", { method: "PUT", body }),
+  uploadLogo: async (file) => {
+    const formData = new FormData();
+    formData.append("logo", file);
+    const response = await fetch(`${API_BASE_URL}/settings/company/logo`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+  removeLogo: () => settingsRequest("/company/logo", { method: "DELETE" }),
+  testSmtp: (body) => settingsRequest("/smtp/test", { method: "POST", body }),
+};
+
+// Finance API (clients, invoices, payments, expenses, wallet ledger)
+const financeRequest = async (path, { method = "GET", body, params } = {}) => {
+  const query = params
+    ? new URLSearchParams(
+        Object.entries(params).filter(
+          ([, v]) => v !== undefined && v !== null && v !== "",
+        ),
+      ).toString()
+    : "";
+  const response = await fetch(
+    `${API_BASE_URL}/finance${path}${query ? `?${query}` : ""}`,
+    {
+      method,
+      headers: {
+        Authorization: `Bearer ${getAuthToken()}`,
+        ...(body ? { "Content-Type": "application/json" } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    },
+  );
+  return handleResponse(response);
+};
+
+export const financeAPI = {
+  summary: () => financeRequest("/summary"),
+  notifications: (params) => financeRequest("/notifications", { params }),
+
+  clients: {
+    getAll: (params) => financeRequest("/clients", { params }),
+    ledger: (id) => financeRequest(`/clients/${id}/ledger`),
+    create: (body) => financeRequest("/clients", { method: "POST", body }),
+    update: (id, body) =>
+      financeRequest(`/clients/${id}`, { method: "PUT", body }),
+    delete: (id) => financeRequest(`/clients/${id}`, { method: "DELETE" }),
+  },
+
+  invoices: {
+    getAll: (params) => financeRequest("/invoices", { params }),
+    getById: (id) => financeRequest(`/invoices/${id}`),
+    create: (body) => financeRequest("/invoices", { method: "POST", body }),
+    update: (id, body) =>
+      financeRequest(`/invoices/${id}`, { method: "PUT", body }),
+    delete: (id) => financeRequest(`/invoices/${id}`, { method: "DELETE" }),
+    addPayment: (id, body) =>
+      financeRequest(`/invoices/${id}/payments`, { method: "POST", body }),
+  },
+
+  payments: {
+    getAll: (params) => financeRequest("/payments", { params }),
+    delete: (id) => financeRequest(`/payments/${id}`, { method: "DELETE" }),
+  },
+
+  expenses: {
+    getAll: (params) => financeRequest("/expenses", { params }),
+    create: (body) => financeRequest("/expenses", { method: "POST", body }),
+    update: (id, body) =>
+      financeRequest(`/expenses/${id}`, { method: "PUT", body }),
+    delete: (id) => financeRequest(`/expenses/${id}`, { method: "DELETE" }),
+  },
+
+  wallet: {
+    getLedger: (params) => financeRequest("/wallet", { params }),
+    addEntry: (body) => financeRequest("/wallet", { method: "POST", body }),
+    deleteEntry: (id) => financeRequest(`/wallet/${id}`, { method: "DELETE" }),
   },
 };
 

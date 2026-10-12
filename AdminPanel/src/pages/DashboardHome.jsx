@@ -1,47 +1,43 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, FileText, TrendingUp, Activity, Inbox } from "lucide-react";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import Grid from "@mui/material/Grid";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import MenuItem from "@mui/material/MenuItem";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RTooltip,
   ResponsiveContainer,
 } from "recharts";
 import { blogAPI, analyticsAPI, enquiryAPI } from "../services/api";
-import "./DashboardHome.css";
+import { StatCard } from "../components/common";
+import { ChevronRight, FileText, Inbox, PenLine, Plus, ReceiptText, Settings, TrendingUp, ArrowRight } from "lucide-react";
 
 const RANGE_OPTIONS = [
-  {
-    value: "24h",
-    label: "Last 24 Hours",
-    shortLabel: "24h",
-    mode: "hourly",
-    hours: 24,
-  },
-  {
-    value: "7d",
-    label: "Last 7 Days",
-    shortLabel: "7d",
-    mode: "daily",
-    days: 7,
-  },
-  {
-    value: "30d",
-    label: "Last 1 Month",
-    shortLabel: "1m",
-    mode: "daily",
-    days: 30,
-  },
-  {
-    value: "60d",
-    label: "Last 2 Months",
-    shortLabel: "2m",
-    mode: "daily",
-    days: 60,
-  },
+  { value: "24h", label: "Last 24 Hours", shortLabel: "24h", mode: "hourly", hours: 24 },
+  { value: "7d", label: "Last 7 Days", shortLabel: "7d", mode: "daily", days: 7 },
+  { value: "30d", label: "Last 1 Month", shortLabel: "1m", mode: "daily", days: 30 },
+  { value: "60d", label: "Last 2 Months", shortLabel: "2m", mode: "daily", days: 60 },
 ];
 
 const formatChartTick = (value, isHourly) => {
@@ -54,51 +50,37 @@ const formatChartTick = (value, isHourly) => {
       hour12: false,
     });
   }
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-const CustomTooltip = ({ active, payload, isHourly }) => {
-  if (active && payload && payload.length) {
-    const item = payload[0].payload;
-    return (
-      <div
-        style={{
-          background: "rgba(255, 255, 255, 0.98)",
-          padding: "8px 12px",
-          borderRadius: "6px",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-        }}
-      >
-        <p style={{ color: "#64748b", margin: 0, fontSize: "12px" }}>
-          {formatChartTick(item.x, isHourly)}
-        </p>
-        <p
-          style={{
-            color: "#F5A623",
-            margin: "4px 0 0 0",
-            fontSize: "14px",
-            fontWeight: "bold",
-          }}
-        >
-          {payload[0].value} views
-        </p>
-      </div>
-    );
-  }
-  return null;
+const ChartTooltip = ({ active, payload, isHourly }) => {
+  if (!active || !payload?.length) return null;
+  const item = payload[0].payload;
+  return (
+    <Paper sx={{ px: 1.5, py: 1 }}>
+      <Typography variant="caption" color="text.secondary">
+        {formatChartTick(item.x, isHourly)}
+      </Typography>
+      <Typography sx={{ fontWeight: 700, color: "primary.main" }}>
+        {payload[0].value} views
+      </Typography>
+    </Paper>
+  );
 };
+
+const formatDate = (value) =>
+  value
+    ? new Date(value).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
 
 function DashboardHome() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    total: 0,
-    drafts: 0,
-    published: 0,
-  });
+  const theme = useTheme();
+  const [stats, setStats] = useState({ total: 0, drafts: 0, published: 0 });
   const [enqStats, setEnqStats] = useState({ total: 0, new: 0 });
   const [recentEnquiries, setRecentEnquiries] = useState([]);
   const [selectedRangeValue, setSelectedRangeValue] = useState("7d");
@@ -112,98 +94,65 @@ function DashboardHome() {
   const website = "buzingbee";
 
   const selectedRange =
-    RANGE_OPTIONS.find((option) => option.value === selectedRangeValue) ||
-    RANGE_OPTIONS[1];
-
+    RANGE_OPTIONS.find((o) => o.value === selectedRangeValue) || RANGE_OPTIONS[1];
   const isHourlyRange = selectedRange.mode === "hourly";
 
-  const animateValue = (key, start, end, duration) => {
-    const startTime = Date.now();
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const value = Math.floor(progress * (end - start) + start);
-      setStats((prev) => ({ ...prev, [key]: value }));
-
-      if (progress === 1) clearInterval(timer);
-    }, 16);
-  };
-
   useEffect(() => {
-    const loadDashboardStats = async () => {
+    let cancelled = false;
+    const load = async () => {
       try {
         const [statsRes, enqStatsRes, enqList] = await Promise.all([
           blogAPI.getStats(),
           enquiryAPI.getStats().catch(() => ({ total: 0, new: 0 })),
           enquiryAPI.getAll({ limit: 4 }).catch(() => ({ enquiries: [] })),
         ]);
-
-        const total = statsRes.total || 0;
-        const drafts = statsRes.drafts || 0;
-        const published = statsRes.published || 0;
-
-        const timeout = setTimeout(() => {
-          animateValue("total", 0, total, 800);
-          animateValue("drafts", 0, drafts, 800);
-          animateValue("published", 0, published, 800);
-        }, 300);
-
-        setEnqStats({
-          total: enqStatsRes.total || 0,
-          new: enqStatsRes.new || 0,
+        if (cancelled) return;
+        setStats({
+          total: statsRes.total || 0,
+          drafts: statsRes.drafts || 0,
+          published: statsRes.published || 0,
         });
+        setEnqStats({ total: enqStatsRes.total || 0, new: enqStatsRes.new || 0 });
         setRecentEnquiries((enqList.enquiries || []).slice(0, 4));
-
-        return () => clearTimeout(timeout);
       } catch {
-        setRecentEnquiries([]);
+        if (!cancelled) setRecentEnquiries([]);
       }
     };
-
-    loadDashboardStats();
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    const loadTrafficTrend = async () => {
+    let cancelled = false;
+    const loadTrend = async () => {
       setAnalyticsLoading(true);
       try {
-        const analyticsRes = isHourlyRange
-          ? await analyticsAPI.getHourly({
-              website,
-              hours: selectedRange.hours,
-            })
-          : await analyticsAPI.getOverview({
-              website,
-              days: selectedRange.days,
-            });
-
+        const res = isHourlyRange
+          ? await analyticsAPI.getHourly({ website, hours: selectedRange.hours })
+          : await analyticsAPI.getOverview({ website, days: selectedRange.days });
+        if (cancelled) return;
         setAnalytics({
-          totalViews: analyticsRes.totalViews || 0,
+          totalViews: res.totalViews || 0,
           trendViews: isHourlyRange
-            ? (analyticsRes.hourlyViews || []).map((item) => ({
-                x: item.time,
-                views: item.views,
-              }))
-            : (analyticsRes.dailyViews || []).map((item) => ({
-                x: item.date,
-                views: item.views,
-              })),
-          topPages: analyticsRes.topPages || [],
-          devices: analyticsRes.devices || [],
+            ? (res.hourlyViews || []).map((i) => ({ x: i.time, views: i.views }))
+            : (res.dailyViews || []).map((i) => ({ x: i.date, views: i.views })),
+          topPages: res.topPages || [],
+          devices: res.devices || [],
         });
       } catch {
-        setAnalytics({
-          totalViews: 0,
-          trendViews: [],
-          topPages: [],
-          devices: [],
-        });
+        if (!cancelled) {
+          setAnalytics({ totalViews: 0, trendViews: [], topPages: [], devices: [] });
+        }
       } finally {
-        setAnalyticsLoading(false);
+        if (!cancelled) setAnalyticsLoading(false);
       }
     };
-
-    loadTrafficTrend();
+    loadTrend();
+    return () => {
+      cancelled = true;
+    };
   }, [isHourlyRange, selectedRange.days, selectedRange.hours]);
 
   const chartData = useMemo(
@@ -215,384 +164,269 @@ function DashboardHome() {
     [analytics.trendViews, isHourlyRange],
   );
 
-  const formatDate = (value) => {
-    if (!value) return "—";
-    return new Date(value).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
+  const quickActions = [
+    {
+      icon: <Plus />,
+      title: "Create New Blog",
+      desc: "Start writing a new post",
+      to: "/dashboard/create-blog",
+    },
+    {
+      icon: <FileText />,
+      title: "View All Blogs",
+      desc: "Browse your content library",
+      to: "/dashboard/blogs",
+    },
+    {
+      icon: <Inbox />,
+      title: "View Enquiries",
+      desc: enqStats.new > 0 ? `${enqStats.new} unread messages` : "Manage contact requests",
+      to: "/dashboard/enquiries",
+    },
+    {
+      icon: <ReceiptText />,
+      title: "New Invoice",
+      desc: "Bill a client",
+      to: "/dashboard/finance/invoices/new",
+    },
+    {
+      icon: <TrendingUp />,
+      title: "View Analytics",
+      desc: "Track visits and leads",
+      to: "/dashboard/traffic",
+    },
+    {
+      icon: <Settings />,
+      title: "Manage Settings",
+      desc: "Configure your panel",
+      to: "/dashboard/settings",
+    },
+  ];
 
   return (
-    <div className="dark-home">
-      <div className="dark-greeting">
-        <h1>
-          Welcome back, <span className="dark-highlight">Admin</span> 👋
-        </h1>
-        <p>Here's what's happening with your blog today.</p>
-      </div>
+    <Box sx={{ maxWidth: 1400 }}>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 24, md: 30 } }}>
+          Welcome back,{" "}
+          <Box component="span" sx={{ color: "primary.main" }}>
+            Admin
+          </Box>
+        </Typography>
+        <Typography color="text.secondary">
+          Here&apos;s what&apos;s happening with your blog today.
+        </Typography>
+      </Box>
 
-      <div className="dark-stat-cards">
-        <div className="dark-stat-card amber">
-          <div className="dark-stat-header">
-            <div className="dark-stat-icon amber">
-              <FileText size={24} />
-            </div>
-            <div className="dark-stat-badge green">↑ 12%</div>
-          </div>
-          <div className="dark-stat-number">{stats.total}</div>
-          <div className="dark-stat-label">Total Blogs</div>
-          <div className="dark-stat-footer">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
-            </svg>
-            <span>All time · Updated just now</span>
-          </div>
-        </div>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label="Total Blogs"
+            value={stats.total}
+            icon={<FileText />}
+            color="primary"
+            caption={`${stats.published} published`}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label="Draft Blogs"
+            value={stats.drafts}
+            icon={<PenLine />}
+            color="info"
+            caption="In progress"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label={`Traffic & Clicks (${selectedRange.shortLabel})`}
+            value={analytics.totalViews.toLocaleString()}
+            icon={<TrendingUp />}
+            color="success"
+            caption="Tracked with analytics API"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label="Total Enquiries"
+            value={enqStats.total}
+            icon={<Inbox />}
+            color="error"
+            caption={enqStats.new > 0 ? `${enqStats.new} unread` : "All caught up"}
+            chip={
+              enqStats.new > 0 ? (
+                <Chip size="small" color="error" label={`${enqStats.new} new`} />
+              ) : null
+            }
+          />
+        </Grid>
+      </Grid>
 
-        <div className="dark-stat-card blue">
-          <div className="dark-stat-header">
-            <div className="dark-stat-icon blue">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-              </svg>
-            </div>
-            <div className="dark-stat-badge amber">In progress</div>
-          </div>
-          <div className="dark-stat-number">{stats.drafts}</div>
-          <div className="dark-stat-label">Draft Blogs</div>
-          <div className="dark-stat-footer">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
-            </svg>
-            <span>In progress</span>
-          </div>
-        </div>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{ justifyContent: "space-between", mb: 2 }}
+        >
+          <Box>
+            <Typography variant="h6">Traffic Trend</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedRange.label}
+            </Typography>
+          </Box>
+          <TextField
+            select
+            value={selectedRangeValue}
+            onChange={(e) => setSelectedRangeValue(e.target.value)}
+            disabled={analyticsLoading}
+            sx={{ width: { sm: 200 } }}
+            aria-label="Traffic range"
+          >
+            {RANGE_OPTIONS.map((o) => (
+              <MenuItem key={o.value} value={o.value}>
+                {o.label}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart data={chartData} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            <RTooltip content={<ChartTooltip isHourly={isHourlyRange} />} />
+            <Line
+              type="monotone"
+              dataKey="views"
+              stroke={theme.palette.primary.main}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </Paper>
 
-        <div className="dark-stat-card green">
-          <div className="dark-stat-header">
-            <div className="dark-stat-icon green">
-              <TrendingUp size={24} />
-            </div>
-            <div className="dark-stat-badge green">Traffic</div>
-          </div>
-          <div className="dark-stat-number">{analytics.totalViews}</div>
-          <div className="dark-stat-label">
-            Traffic & Clicks ({selectedRange.shortLabel})
-          </div>
-          <div className="dark-stat-footer">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-            </svg>
-            <span>Tracked with analytics API</span>
-          </div>
-        </div>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {[
+          [
+            `${stats.published} blogs are published`,
+            "live",
+            "success.main",
+          ],
+          [
+            `${analytics.topPages[0]?.page || "/dashboard"} top page`,
+            `${analytics.topPages[0]?.views || 0} views`,
+            "info.main",
+          ],
+          [
+            `${analytics.devices.find((d) => d.device === "mobile")?.views || 0} mobile visits`,
+            selectedRange.shortLabel,
+            "primary.main",
+          ],
+        ].map(([text, tag, color]) => (
+          <Grid key={text} size={{ xs: 12, md: 4 }}>
+            <Paper sx={{ p: 2 }}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: color }} />
+                <Typography sx={{ flex: 1 }} noWrap>
+                  {text}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {tag}
+                </Typography>
+              </Stack>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
 
-        <div className="dark-stat-card red">
-          <div className="dark-stat-header">
-            <div className="dark-stat-icon red">
-              <Inbox size={24} />
-            </div>
-            {enqStats.new > 0 && (
-              <div
-                className="dark-stat-badge"
-                style={{ background: "#fee2e2", color: "#dc2626" }}
-              >
-                {enqStats.new} new
-              </div>
-            )}
-          </div>
-          <div className="dark-stat-number">{enqStats.total}</div>
-          <div className="dark-stat-label">Total Enquiries</div>
-          <div className="dark-stat-footer">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <Paper sx={{ height: "100%" }}>
+            <Stack
+              direction="row"
+              sx={{ p: 2.5, justifyContent: "space-between", alignItems: "center" }}
             >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
-            </svg>
-            <span>
-              {enqStats.new > 0 ? `${enqStats.new} unread` : "All caught up"}
-            </span>
-          </div>
-        </div>
-      </div>
+              <Typography variant="h6">Recent Enquiries</Typography>
+              <Button size="small" endIcon={<ArrowRight size={16} />} onClick={() => navigate("/dashboard/enquiries")}>
+                View all
+              </Button>
+            </Stack>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Service</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Date</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {recentEnquiries.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4}>No enquiries yet.</TableCell>
+                    </TableRow>
+                  ) : (
+                    recentEnquiries.map((enq) => (
+                      <TableRow key={enq._id} hover>
+                        <TableCell>
+                          <Typography sx={{ fontWeight: 600 }}>{enq.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {enq.email}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{enq.service || "—"}</TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={enq.status}
+                            color={enq.status === "new" ? "error" : "default"}
+                          />
+                        </TableCell>
+                        <TableCell>{formatDate(enq.createdAt)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Grid>
 
-      <div className="dark-analytics-card dark-card">
-        <div className="dark-card-header">
-          <div>
-            <h2 className="dark-card-title">Traffic Trend</h2>
-            <p className="dark-traffic-range-text">{selectedRange.label}</p>
-          </div>
-          <div className="dark-traffic-controls">
-            <select
-              className="dark-traffic-input"
-              value={selectedRangeValue}
-              onChange={(event) => setSelectedRangeValue(event.target.value)}
-              disabled={analyticsLoading}
-            >
-              {RANGE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <Paper sx={{ height: "100%" }}>
+            <Typography variant="h6" sx={{ p: 2.5, pb: 1 }}>
+              Quick Actions
+            </Typography>
+            <List sx={{ px: 1, pb: 1 }}>
+              {quickActions.map((a) => (
+                <ListItemButton key={a.title} onClick={() => navigate(a.to)} sx={{ borderRadius: 2 }}>
+                  <ListItemIcon sx={{ color: "primary.main" }}>{a.icon}</ListItemIcon>
+                  <ListItemText
+                    primary={a.title}
+                    secondary={a.desc}
+                    slotProps={{ primary: { sx: { fontWeight: 600 } } }}
+                  />
+                  <ChevronRight color="disabled" />
+                </ListItemButton>
               ))}
-            </select>
-          </div>
-        </div>
-        <div className="dark-chart-container">
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart
-              data={chartData}
-              margin={{ top: 20, right: 20, left: -10, bottom: 5 }}
-            >
-              <defs>
-                <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F5A623" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#F5A623" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#e2e8f0"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="label"
-                stroke="transparent"
-                tick={{ fill: "#64748b", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                stroke="transparent"
-                tick={{ fill: "#64748b", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                allowDecimals={false}
-              />
-              <Tooltip content={<CustomTooltip isHourly={isHourlyRange} />} />
-              <Line
-                type="monotone"
-                dataKey="views"
-                stroke="#F5A623"
-                strokeWidth={1.5}
-                dot={false}
-                activeDot={{ r: 4, strokeWidth: 0 }}
-                fill="url(#colorViews)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="dark-activity-strip">
-        <div className="dark-activity-item">
-          <div className="dark-activity-dot green"></div>
-          <div className="dark-activity-text">
-            <span>{stats.published}</span> blogs are published
-          </div>
-          <div className="dark-activity-time">live</div>
-        </div>
-        <div className="dark-activity-item">
-          <div className="dark-activity-dot blue"></div>
-          <div className="dark-activity-text">
-            <span>{analytics.topPages[0]?.page || "/dashboard"}</span> top page
-          </div>
-          <div className="dark-activity-time">
-            {analytics.topPages[0]?.views || 0} views
-          </div>
-        </div>
-        <div className="dark-activity-item">
-          <div className="dark-activity-dot amber"></div>
-          <div className="dark-activity-text">
-            <span>
-              {analytics.devices.find((d) => d.device === "mobile")?.views || 0}
-            </span>{" "}
-            mobile visits
-          </div>
-          <div className="dark-activity-time">{selectedRange.shortLabel}</div>
-        </div>
-      </div>
-
-      <div className="dark-bottom-grid">
-        <div className="dark-card">
-          <div className="dark-card-header">
-            <h2 className="dark-card-title">Recent Enquiries</h2>
-            <a
-              href="#"
-              className="dark-card-link"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/dashboard/enquiries");
-              }}
-            >
-              View all →
-            </a>
-          </div>
-          <div className="dark-table-wrapper">
-            <table className="dark-posts-table">
-              <thead>
-                <tr>
-                  <th>NAME</th>
-                  <th>SERVICE</th>
-                  <th>STATUS</th>
-                  <th>DATE</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentEnquiries.length === 0 ? (
-                  <tr>
-                    <td colSpan="4">No enquiries yet.</td>
-                  </tr>
-                ) : (
-                  recentEnquiries.map((enq) => (
-                    <tr key={enq._id}>
-                      <td>
-                        <div className="dark-post-title">{enq.name}</div>
-                        <div style={{ fontSize: "11px", color: "#94a3b8" }}>
-                          {enq.email}
-                        </div>
-                      </td>
-                      <td>{enq.service || "—"}</td>
-                      <td>
-                        <span
-                          className={`dark-status-badge ${enq.status === "new" ? "draft" : "published"}`}
-                          style={
-                            enq.status === "new"
-                              ? { background: "#fee2e2", color: "#dc2626" }
-                              : {}
-                          }
-                        >
-                          <span className="dark-status-dot"></span>
-                          {enq.status}
-                        </span>
-                      </td>
-                      <td>{formatDate(enq.createdAt)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="dark-card">
-          <div className="dark-card-header">
-            <h2 className="dark-card-title">Quick Actions</h2>
-          </div>
-          <div className="dark-quick-actions-list">
-            <div
-              className="dark-quick-action"
-              onClick={() => navigate("/dashboard/create-blog")}
-            >
-              <div className="dark-quick-action-icon amber">
-                <Plus size={20} />
-              </div>
-              <div className="dark-quick-action-content">
-                <div className="dark-quick-action-title">Create New Blog</div>
-                <div className="dark-quick-action-desc">
-                  Start writing a new post
-                </div>
-              </div>
-              <div className="dark-quick-action-arrow">›</div>
-            </div>
-            <div
-              className="dark-quick-action"
-              onClick={() => navigate("/dashboard/blogs")}
-            >
-              <div className="dark-quick-action-icon blue">
-                <FileText size={20} />
-              </div>
-              <div className="dark-quick-action-content">
-                <div className="dark-quick-action-title">View All Blogs</div>
-                <div className="dark-quick-action-desc">
-                  Browse your content library
-                </div>
-              </div>
-              <div className="dark-quick-action-arrow">›</div>
-            </div>
-            <div
-              className="dark-quick-action"
-              onClick={() => navigate("/dashboard/enquiries")}
-            >
-              <div className="dark-quick-action-icon red">
-                <Inbox size={20} />
-              </div>
-              <div className="dark-quick-action-content">
-                <div className="dark-quick-action-title">View Enquiries</div>
-                <div className="dark-quick-action-desc">
-                  {enqStats.new > 0
-                    ? `${enqStats.new} unread messages`
-                    : "Manage contact requests"}
-                </div>
-              </div>
-              <div className="dark-quick-action-arrow">›</div>
-            </div>
-            <div className="dark-quick-action">
-              <div className="dark-quick-action-icon green">
-                <TrendingUp size={20} />
-              </div>
-              <div className="dark-quick-action-content">
-                <div className="dark-quick-action-title">View Analytics</div>
-                <div className="dark-quick-action-desc">
-                  Track post performance
-                </div>
-              </div>
-              <div className="dark-quick-action-arrow">›</div>
-            </div>
-            <div className="dark-quick-action">
-              <div className="dark-quick-action-icon red">
-                <Activity size={20} />
-              </div>
-              <div className="dark-quick-action-content">
-                <div className="dark-quick-action-title">Manage Settings</div>
-                <div className="dark-quick-action-desc">
-                  Configure your panel
-                </div>
-              </div>
-              <div className="dark-quick-action-arrow">›</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </List>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }
 

@@ -1,7 +1,7 @@
 # Multi-stage build for React Vite application
 
 # Stage 1: Build the application
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -13,6 +13,10 @@ RUN npm ci
 
 # Copy source code
 COPY . .
+
+# API base URL is compiled into the bundle
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Build the application
 RUN npm run build
