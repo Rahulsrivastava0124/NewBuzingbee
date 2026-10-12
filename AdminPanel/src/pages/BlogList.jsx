@@ -125,7 +125,7 @@ export default function BlogList() {
   if (loading) return <LoadingState text="Loading blogs..." />;
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="All Blogs"
         subtitle={`${filteredBlogs.length} total posts`}

@@ -78,7 +78,7 @@ function Field({ label, children }) {
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}
+        sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}
       >
         {label}
       </Typography>
@@ -193,7 +193,7 @@ export default function Enquiries() {
   const newCount = enquiries.filter((e) => e.status === "new").length;
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="Enquiries"
         subtitle={`${total} total · ${newCount} new`}
@@ -341,7 +341,7 @@ export default function Enquiries() {
             ) : (
               <Stack spacing={3} sx={{ p: 3, overflowY: "auto" }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
                     Status
                   </Typography>
                   <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, mt: 0.5 }}>
@@ -403,7 +403,7 @@ export default function Enquiries() {
                 </Paper>
 
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
                     Message
                   </Typography>
                   <Paper sx={{ p: 2, mt: 0.5, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>

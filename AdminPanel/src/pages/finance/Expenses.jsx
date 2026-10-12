@@ -115,7 +115,7 @@ export default function Expenses() {
   if (loading) return <LoadingState text="Loading expenses..." />;
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="Expenses"
         subtitle={`${expenses.length} entries · ${money(totalAmount)}`}
@@ -155,7 +155,7 @@ export default function Expenses() {
                 <Typography
                   variant="caption"
                   color="text.secondary"
-                  sx={{ fontWeight: 700, textTransform: "uppercase" }}
+                  sx={{ fontWeight: 600, textTransform: "uppercase" }}
                 >
                   {titleCase(c.category)}
                 </Typography>
@@ -222,7 +222,7 @@ export default function Expenses() {
                 <TableRow key={x._id} hover>
                   <TableCell>{fmtDate(x.spentAt)}</TableCell>
                   <TableCell>
-                    <Typography sx={{ fontWeight: 700 }}>{x.title}</Typography>
+                    <Typography sx={{ fontWeight: 600 }}>{x.title}</Typography>
                     {x.note && (
                       <Typography variant="caption" color="text.secondary">
                         {x.note}
@@ -232,7 +232,7 @@ export default function Expenses() {
                   <TableCell>{titleCase(x.category)}</TableCell>
                   <TableCell>{x.vendor || "—"}</TableCell>
                   <TableCell>{methodLabel(x.method)}</TableCell>
-                  <TableCell align="right" sx={{ color: "error.main", fontWeight: 700 }}>
+                  <TableCell align="right" sx={{ color: "error.main", fontWeight: 600 }}>
                     {money(x.amount)}
                   </TableCell>
                   <TableCell align="right" className="no-print" sx={{ whiteSpace: "nowrap" }}>

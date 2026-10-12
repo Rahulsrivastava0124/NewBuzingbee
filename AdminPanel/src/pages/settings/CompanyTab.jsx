@@ -111,7 +111,7 @@ export default function CompanyTab() {
   if (loading) return <LoadingState text="Loading company details..." />;
 
   return (
-    <Paper component="form" onSubmit={submit} sx={{ p: { xs: 2.5, sm: 4 }, maxWidth: 820 }}>
+    <Paper component="form" onSubmit={submit} sx={{ p: { xs: 2.5, sm: 4 } }}>
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 0.5 }}>
         <Building2 size={22} />
         <Typography variant="h6">Company details</Typography>

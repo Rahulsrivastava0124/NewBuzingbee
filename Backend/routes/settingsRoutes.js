@@ -1,10 +1,11 @@
 const express = require("express");
-const { protectAdmin } = require("../middleware/authMiddleware");
+const { protectAdmin, requireSuper } = require("../middleware/authMiddleware");
 const { uploadLogo: uploadLogoFile } = require("../middleware/uploadMiddleware");
 const {
   uploadLogo,
   removeLogo,
   getSettings,
+  getBrand,
   updateCompany,
   updateSmtp,
   testSmtp,
@@ -12,10 +13,15 @@ const {
 
 const router = express.Router();
 
-// Company details and SMTP credentials are admin-only
+router.get("/brand", getBrand);
+
 router.use(protectAdmin);
 
 router.get("/", getSettings);
+
+// Changing company details or SMTP is super-admin only
+router.use(requireSuper);
+
 router.put("/company", updateCompany);
 router.post("/company/logo", (req, res, next) => {
   // Surface multer errors (size, type) as JSON instead of the default 500

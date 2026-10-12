@@ -19,17 +19,17 @@ import {
   YAxis,
 } from "recharts";
 import { financeAPI } from "../../services/api";
-import { LoadingState, PageHeader } from "../../components/common";
-import { dueLabel, fmtDate, money } from "./format";
+import { LoadingState } from "../../components/common";
+import { money } from "./format";
 import { Plus } from "lucide-react";
 
 function Stat({ label, value, sub, color }) {
   return (
-    <Paper sx={{ p: 2.5, height: "100%" }}>
+    <Paper sx={{ p: { xs: 2, sm: 2.5 }, height: "100%", minWidth: 0 }}>
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}
+        sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}
       >
         {label}
       </Typography>
@@ -45,6 +45,7 @@ function Stat({ label, value, sub, color }) {
   );
 }
 
+// Finance section of the main dashboard
 export default function FinanceOverview() {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -59,41 +60,45 @@ export default function FinanceOverview() {
   }, []);
 
   if (error) return <Alert severity="error">{error}</Alert>;
-  if (!data) return <LoadingState text="Loading finance overview..." />;
-
-  const profit = data.paid - data.totalExpenses;
+  if (!data) return <LoadingState text="Loading finance..." />;
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
-      <PageHeader
-        title="Finance"
-        subtitle="Invoices, payments, expenses and wallet"
-        actions={
-          <Button
-            variant="contained"
-            startIcon={<Plus />}
-            onClick={() => navigate("/dashboard/finance/invoices/new")}
-          >
-            New Invoice
-          </Button>
-        }
-      />
+    <Box>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1.5}
+        sx={{ justifyContent: "space-between", alignItems: { sm: "center" }, mb: 2 }}
+      >
+        <Box>
+          <Typography variant="h6">Finance</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Wallet, invoices and expenses
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<Plus />}
+          onClick={() => navigate("/dashboard/finance/invoices/new")}
+        >
+          New Invoice
+        </Button>
+      </Stack>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: "grow" }}>
           <Stat
             label="Wallet balance"
             value={money(data.balance)}
             color={data.balance < 0 ? "error.main" : undefined}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: "grow" }}>
           <Stat label="Invoiced" value={money(data.invoiced)} sub={`${data.invoiceCount} invoices`} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: "grow" }}>
           <Stat label="Received" value={money(data.paid)} color="success.main" />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: "grow" }}>
           <Stat
             label="Outstanding"
             value={money(data.outstanding)}
@@ -105,46 +110,27 @@ export default function FinanceOverview() {
             color={data.overdueCount > 0 ? "error.main" : undefined}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <Stat
-            label="Next due"
-            value={data.nextDue ? fmtDate(data.nextDue.dueDate) : "Nothing due"}
-            sub={
-              data.nextDue
-                ? `${dueLabel(data.nextDue.dueDate)} · ${money(data.nextDue.amount)} · ${data.nextDue.client}`
-                : "All invoices are settled"
-            }
-            color={data.nextDue?.overdue ? "error.main" : undefined}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: "grow" }}>
           <Stat label="Expenses" value={money(data.totalExpenses)} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <Stat
-            label="Net (received − expenses)"
-            value={money(profit)}
-            color={profit < 0 ? "error.main" : "success.main"}
-          />
         </Grid>
       </Grid>
 
-      <Paper sx={{ p: 3 }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack sx={{ mb: 2 }}>
           <Typography variant="h6">Last 6 months</Typography>
           <Typography variant="body2" color="text.secondary">
             Payments received vs expenses paid
           </Typography>
         </Stack>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data.months} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} vertical={false} />
-            <XAxis dataKey="month" axisLine={false} tickLine={false} />
-            <YAxis axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+            <YAxis axisLine={false} tickLine={false} width={56} tick={{ fontSize: 12 }} tickFormatter={(v) => `₹${v}`} />
             <RTooltip formatter={(v) => money(v)} />
             <Legend />
-            <Bar dataKey="income" name="Income" fill={theme.palette.success.main} radius={[6, 6, 0, 0]} />
-            <Bar dataKey="expense" name="Expenses" fill={theme.palette.primary.main} radius={[6, 6, 0, 0]} />
+            <Bar dataKey="income" name="Income" fill={theme.palette.success.main} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expense" name="Expenses" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Paper>

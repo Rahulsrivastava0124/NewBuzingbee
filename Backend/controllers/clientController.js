@@ -3,6 +3,7 @@ const Invoice = require("../models/Invoice");
 const Payment = require("../models/Payment");
 const Admin = require("../models/Admin");
 const mongoose = require("mongoose");
+const { invoiceScope, clientScope, clientEditScope } = require("../utils/billingScope");
 
 const fail = (res, message, error, code = 500) =>
   res.status(code).json({ success: false, message, error: error?.message });
@@ -15,7 +16,14 @@ const pick = (body) => {
     if (body[k] !== undefined) out[k] = body[k];
   });
   if (body.managedBy !== undefined) out.managedBy = body.managedBy || null;
+  if (body.personal !== undefined) out.personal = body.personal === true;
   return out;
+};
+
+// A personal client needs an owner; default it to whoever is saving it
+const ownPersonal = (data, req) => {
+  if (data.personal && !data.managedBy) data.managedBy = req.admin.id;
+  return data;
 };
 
 const MANAGER_FIELDS = "username email";
@@ -33,7 +41,7 @@ const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const getClients = async (req, res) => {
   try {
     const { search, managedBy } = req.query;
-    const query = {};
+    const query = { $and: [clientScope(req)] };
     // managedBy: a team member id, "me", or "none" for unassigned clients
     if (managedBy === "none") query.managedBy = null;
     else if (managedBy === "me") query.managedBy = req.admin?.id;
@@ -42,15 +50,16 @@ const getClients = async (req, res) => {
     }
     if (search) {
       const rx = new RegExp(escapeRegex(String(search)), "i");
-      query.$or = [{ name: rx }, { company: rx }, { email: rx }];
+      query.$and.push({ $or: [{ name: rx }, { company: rx }, { email: rx }] });
     }
     const clients = await Client.find(query)
       .populate("managedBy", MANAGER_FIELDS)
       .sort({ createdAt: -1 });
 
-    // Attach billing totals per client
+    // Attach billing totals per client (only bills the viewer can see)
+    const scope = await invoiceScope(req);
     const totals = await Invoice.aggregate([
-      { $match: { status: { $nin: ["cancelled", "draft"] } } },
+      { $match: { ...scope, status: { $nin: ["cancelled", "draft"] } } },
       {
         $group: {
           _id: "$client",
@@ -66,6 +75,7 @@ const getClients = async (req, res) => {
     const dues = await Invoice.aggregate([
       {
         $match: {
+          ...scope,
           status: { $nin: ["cancelled", "draft"] },
           $expr: { $gt: ["$total", "$amountPaid"] },
         },
@@ -115,7 +125,7 @@ const getClients = async (req, res) => {
 
 const createClient = async (req, res) => {
   try {
-    const data = pick(req.body);
+    const data = ownPersonal(pick(req.body), req);
     if (!data.name?.trim()) {
       return res
         .status(400)
@@ -135,15 +145,16 @@ const createClient = async (req, res) => {
 
 const updateClient = async (req, res) => {
   try {
-    const data = pick(req.body);
+    const data = ownPersonal(pick(req.body), req);
     const managerError = await validateManager(data.managedBy);
     if (managerError) {
       return res.status(400).json({ success: false, message: managerError });
     }
-    const client = await Client.findByIdAndUpdate(req.params.id, data, {
-      new: true,
-      runValidators: true,
-    }).populate("managedBy", MANAGER_FIELDS);
+    const client = await Client.findOneAndUpdate(
+      { _id: req.params.id, ...clientEditScope(req) },
+      data,
+      { new: true, runValidators: true },
+    ).populate("managedBy", MANAGER_FIELDS);
     if (!client) {
       return res
         .status(404)
@@ -164,7 +175,7 @@ const deleteClient = async (req, res) => {
         message: "Client has invoices. Delete them first.",
       });
     }
-    const client = await Client.findByIdAndDelete(req.params.id);
+    const client = await Client.findOneAndDelete({ _id: req.params.id, ...clientEditScope(req) });
     if (!client) {
       return res
         .status(404)
@@ -181,7 +192,7 @@ const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 // Statement of account: every invoice is a debit, every payment a credit.
 const getClientLedger = async (req, res) => {
   try {
-    const client = await Client.findById(req.params.id).populate(
+    const client = await Client.findOne({ _id: req.params.id, ...clientScope(req) }).populate(
       "managedBy",
       MANAGER_FIELDS,
     );
@@ -192,6 +203,7 @@ const getClientLedger = async (req, res) => {
     }
 
     const invoices = await Invoice.find({
+      ...(await invoiceScope(req)),
       client: client._id,
       status: { $nin: ["draft", "cancelled"] },
     }).sort({ issueDate: 1, createdAt: 1 });

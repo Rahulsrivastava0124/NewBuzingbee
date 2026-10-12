@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Link from "@mui/material/Link";
+import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
@@ -18,12 +19,12 @@ import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
-import { financeAPI } from "../../services/api";
+import { adminAPI, financeAPI } from "../../services/api";
 import { useFeedback } from "../../components/Feedback";
 import { EmptyState, LoadingState, PageHeader } from "../../components/common";
 import { StatusBadge } from "./shared";
 import { fmtDate, money, titleCase } from "./format";
-import { Eye, Plus, ReceiptText, Search, Trash2 } from "lucide-react";
+import { Plus, ReceiptText, Search, Trash2 } from "lucide-react";
 
 const FILTERS = ["all", "draft", "sent", "partial", "overdue", "paid", "cancelled"];
 
@@ -35,10 +36,20 @@ export default function Invoices() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  // Super admin sees everyone's bills and can narrow to one person
+  const { admin } = useOutletContext() || {};
+  const isSuper = admin?.role === "super";
+  const [billedBy, setBilledBy] = useState("");
+  const [people, setPeople] = useState([]);
+
+  useEffect(() => {
+    if (!isSuper) return;
+    adminAPI.listUsers().then(setPeople).catch(() => {});
+  }, [isSuper]);
 
   const load = useCallback(async () => {
     try {
-      const data = await financeAPI.invoices.getAll({ status, search });
+      const data = await financeAPI.invoices.getAll({ status, search, billedBy });
       setInvoices(data.invoices || []);
       setError("");
     } catch (e) {
@@ -46,7 +57,7 @@ export default function Invoices() {
     } finally {
       setLoading(false);
     }
-  }, [status, search]);
+  }, [status, search, billedBy]);
 
   useEffect(() => {
     const t = setTimeout(load, 250);
@@ -74,10 +85,10 @@ export default function Invoices() {
   const open = (inv) => navigate(`/dashboard/finance/invoices/${inv._id}`);
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="Invoices"
-        subtitle={`${invoices.length} shown`}
+        subtitle={`${invoices.length} shown · ${money(invoices.reduce((t, i) => t + (i.total || 0), 0))} billed`}
         actions={
           <Button
             variant="contained"
@@ -125,6 +136,23 @@ export default function Invoices() {
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
+        {isSuper && (
+          <TextField
+            select
+            label="Billed by"
+            value={billedBy}
+            onChange={(e) => setBilledBy(e.target.value)}
+            sx={{ minWidth: 200, maxWidth: { md: 240 }, ml: { md: "auto !important" } }}
+          >
+            <MenuItem value="">All people</MenuItem>
+            {people.map((p) => (
+              <MenuItem key={p._id} value={p._id}>
+                {p.username}
+                {p._id === admin?._id ? " (you)" : ""}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
       </Stack>
 
       {invoices.length === 0 ? (
@@ -133,11 +161,12 @@ export default function Invoices() {
         </EmptyState>
       ) : (
         <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 820 }}>
+          <Table sx={{ minWidth: isSuper ? 940 : 820 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Invoice</TableCell>
                 <TableCell>Client</TableCell>
+                {isSuper && <TableCell>Billed by</TableCell>}
                 <TableCell>Issued</TableCell>
                 <TableCell>Due</TableCell>
                 <TableCell align="right">Total</TableCell>
@@ -150,11 +179,12 @@ export default function Invoices() {
               {invoices.map((inv) => (
                 <TableRow key={inv._id} hover>
                   <TableCell>
-                    <Link component="button" underline="hover" sx={{ fontWeight: 700 }} onClick={() => open(inv)}>
+                    <Link component="button" underline="hover" color="inherit" sx={{ fontWeight: 600 }} onClick={() => open(inv)}>
                       {inv.number}
                     </Link>
                   </TableCell>
                   <TableCell>{inv.client?.name || "—"}</TableCell>
+                  {isSuper && <TableCell>{inv.billedBy?.username || "—"}</TableCell>}
                   <TableCell>{fmtDate(inv.issueDate)}</TableCell>
                   <TableCell>{fmtDate(inv.dueDate)}</TableCell>
                   <TableCell align="right">{money(inv.total)}</TableCell>
@@ -163,21 +193,30 @@ export default function Invoices() {
                     <StatusBadge status={inv.status} />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-                    <Tooltip title="Open">
-                      <IconButton size="small" aria-label="Open" onClick={() => open(inv)}>
-                        <Eye size={18} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        aria-label="Delete"
-                        onClick={() => remove(inv)}
-                      >
-                        <Trash2 size={18} />
-                      </IconButton>
-                    </Tooltip>
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", alignItems: "center" }}>
+                      <Button size="small" variant="outlined" onClick={() => open(inv)}>
+                        View
+                      </Button>
+                      {!["cancelled", "paid"].includes(inv.status) && inv.balance > 0 && (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => navigate(`/dashboard/finance/invoices/${inv._id}?pay=1`)}
+                        >
+                          Pay
+                        </Button>
+                      )}
+                      <Tooltip title="Delete invoice">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          aria-label={`Delete ${inv.number}`}
+                          onClick={() => remove(inv)}
+                        >
+                          <Trash2 />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}

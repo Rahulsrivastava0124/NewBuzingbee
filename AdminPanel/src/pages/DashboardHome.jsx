@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -31,6 +31,7 @@ import {
 } from "recharts";
 import { blogAPI, analyticsAPI, enquiryAPI } from "../services/api";
 import { StatCard } from "../components/common";
+import FinanceOverview from "./finance/FinanceOverview";
 import { ChevronRight, FileText, Inbox, PenLine, Plus, ReceiptText, Settings, TrendingUp, ArrowRight } from "lucide-react";
 
 const RANGE_OPTIONS = [
@@ -61,7 +62,7 @@ const ChartTooltip = ({ active, payload, isHourly }) => {
       <Typography variant="caption" color="text.secondary">
         {formatChartTick(item.x, isHourly)}
       </Typography>
-      <Typography sx={{ fontWeight: 700, color: "primary.main" }}>
+      <Typography sx={{ fontWeight: 600, color: "primary.main" }}>
         {payload[0].value} views
       </Typography>
     </Paper>
@@ -79,6 +80,7 @@ const formatDate = (value) =>
 
 function DashboardHome() {
   const navigate = useNavigate();
+  const { canSeeBills } = useOutletContext() || {};
   const theme = useTheme();
   const [stats, setStats] = useState({ total: 0, drafts: 0, published: 0 });
   const [enqStats, setEnqStats] = useState({ total: 0, new: 0 });
@@ -204,7 +206,7 @@ function DashboardHome() {
   ];
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 24, md: 30 } }}>
           Welcome back,{" "}
@@ -261,7 +263,13 @@ function DashboardHome() {
         </Grid>
       </Grid>
 
-      <Paper sx={{ p: 3, mb: 3 }}>
+      {canSeeBills && (
+        <Box component="section" sx={{ mb: 3 }}>
+          <FinanceOverview />
+        </Box>
+      )}
+
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={2}

@@ -1,5 +1,5 @@
 const express = require("express");
-const { protectAdmin } = require("../middleware/authMiddleware");
+const { protectAdmin, requireBills } = require("../middleware/authMiddleware");
 const client = require("../controllers/clientController");
 const invoice = require("../controllers/invoiceController");
 const expense = require("../controllers/expenseController");
@@ -7,8 +7,8 @@ const wallet = require("../controllers/walletController");
 
 const router = express.Router();
 
-// Every finance route is admin-only
-router.use(protectAdmin);
+// Every finance route needs a signed-in user the super admin allowed to see bills
+router.use(protectAdmin, requireBills);
 
 // Overview + due-date notifications
 router.get("/summary", wallet.getFinanceSummary);

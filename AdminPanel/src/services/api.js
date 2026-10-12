@@ -184,6 +184,49 @@ export const adminAPI = {
     });
     return handleResponse(response);
   },
+
+  // Emails a 6-digit code that must accompany a password change
+  sendPasswordOtp: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/profile/password-otp`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    return handleResponse(response);
+  },
+
+  // User management (super admin only on the server)
+  createUser: async (payload) => {
+    const response = await fetch(`${API_BASE_URL}/admin/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  // changes: { role?, showBills? }
+  updateUser: async (id, changes) => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify(changes),
+    });
+    return handleResponse(response);
+  },
+
+  deleteUser: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    return handleResponse(response);
+  },
 };
 
 // Blog API
@@ -518,6 +561,7 @@ const settingsRequest = async (path, { method = "GET", body } = {}) => {
 
 export const settingsAPI = {
   get: () => settingsRequest(""),
+  getBrand: async () => handleResponse(await fetch(`${API_BASE_URL}/settings/brand`)),
   saveCompany: (body) => settingsRequest("/company", { method: "PUT", body }),
   saveSmtp: (body) => settingsRequest("/smtp", { method: "PUT", body }),
   uploadLogo: async (file) => {
@@ -582,7 +626,6 @@ export const financeAPI = {
   },
 
   payments: {
-    getAll: (params) => financeRequest("/payments", { params }),
     delete: (id) => financeRequest(`/payments/${id}`, { method: "DELETE" }),
   },
 

@@ -53,8 +53,14 @@ export function PageHeader({ title, subtitle, actions }) {
       {actions && (
         <Stack
           direction="row"
-          spacing={1.5}
-          sx={{ flexWrap: "wrap", rowGap: 1, alignItems: "center", flexShrink: 0 }}
+          sx={{
+            flexWrap: "wrap",
+            gap: 1.5,
+            alignItems: "center",
+            flexShrink: 0,
+            width: { xs: "100%", sm: "auto" },
+            "& > *": { flex: { xs: "1 1 auto", sm: "0 0 auto" } },
+          }}
         >
           {actions}
         </Stack>

@@ -1,24 +1,48 @@
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
-import { Hexagon } from "lucide-react";
+import { settingsAPI } from "../services/api";
 
-// Logo tile used in the sidebar, login and printed invoices.
+// One request per page load, shared by every BrandMark on screen
+let brandPromise = null;
+const loadLogoUrl = () => {
+  brandPromise ??= settingsAPI
+    .getBrand()
+    .then((res) => res?.logoUrl || "")
+    .catch(() => "");
+  return brandPromise;
+};
+
+// Company logo uploaded in Settings → Company.
 export default function BrandMark({ size = 44 }) {
-  return (
-    <Box
-      aria-hidden
-      sx={{
-        width: size,
-        height: size,
-        flexShrink: 0,
-        borderRadius: `${Math.round(size * 0.27)}px`,
-        display: "grid",
-        placeItems: "center",
-        color: "#0f172a",
-        background: "linear-gradient(135deg, #f5a623 0%, #ff8c00 100%)",
-        boxShadow: "0 4px 12px rgba(245,166,35,0.35)",
-      }}
-    >
-      <Hexagon size={Math.round(size * 0.5)} strokeWidth={2.25} fill="currentColor" fillOpacity={0.15} />
-    </Box>
-  );
+  const [logoUrl, setLogoUrl] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    loadLogoUrl().then((url) => alive && setLogoUrl(url));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (logoUrl) {
+    return (
+      <Box
+        component="img"
+        src={logoUrl}
+        alt="Company logo"
+        sx={{
+          height: size,
+          maxWidth: size * 4.5,
+          objectFit: "contain",
+          display: "block",
+          flexShrink: 0,
+          // The uploaded logo has an off-white background; blend it into the page
+          mixBlendMode: "multiply",
+        }}
+      />
+    );
+  }
+
+  // Empty spacer until the logo loads, so the layout doesn't jump
+  return <Box aria-hidden sx={{ height: size, flexShrink: 0 }} />;
 }

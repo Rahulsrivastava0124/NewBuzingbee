@@ -3,12 +3,10 @@ import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import DialogActions from "@mui/material/DialogActions";
-import Grid from "@mui/material/Grid";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
-import Link from "@mui/material/Link";
 import InputAdornment from "@mui/material/InputAdornment";
+import Link from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -24,20 +22,11 @@ import Typography from "@mui/material/Typography";
 import { adminAPI, financeAPI } from "../../services/api";
 import { useFeedback } from "../../components/Feedback";
 import { EmptyState, LoadingState, PageHeader } from "../../components/common";
-import { Modal } from "./shared";
-import { dueLabel, fmtDate, money } from "./format";
-import { BookOpen, Contact, FilePlus, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import ClientFormDialog from "./ClientFormDialog";
+import { money } from "./format";
 
-const EMPTY = {
-  managedBy: "",
-  name: "",
-  company: "",
-  email: "",
-  phone: "",
-  address: "",
-  gstin: "",
-  notes: "",
-};
+const NUM = { fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" };
+import { Contact, Plus, Search, Trash2 } from "lucide-react";
 
 export default function Clients() {
   const navigate = useNavigate();
@@ -46,18 +35,14 @@ export default function Clients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState("");
   const [team, setTeam] = useState([]);
   const [me, setMe] = useState(null);
   const [managerFilter, setManagerFilter] = useState("all");
 
   useEffect(() => {
-    adminAPI
-      .listUsers()
-      .then(setTeam)
-      .catch(() => {});
+    adminAPI.listUsers().then(setTeam).catch(() => {});
     adminAPI
       .getProfile()
       .then((res) => setMe(res?.admin || null))
@@ -84,23 +69,6 @@ export default function Clients() {
     return () => clearTimeout(t);
   }, [load]);
 
-  const save = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError("");
-    try {
-      if (editing._id) await financeAPI.clients.update(editing._id, editing);
-      else await financeAPI.clients.create(editing);
-      setEditing(null);
-      notify("Client saved", "success");
-      await load();
-    } catch (err) {
-      setFormError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const remove = async (c) => {
     const ok = await confirm({
       title: "Delete client",
@@ -117,21 +85,20 @@ export default function Clients() {
     }
   };
 
-  const set = (k) => (e) => setEditing({ ...editing, [k]: e.target.value });
-
   if (loading) return <LoadingState text="Loading clients..." />;
 
+  const view = (c) => navigate(`/dashboard/finance/clients/${c._id}`);
+  // Mirrors the server: super admin edits any client, others only their own or unassigned ones
+  const canEdit = (c) =>
+    me?.role === "super" || !c.managedBy || String(c.managedBy._id || c.managedBy) === String(me?._id);
+
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="Clients"
         subtitle={`${clients.length} clients`}
         actions={
-          <Button
-            variant="contained"
-            startIcon={<Plus />}
-            onClick={() => setEditing({ ...EMPTY, managedBy: me?._id || "" })}
-          >
+          <Button variant="contained" startIcon={<Plus />} onClick={() => setAdding(true)}>
             Add Client
           </Button>
         }
@@ -183,123 +150,91 @@ export default function Clients() {
         </EmptyState>
       ) : (
         <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 1000 }}>
+          <Table sx={{ minWidth: 1060 }}>
             <TableHead>
               <TableRow>
-                <TableCell>Client</TableCell>
-                <TableCell>Contact</TableCell>
-                <TableCell>Managed by</TableCell>
+                <TableCell>Company</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell align="right">Total</TableCell>
+                <TableCell align="right">Paid</TableCell>
+                <TableCell align="right">Due</TableCell>
                 <TableCell align="right">Invoices</TableCell>
-                <TableCell align="right">Invoiced</TableCell>
-                <TableCell align="right">Outstanding</TableCell>
-                <TableCell>Next due</TableCell>
+                <TableCell>Managed by</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {clients.map((c) => (
                 <TableRow key={c._id} hover>
-                  <TableCell>
-                    <Link
-                      component="button"
-                      underline="hover"
-                      sx={{ fontWeight: 700, textAlign: "left" }}
-                      onClick={() => navigate(`/dashboard/finance/clients/${c._id}`)}
-                    >
-                      {c.name}
-                    </Link>
+                  <TableCell sx={{ maxWidth: 260 }}>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                      <Link
+                        component="button"
+                        underline="hover"
+                        color="inherit"
+                        sx={{ fontWeight: 600, textAlign: "left" }}
+                        onClick={() => view(c)}
+                      >
+                        {c.company || c.name}
+                      </Link>
+                      {c.personal && <Chip size="small" variant="outlined" label="Personal" />}
+                    </Stack>
                     {c.company && (
-                      <Typography variant="caption" color="text.secondary">
-                        {c.company}
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {c.name}
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{c.email || "—"}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {c.phone}
+                  <TableCell sx={{ maxWidth: 240 }}>
+                    <Typography noWrap color={c.email ? "text.primary" : "text.secondary"}>
+                      {c.email || "—"}
                     </Typography>
                   </TableCell>
+                  <TableCell align="right" sx={NUM}>{money(c.invoiced)}</TableCell>
+                  <TableCell align="right" sx={{ ...NUM, color: c.paid > 0 ? "success.main" : undefined }}>
+                    {money(c.paid)}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ ...NUM, ...(c.outstanding > 0 && { color: "error.main", fontWeight: 600 }) }}
+                  >
+                    {money(c.outstanding)}
+                  </TableCell>
+                  <TableCell align="right" sx={NUM}>{c.invoiceCount}</TableCell>
                   <TableCell>
-                    {c.managedBy ? (
-                      <Chip size="small" variant="outlined" label={c.managedBy.username} />
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
+                    {c.managedBy?.username || (
+                      <Typography component="span" color="text.secondary">
                         Unassigned
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell align="right">{c.invoiceCount}</TableCell>
-                  <TableCell align="right">{money(c.invoiced)}</TableCell>
-                  <TableCell
-                    align="right"
-                    sx={c.outstanding > 0 ? { color: "error.main", fontWeight: 700 } : undefined}
-                  >
-                    {money(c.outstanding)}
-                  </TableCell>
-                  <TableCell>
-                    {c.nextDue ? (
-                      <>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 600,
-                            color:
-                              new Date(c.nextDue.dueDate) < new Date()
-                                ? "error.main"
-                                : "text.primary",
-                          }}
-                        >
-                          {fmtDate(c.nextDue.dueDate)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {dueLabel(c.nextDue.dueDate)} · {money(c.nextDue.amount)}
-                        </Typography>
-                      </>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        Nothing due
-                      </Typography>
-                    )}
-                  </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-                    <Tooltip title="Ledger">
-                      <IconButton
-                        size="small"
-                        aria-label="Ledger"
-                        onClick={() => navigate(`/dashboard/finance/clients/${c._id}`)}
-                      >
-                        <BookOpen size={18} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="New invoice">
-                      <IconButton
-                        size="small"
-                        aria-label="New invoice"
-                        onClick={() => navigate(`/dashboard/finance/invoices/new?client=${c._id}`)}
-                      >
-                        <FilePlus size={18} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                      <IconButton
-                        size="small"
-                        aria-label="Edit"
-                        onClick={() => setEditing({ ...EMPTY, ...c, managedBy: c.managedBy?._id || "" })}
-                      >
-                        <Pencil size={18} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        aria-label="Delete"
-                        onClick={() => remove(c)}
-                      >
-                        <Trash2 size={18} />
-                      </IconButton>
-                    </Tooltip>
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", alignItems: "center" }}>
+                      <Button size="small" variant="outlined" onClick={() => view(c)}>
+                        View
+                      </Button>
+                      {canEdit(c) && (
+                        <Button size="small" variant="outlined" onClick={() => setEditing(c)}>
+                          Edit
+                        </Button>
+                      )}
+                      {c.nextDue && (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => navigate(`/dashboard/finance/invoices/${c.nextDue.invoiceId}?pay=1`)}
+                        >
+                          Pay
+                        </Button>
+                      )}
+                      {canEdit(c) && (
+                        <Tooltip title="Delete client">
+                          <IconButton size="small" color="error" aria-label={`Delete ${c.name}`} onClick={() => remove(c)}>
+                            <Trash2 />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
@@ -309,69 +244,27 @@ export default function Clients() {
       )}
 
       {editing && (
-        <Modal title={editing._id ? "Edit client" : "Add client"} onClose={() => setEditing(null)}>
-          <Box component="form" onSubmit={save}>
-            <Grid container spacing={2} sx={{ pt: 1 }}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="Name" required value={editing.name} onChange={set("name")} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="Company" value={editing.company} onChange={set("company")} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="Email" type="email" value={editing.email} onChange={set("email")} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="Phone" value={editing.phone} onChange={set("phone")} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="GSTIN" value={editing.gstin} onChange={set("gstin")} />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField label="Address" value={editing.address} onChange={set("address")} />
-              </Grid>
-              <Grid size={12}>
-                <TextField
-                  select
-                  label="Managed by"
-                  value={editing.managedBy || ""}
-                  onChange={set("managedBy")}
-                  helperText="The team member responsible for this client"
-                >
-                  <MenuItem value="">Unassigned</MenuItem>
-                  {team.map((t) => (
-                    <MenuItem key={t._id} value={t._id}>
-                      {t.username}
-                      {t.email ? ` (${t.email})` : ""}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid size={12}>
-                <TextField
-                  label="Notes"
-                  multiline
-                  minRows={2}
-                  value={editing.notes}
-                  onChange={set("notes")}
-                />
-              </Grid>
-              {formError && (
-                <Grid size={12}>
-                  <Alert severity="error">{formError}</Alert>
-                </Grid>
-              )}
-            </Grid>
-            <DialogActions sx={{ px: 0, pt: 3, pb: 0 }}>
-              <Button color="inherit" onClick={() => setEditing(null)}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="contained" disabled={saving}>
-                {saving ? "Saving..." : "Save client"}
-              </Button>
-            </DialogActions>
-          </Box>
-        </Modal>
+        <ClientFormDialog
+          client={editing}
+          team={team}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+        />
+      )}
+
+      {adding && (
+        <ClientFormDialog
+          team={team}
+          defaultManager={me?._id || ""}
+          onClose={() => setAdding(false)}
+          onSaved={() => {
+            setAdding(false);
+            load();
+          }}
+        />
       )}
     </Box>
   );

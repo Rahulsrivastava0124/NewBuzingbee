@@ -60,7 +60,6 @@ export default function Login() {
       <Paper sx={{ width: "100%", maxWidth: 420, p: { xs: 3, sm: 5 }, borderRadius: 4 }}>
         <Stack spacing={1} sx={{ alignItems: "center", mb: 3, textAlign: "center" }}>
           <BrandMark size={56} />
-          <Typography variant="h5">BuzingBee</Typography>
           <Typography color="text.secondary">
             Welcome back to your creative workspace
           </Typography>

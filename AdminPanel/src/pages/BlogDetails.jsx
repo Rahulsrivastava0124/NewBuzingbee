@@ -31,11 +31,11 @@ function Fact({ icon, label, children }) {
     <Paper sx={{ p: 2 }}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center", color: "text.secondary", mb: 0.5 }}>
         {icon}
-        <Typography variant="caption" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+        <Typography variant="caption" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
           {label}
         </Typography>
       </Stack>
-      <Typography sx={{ fontWeight: 700, fontSize: 18 }}>{children}</Typography>
+      <Typography sx={{ fontWeight: 600, fontSize: 18 }}>{children}</Typography>
     </Paper>
   );
 }
@@ -69,7 +69,7 @@ export default function BlogDetails() {
   if (!blog) return <Alert severity="warning">Blog not found.</Alert>;
 
   return (
-    <Box sx={{ maxWidth: 1100 }}>
+    <Box>
       <Stack direction="row" sx={{ justifyContent: "space-between", mb: 2 }}>
         <Button startIcon={<ArrowLeft />} color="inherit" onClick={() => navigate(-1)}>
           Back

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -95,6 +95,15 @@ export default function InvoiceDetails() {
     setPayOpen(true);
   };
 
+  // "Pay" from the Clients/Invoices tables lands here with ?pay=1
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (!invoice || params.get("pay") !== "1") return;
+    setParams({}, { replace: true });
+    if (!["cancelled", "paid"].includes(invoice.status) && invoice.balance > 0) openPay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoice]);
+
   const submitPayment = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -174,7 +183,7 @@ export default function InvoiceDetails() {
   const canPay = !["cancelled", "paid"].includes(invoice.status) && invoice.balance > 0;
 
   return (
-    <Box sx={{ maxWidth: 1000 }}>
+    <Box>
       <Stack
         className="no-print"
         direction={{ xs: "column", md: "row" }}
@@ -232,19 +241,9 @@ export default function InvoiceDetails() {
           sx={{ justifyContent: "space-between", mb: 4 }}
         >
           <Box>
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-              {company.logoUrl ? (
-                <Box
-                  component="img"
-                  src={company.logoUrl}
-                  alt={company.name || "Company logo"}
-                  sx={{ height: 44, maxWidth: 160, objectFit: "contain" }}
-                />
-              ) : (
-                <BrandMark size={40} />
-              )}
-              <Typography variant="h4">{company.name || "BuzingBee"}</Typography>
-            </Stack>
+            <Box sx={{ mb: 1.5 }}>
+              <BrandMark size={56} />
+            </Box>
             {company.legalName && (
               <Typography variant="body2" color="text.secondary">
                 {company.legalName}
@@ -269,11 +268,17 @@ export default function InvoiceDetails() {
                   .join(" · ")}
               </Typography>
             )}
-            <Typography sx={{ mt: 1 }} color="text.secondary">
-              Invoice {invoice.number}
-            </Typography>
           </Box>
-          <Box sx={{ textAlign: { sm: "right" } }}>
+          <Box sx={{ textAlign: { sm: "right" }, flexShrink: 0 }}>
+            <Typography
+              component="h2"
+              sx={{ fontSize: { xs: 28, sm: 36 }, fontWeight: 800, letterSpacing: "0.08em", lineHeight: 1.1 }}
+            >
+              INVOICE
+            </Typography>
+            <Typography sx={{ fontWeight: 600, fontSize: 18, mt: 0.5, mb: 1.5 }}>
+              # {invoice.number}
+            </Typography>
             <Typography>
               <b>Issued:</b> {fmtDate(invoice.issueDate)}
             </Typography>
@@ -284,10 +289,10 @@ export default function InvoiceDetails() {
         </Stack>
 
         <Box sx={{ mb: 3 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
             BILL TO
           </Typography>
-          <Typography sx={{ fontWeight: 700 }}>{c.name}</Typography>
+          <Typography sx={{ fontWeight: 600 }}>{c.name}</Typography>
           {c.company && <Typography>{c.company}</Typography>}
           {c.address && <Typography>{c.address}</Typography>}
           {c.email && <Typography>{c.email}</Typography>}
@@ -385,7 +390,7 @@ export default function InvoiceDetails() {
                   >
                     {row.credit ? money(row.credit) : "—"}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>
                     {money(row.balance)}
                   </TableCell>
                 </TableRow>
@@ -423,7 +428,7 @@ export default function InvoiceDetails() {
                     <TableCell>{methodLabel(p.method)}</TableCell>
                     <TableCell>{p.reference || "—"}</TableCell>
                     <TableCell>{p.note || "—"}</TableCell>
-                    <TableCell align="right" sx={{ color: "success.main", fontWeight: 700 }}>
+                    <TableCell align="right" sx={{ color: "success.main", fontWeight: 600 }}>
                       {money(p.amount)}
                     </TableCell>
                     <TableCell align="right">

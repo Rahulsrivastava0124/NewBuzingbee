@@ -97,7 +97,7 @@ export default function CaseStudyList() {
   if (loading) return <LoadingState text="Loading case studies..." />;
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="Case Studies"
         subtitle={`${filtered.length} total case studies`}

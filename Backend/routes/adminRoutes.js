@@ -8,8 +8,11 @@ const {
   forgotPassword,
   resetPassword,
   listAdmins,
+  updateAdminRole,
+  deleteAdmin,
+  sendPasswordOtp,
 } = require("../controllers/adminController");
-const { protectAdmin } = require("../middleware/authMiddleware");
+const { protectAdmin, requireSuper } = require("../middleware/authMiddleware");
 
 const {
   checkSmtpConnection,
@@ -51,14 +54,14 @@ const resetLimiter = makeResetLimiter(10);
 router.post("/login", authLimiter, adminLogin);
 router.post("/forgot-password", forgotLimiter, forgotPassword);
 router.post("/reset-password", resetLimiter, resetPassword);
-router.get("/smtp/status", protectAdmin, async (_req, res) => {
+router.get("/smtp/status", protectAdmin, requireSuper, async (_req, res) => {
   const status = await checkSmtpConnection();
   logSmtpStatus(status);
   // Never include credentials; status only carries host/port/user/outcome.
   return res.status(status.connected ? 200 : 503).json({ success: status.connected, smtp: status });
 });
 
-router.post("/smtp/test", protectAdmin, async (req, res) => {
+router.post("/smtp/test", protectAdmin, requireSuper, async (req, res) => {
   const config = getConfig();
   const to = String(req.body?.to || config.user || "").trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
@@ -87,7 +90,10 @@ router.post("/smtp/test", protectAdmin, async (req, res) => {
 });
 
 router.get("/users", protectAdmin, listAdmins);
+router.patch("/users/:id", protectAdmin, requireSuper, updateAdminRole);
+router.delete("/users/:id", protectAdmin, requireSuper, deleteAdmin);
 router.get("/profile", protectAdmin, getAdminProfile);
 router.put("/profile", protectAdmin, updateAdminProfile);
+router.post("/profile/password-otp", protectAdmin, makeResetLimiter(5), sendPasswordOtp);
 
 module.exports = router;

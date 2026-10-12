@@ -79,16 +79,32 @@ const publicCompany = (doc) => {
   return out;
 };
 
-const getSettings = async (_req, res) => {
+// Company details are readable by any signed-in user (invoices print them);
+// SMTP details only by the super admin
+const getSettings = async (req, res) => {
   try {
     const doc = await getDoc();
     return res.json({
       success: true,
       company: publicCompany(doc),
-      smtp: publicSmtp(doc),
+      ...(req.admin?.role === "super" && { smtp: publicSmtp(doc) }),
     });
   } catch (error) {
     return fail(res, 500, "Failed to load settings", error);
+  }
+};
+
+// Public: only what the sign-in screens need to show the brand
+const getBrand = async (_req, res) => {
+  try {
+    const doc = await getDoc();
+    return res.json({
+      success: true,
+      name: doc.company?.name || "",
+      logoUrl: doc.company?.logoUrl || "",
+    });
+  } catch (error) {
+    return fail(res, 500, "Failed to load brand", error);
   }
 };
 
@@ -232,6 +248,7 @@ module.exports = {
   uploadLogo,
   removeLogo,
   getSettings,
+  getBrand,
   updateCompany,
   updateSmtp,
   testSmtp,

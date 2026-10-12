@@ -144,7 +144,7 @@ function TrafficPage() {
   ];
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="Traffic & Leads"
         actions={
@@ -212,7 +212,7 @@ function TrafficPage() {
         {stats.map(([label, value]) => (
           <Grid key={label} size={{ xs: 6, md: 3 }}>
             <Paper sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
                 {label}
               </Typography>
               <Typography variant="h6">{value}</Typography>

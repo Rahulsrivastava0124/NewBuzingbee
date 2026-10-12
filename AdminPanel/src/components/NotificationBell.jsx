@@ -27,7 +27,7 @@ function Section({ title, color, icon, children }) {
         sx={{ px: 2, pt: 1.5, pb: 0.5, alignItems: "center", color }}
       >
         {icon}
-        <Typography variant="caption" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <Typography variant="caption" sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
           {title}
         </Typography>
       </Stack>
@@ -114,7 +114,7 @@ export default function NotificationBell({ newEnquiries = 0 }) {
           direction="row"
           sx={{ px: 2, py: 1.5, justifyContent: "space-between", alignItems: "center" }}
         >
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             Notifications
           </Typography>
           {data && (

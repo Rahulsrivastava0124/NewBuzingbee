@@ -46,7 +46,7 @@ function Stat({ label, value, color }) {
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}
+        sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}
       >
         {label}
       </Typography>
@@ -127,7 +127,7 @@ export default function WalletLedger() {
   if (!data) return <Alert severity="error">{error}</Alert>;
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="Wallet & Ledger"
         subtitle="Every payment received and expense paid, with running balance"
@@ -254,7 +254,7 @@ export default function WalletLedger() {
                   <TableCell
                     align="right"
                     sx={{
-                      fontWeight: 700,
+                      fontWeight: 600,
                       color: e.type === "credit" ? "success.main" : "error.main",
                     }}
                   >
