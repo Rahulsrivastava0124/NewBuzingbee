@@ -1,5 +1,6 @@
 const { errorDetail } = require("../utils/errors");
 const Analytics = require("../models/Analytics");
+const { readText } = require("../utils/validate");
 
 const normalizeDevice = (device = "") => {
   const d = String(device).toLowerCase();
@@ -26,14 +27,20 @@ const parseDateInput = (value) => {
 
 const trackAnalyticsEvent = async (req, res) => {
   try {
-    const { page, website, device, location } = req.body;
-
-    if (!page || !website) {
-      return res.status(400).json({
-        success: false,
-        message: "page and website are required",
-      });
+    const input = {
+      page: readText(req.body, "page", { max: 300, required: true }),
+      website: readText(req.body, "website", { max: 100, required: true }),
+      device: readText(req.body, "device", { max: 20 }),
+      location: readText(req.body, "location", { max: 100 }),
+    };
+    const problem = Object.values(input).find((f) => f.error);
+    if (problem) {
+      return res.status(400).json({ success: false, message: problem.error });
     }
+    const page = input.page.value;
+    const website = input.website.value;
+    const device = input.device.value;
+    const location = input.location.value;
 
     // Get client IP address
     const ipAddress = getClientIP(req);

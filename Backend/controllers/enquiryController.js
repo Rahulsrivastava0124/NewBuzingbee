@@ -1,5 +1,7 @@
 const { errorDetail } = require("../utils/errors");
 const Enquiry = require("../models/Enquiry");
+const { escapeRegex, readText, EMAIL_RE } = require("../utils/validate");
+const { verifyTurnstile } = require("../utils/turnstile");
 
 const getClientIP = (req) => {
   return (
@@ -15,31 +17,51 @@ const getClientIP = (req) => {
 // PUBLIC: Submit a new enquiry from the contact form
 const submitEnquiry = async (req, res) => {
   try {
-    const { name, email, phone, service, budget, message, source } = req.body;
+    const body = req.body || {};
 
-    if (!name || !email || !message) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, email and message are required",
-      });
+    // Each field must be plain text within its limit (no objects, arrays, HTML)
+    const fields = {
+      name: readText(body, "name", { max: 100, required: true, label: "Name" }),
+      email: readText(body, "email", { max: 254, required: true, label: "Email" }),
+      phone: readText(body, "phone", { max: 30, label: "Phone" }),
+      service: readText(body, "service", { max: 60, label: "Service" }),
+      budget: readText(body, "budget", { max: 60, label: "Budget" }),
+      message: readText(body, "message", { max: 5000, required: true, label: "Message" }),
+      source: readText(body, "source", { max: 60, label: "Source" }),
+    };
+
+    const problem = Object.values(fields).find((f) => f.error);
+    if (problem) {
+      return res.status(400).json({ success: false, message: problem.error });
+    }
+    if (!EMAIL_RE.test(fields.email.value)) {
+      return res.status(400).json({ success: false, message: "Invalid email address" });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid email address",
+    // Cloudflare Turnstile (only enforced when TURNSTILE_SECRET_KEY is set)
+    const captcha = await verifyTurnstile(body.captchaToken, getClientIP(req));
+    if (!captcha.ok) {
+      return res
+        .status(captcha.status)
+        .json({ success: false, message: captcha.message });
+    }
+
+    // Hidden field a human never fills in; bots usually do
+    if (typeof body.website === "string" && body.website.trim()) {
+      return res.status(201).json({
+        success: true,
+        message: "Thank you! We'll get back to you within 24 hours.",
       });
     }
 
     const enquiry = new Enquiry({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone?.trim() || "",
-      service: service?.trim() || "",
-      budget: budget?.trim() || "",
-      message: message.trim(),
-      source: source || "contact-form",
+      name: fields.name.value,
+      email: fields.email.value.toLowerCase(),
+      phone: fields.phone.value,
+      service: fields.service.value,
+      budget: fields.budget.value,
+      message: fields.message.value,
+      source: fields.source.value || "contact-form",
       ip: getClientIP(req),
     });
 
@@ -64,13 +86,14 @@ const getAllEnquiries = async (req, res) => {
     const { status, search, page = 1, limit = 50 } = req.query;
     const query = {};
 
-    if (status && status !== "all") query.status = status;
-    if (search) {
+    if (typeof status === "string" && status !== "all") query.status = status;
+    if (typeof search === "string" && search) {
+      const rx = escapeRegex(search.slice(0, 100));
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { service: { $regex: search, $options: "i" } },
-        { message: { $regex: search, $options: "i" } },
+        { name: { $regex: rx, $options: "i" } },
+        { email: { $regex: rx, $options: "i" } },
+        { service: { $regex: rx, $options: "i" } },
+        { message: { $regex: rx, $options: "i" } },
       ];
     }
 

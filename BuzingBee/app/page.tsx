@@ -27,6 +27,7 @@ import AnimatedCounter from "@/components/AnimatedCounter";
 import SectionHeading from "@/components/SectionHeading";
 import TestimonialCard from "@/components/TestimonialCard";
 import GridBackground from "@/components/GridBackground";
+import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 import {
   stats,
   serviceCategories,
@@ -181,11 +182,19 @@ export default function HomePage() {
     "idle" | "submitting" | "success" | "error"
   >("idle");
   const [leadSubmitMessage, setLeadSubmitMessage] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [blogSectionPosts, setBlogSectionPosts] =
     useState<HomeBlogPost[]>(blogPosts);
 
   const handleLeadSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setLeadSubmitState("error");
+      setLeadSubmitMessage("Please complete the verification below.");
+      return;
+    }
 
     setLeadSubmitState("submitting");
     setLeadSubmitMessage("");
@@ -194,7 +203,7 @@ export default function HomePage() {
       const response = await fetch(ENQUIRY_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, source: "home-cta" }),
+        body: JSON.stringify({ ...form, source: "home-cta", captchaToken }),
       });
 
       const payload = await response.json();
@@ -215,7 +224,9 @@ export default function HomePage() {
         budget: "",
         message: "",
       });
+      setCaptchaReset((n) => n + 1); // a token can only be used once
     } catch (error) {
+      setCaptchaReset((n) => n + 1);
       setLeadSubmitState("error");
       setLeadSubmitMessage(
         error instanceof Error
@@ -1108,6 +1119,11 @@ export default function HomePage() {
                   rows={4}
                   required
                   className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors resize-none"
+                />
+
+                <TurnstileWidget
+                  onToken={setCaptchaToken}
+                  resetSignal={captchaReset}
                 />
 
                 <button
