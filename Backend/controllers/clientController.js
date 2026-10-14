@@ -3,9 +3,10 @@ const Invoice = require("../models/Invoice");
 const Payment = require("../models/Payment");
 const Admin = require("../models/Admin");
 const mongoose = require("mongoose");
+const { errorDetail } = require("../utils/errors");
 
 const fail = (res, message, error, code = 500) =>
-  res.status(code).json({ success: false, message, error: error?.message });
+  res.status(code).json({ success: false, message, error: errorDetail(error) });
 
 const FIELDS = ["name", "company", "email", "phone", "address", "gstin", "notes"];
 

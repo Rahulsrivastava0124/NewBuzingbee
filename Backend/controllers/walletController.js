@@ -2,9 +2,10 @@ const LedgerEntry = require("../models/LedgerEntry");
 const Invoice = require("../models/Invoice");
 const Expense = require("../models/Expense");
 const Payment = require("../models/Payment");
+const { errorDetail } = require("../utils/errors");
 
 const fail = (res, message, error, code = 500) =>
-  res.status(code).json({ success: false, message, error: error?.message });
+  res.status(code).json({ success: false, message, error: errorDetail(error) });
 
 const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
