@@ -3,6 +3,7 @@ const Admin = require("../models/Admin");
 const { sendMail } = require("../services/mailService");
 const jwt = require("jsonwebtoken");
 const { getJwtSecret } = require("../config");
+const { logAuthEvent } = require("../middleware/auditLog");
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "10d";
 
@@ -84,8 +85,17 @@ const adminRegister = async (req, res) => {
 
 const adminLogin = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    const loginId = (username || email || "").trim();
+    const { username, email, password } = req.body || {};
+    const rawLogin = username || email || "";
+
+    // Only plain strings: objects here would be query operators
+    if (typeof rawLogin !== "string" || typeof password !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Username/email and password must be text",
+      });
+    }
+    const loginId = rawLogin.trim();
 
     if (!loginId || !password) {
       return res.status(400).json({
@@ -99,6 +109,7 @@ const adminLogin = async (req, res) => {
     });
 
     if (!admin) {
+      logAuthEvent(req, { action: "login_failed", username: loginId, success: false });
       return res.status(401).json({
         success: false,
         message: "Invalid username or password",
@@ -115,12 +126,24 @@ const adminLogin = async (req, res) => {
     }
 
     if (!isPasswordValid) {
+      logAuthEvent(req, {
+        action: "login_failed",
+        username: loginId,
+        admin: admin._id,
+        success: false,
+      });
       return res.status(401).json({
         success: false,
         message: "Invalid username or password",
       });
     }
 
+    logAuthEvent(req, {
+      action: "login",
+      username: admin.username,
+      admin: admin._id,
+      success: true,
+    });
     const { token, expiresAt } = generateToken(admin);
 
     return res.status(200).json({

@@ -5,7 +5,9 @@ require("dotenv").config({ path: path.join(__dirname, ".env"), quiet: true });
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const { isProduction, parseList, validateEnv } = require("./config");
+const { auditTrail } = require("./middleware/auditLog");
 const { connectionPromise } = require("./db.collection");
 const adminRoutes = require("./routes/adminRoutes");
 const blogRoutes = require("./routes/blogRoutes");
@@ -68,6 +70,22 @@ app.use(
 app.use(express.json({ limit: BODY_SIZE_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: BODY_SIZE_LIMIT }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Broad per-IP ceiling for the whole API. It is far above normal use (the public
+// site renders server-side from a single IP) and only stops floods.
+app.use(
+  "/api",
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 600,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: "Too many requests. Slow down." },
+  }),
+);
+
+// Record what signed-in admins change (who, what, when, from where)
+app.use(auditTrail);
 
 // Routes
 app.use("/api/admin", adminRoutes);

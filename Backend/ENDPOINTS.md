@@ -221,3 +221,14 @@ There are no built-in credentials. Registering further admins
 See `.env.example` for every setting. In production (`NODE_ENV=production`)
 the server refuses to start without `MONGO_URI` and a `JWT_SECRET` of at least
 32 characters, and hides internal error details from API responses.
+
+## Security behaviour
+
+- **Drafts are private.** `GET /api/blog`, `/api/blog/all`, `/api/blog/:id`, `/api/blog/slug/:slug` and the case-study equivalents return only `published` items unless a valid admin token is sent; unpublished items answer `404`.
+- **Admin tokens are checked against the database**, so a deleted admin loses access within about a minute.
+- **Public input is validated**: enquiry and analytics fields must be plain text within length limits (HTML is stripped); a hidden `website` field is treated as a bot trap.
+- **Rich text** (blog and case-study HTML) is sanitized on save.
+- **Uploads** are checked by file content (PNG, JPEG, WebP, GIF), not just the declared type.
+- **Rate limits:** login, password reset and enquiry submission are tightly limited; the analytics tracker allows 60 events per minute per IP; the whole API has a 600 requests per minute per-IP ceiling.
+- **Audit log:** `GET /api/admin/audit-log?page=&limit=&action=` lists admin changes and sign-ins (admin only; kept about 6 months).
+- **Bot protection:** when `TURNSTILE_SECRET_KEY` is set, `POST /api/enquiries/submit` requires a valid Cloudflare Turnstile `captchaToken` in the body.

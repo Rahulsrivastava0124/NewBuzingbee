@@ -10,6 +10,7 @@ const {
   listAdmins,
 } = require("../controllers/adminController");
 const { protectAdmin } = require("../middleware/authMiddleware");
+const { listAuditLog } = require("../middleware/auditLog");
 
 const {
   checkSmtpConnection,
@@ -87,6 +88,7 @@ router.post("/smtp/test", protectAdmin, async (req, res) => {
 });
 
 router.get("/users", protectAdmin, listAdmins);
+router.get("/audit-log", protectAdmin, listAuditLog);
 router.get("/profile", protectAdmin, getAdminProfile);
 router.put("/profile", protectAdmin, updateAdminProfile);
 

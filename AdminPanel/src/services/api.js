@@ -134,6 +134,16 @@ export const adminAPI = {
     return handleResponse(response);
   },
 
+  // Activity / audit log
+  getAuditLog: async ({ page = 1, limit = 25, action = "" } = {}) => {
+    const params = new URLSearchParams({ page, limit });
+    if (action) params.set("action", action);
+    const response = await fetch(`${API_BASE_URL}/admin/audit-log?${params}`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    return handleResponse(response);
+  },
+
   // Team members (for "managed by")
   listUsers: async () => {
     const response = await fetch(`${API_BASE_URL}/admin/users`, {
@@ -193,17 +203,11 @@ export const blogAPI = {
     const params = new URLSearchParams(filters);
     const query = params.toString();
 
-    // Public endpoint first
-    let response = await fetch(
+    // Drafts and scheduled posts are only returned when the admin token is sent
+    const response = await fetch(
       `${API_BASE_URL}/blog${query ? `?${query}` : ""}`,
+      { headers: { Authorization: `Bearer ${getAuthToken()}` } },
     );
-
-    // Backward-compatible fallback (older backend route)
-    if (response.status === 401 || response.status === 403) {
-      response = await fetch(
-        `${API_BASE_URL}/blog/all${query ? `?${query}` : ""}`,
-      );
-    }
 
     const data = await handleResponse(response);
     return data.blogs || [];
@@ -439,8 +443,10 @@ export const caseStudyAPI = {
   getAll: async (filters = {}) => {
     const params = new URLSearchParams(filters);
     const query = params.toString();
+    // Drafts are only returned when the admin token is sent
     const response = await fetch(
       `${API_BASE_URL}/case-studies${query ? `?${query}` : ""}`,
+      { headers: { Authorization: `Bearer ${getAuthToken()}` } },
     );
     const data = await handleResponse(response);
     return data.caseStudies || [];
