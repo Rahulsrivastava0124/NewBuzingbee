@@ -2,6 +2,8 @@ const { errorDetail } = require("../utils/errors");
 const mongoose = require("mongoose");
 const Blog = require("../models/Blog");
 const { uploadBlogImageAndGetUrl } = require("../services/storageService");
+const { sanitizeRichText } = require("../utils/sanitize");
+const { escapeRegex } = require("../utils/validate");
 
 const normalizeTags = (tags) => {
   if (!tags) return [];
@@ -121,7 +123,7 @@ const addBlog = async (req, res) => {
 
     const newBlog = new Blog({
       title,
-      content,
+      content: sanitizeRichText(content),
       author: author || req.admin?.username || "Admin",
       category: category || "General",
       tags: normalizeTags(tags),
@@ -163,14 +165,19 @@ const getAllBlogs = async (req, res) => {
   try {
     const { status, search, category } = req.query;
     const query = {};
+    const text = (v) => (typeof v === "string" ? v : "");
 
-    if (status) query.status = status;
-    if (category) query.category = category;
-    if (search) {
+    // Only a signed-in admin may see drafts, reviews or scheduled posts
+    if (!req.admin) query.status = "published";
+    else if (text(status)) query.status = text(status);
+
+    if (text(category)) query.category = text(category);
+    if (text(search)) {
+      const rx = escapeRegex(text(search).slice(0, 100));
       query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { content: { $regex: search, $options: "i" } },
-        { author: { $regex: search, $options: "i" } },
+        { title: { $regex: rx, $options: "i" } },
+        { content: { $regex: rx, $options: "i" } },
+        { author: { $regex: rx, $options: "i" } },
       ];
     }
 
@@ -197,6 +204,19 @@ const getAllBlogs = async (req, res) => {
 const getBlogById = async (req, res) => {
   const startedAt = Date.now();
   try {
+    if (!req.admin) {
+      // Unpublished content is not public: answer exactly like "not found"
+      const visible = await Blog.exists({
+        _id: req.params.id,
+        status: "published",
+      });
+      if (!visible) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Blog not found" });
+      }
+    }
+
     const shouldTrackView =
       String(req.query.trackView || "false").toLowerCase() === "true";
 
@@ -277,9 +297,11 @@ const getBlogBySlug = async (req, res) => {
 
     const query = {
       slug: {
-        $regex: `^${slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        $regex: `^${escapeRegex(slug)}$`,
         $options: "i",
       },
+      // Unpublished content is not public
+      ...(req.admin ? {} : { status: "published" }),
     };
 
     if (shouldTrackView) {
@@ -413,7 +435,8 @@ const updateBlog = async (req, res) => {
     }
 
     blog.title = title ?? blog.title;
-    blog.content = content ?? blog.content;
+    blog.content =
+      content !== undefined ? sanitizeRichText(content) : blog.content;
     blog.author = author ?? blog.author;
     blog.category = category ?? blog.category;
     blog.tags = tags !== undefined ? normalizeTags(tags) : blog.tags;
