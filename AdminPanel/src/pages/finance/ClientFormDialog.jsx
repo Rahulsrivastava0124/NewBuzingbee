@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -28,6 +29,9 @@ const EMPTY = {
 // Add (client = null) or edit a client
 export default function ClientFormDialog({ client, defaultManager = "", team, onClose, onSaved }) {
   const { notify } = useFeedback();
+  // Personal clients are for admin/team members; the super admin doesn't get the option
+  const { admin } = useOutletContext() || {};
+  const canMarkPersonal = admin?.role !== "super";
   const [form, setForm] = useState(() =>
     client
       ? { ...EMPTY, ...client, managedBy: client.managedBy?._id || client.managedBy || "", personal: Boolean(client.personal) }
@@ -93,21 +97,23 @@ export default function ClientFormDialog({ client, defaultManager = "", team, on
               ))}
             </TextField>
           </Grid>
-          <Grid size={12}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={form.personal}
-                  onChange={(e) => setForm({ ...form, personal: e.target.checked })}
-                />
-              }
-              label="Personal client"
-            />
-            <FormHelperText sx={{ mt: -0.5 }}>
-              Only the person managing this client can see it and its invoices, not even the
-              super admin. Leave unticked to share it with the team.
-            </FormHelperText>
-          </Grid>
+          {canMarkPersonal && (
+            <Grid size={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={form.personal}
+                    onChange={(e) => setForm({ ...form, personal: e.target.checked })}
+                  />
+                }
+                label="Personal client"
+              />
+              <FormHelperText sx={{ mt: -0.5 }}>
+                Only the person managing this client can see it and its invoices, not even the
+                super admin. Leave unticked to share it with the team.
+              </FormHelperText>
+            </Grid>
+          )}
           <Grid size={12}>
             <TextField label="Notes" multiline minRows={2} value={form.notes} onChange={set("notes")} />
           </Grid>

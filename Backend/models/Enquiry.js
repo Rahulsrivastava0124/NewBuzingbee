@@ -28,9 +28,11 @@ const enquirySchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    // Required by the website form (checked there); not enforced here so any
+    // enquiry without one can still be updated
     message: {
       type: String,
-      required: true,
+      default: "",
     },
     source: {
       type: String,

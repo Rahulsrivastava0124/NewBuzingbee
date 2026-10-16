@@ -1,5 +1,21 @@
 const normalizeApiBaseUrl = (value) => value?.replace(/\/$/, "");
 
+// Each role has its own sign-in subdomain: super. / admin. / team.
+// (buzingbee.com in production, *.localhost in development). On any other
+// host (e.g. plain localhost) there is no portal and every role may sign in.
+const PORTAL_ROLES = ["super", "admin", "team"];
+const hostLabel = typeof window !== "undefined" ? window.location.hostname.split(".")[0] : "";
+export const PORTAL = PORTAL_ROLES.includes(hostLabel) ? hostLabel : null;
+export const PORTAL_LABELS = { super: "Super admin", admin: "Admin", team: "Team" };
+
+// Where a role signs in, on the current domain: team -> team.buzingbee.com
+export const portalHost = (role) => {
+  if (typeof window === "undefined") return "";
+  const { hostname, port } = window.location;
+  const domain = PORTAL ? hostname.split(".").slice(1).join(".") : "buzingbee.com";
+  return `${role}.${domain}${PORTAL && port ? `:${port}` : ""}`;
+};
+
 const resolveApiBaseUrl = () => {
   const envApiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
@@ -10,7 +26,7 @@ const resolveApiBaseUrl = () => {
   if (typeof window !== "undefined") {
     const { hostname } = window.location;
 
-    if (hostname === "admin.buzingbee.com") {
+    if (/^(super|admin|team)\.buzingbee\.com$/.test(hostname)) {
       return "https://api.buzingbee.com/api";
     }
 
@@ -129,7 +145,7 @@ export const adminAPI = {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(credentials),
+      body: JSON.stringify({ ...credentials, ...(PORTAL && { portal: PORTAL }) }),
     });
     return handleResponse(response);
   },
@@ -635,6 +651,17 @@ export const financeAPI = {
     update: (id, body) =>
       financeRequest(`/expenses/${id}`, { method: "PUT", body }),
     delete: (id) => financeRequest(`/expenses/${id}`, { method: "DELETE" }),
+  },
+
+  loans: {
+    getAll: (params) => financeRequest("/loans", { params }),
+    create: (body) => financeRequest("/loans", { method: "POST", body }),
+    update: (id, body) => financeRequest(`/loans/${id}`, { method: "PUT", body }),
+    delete: (id) => financeRequest(`/loans/${id}`, { method: "DELETE" }),
+    addRepayment: (id, body) =>
+      financeRequest(`/loans/${id}/repayments`, { method: "POST", body }),
+    deleteRepayment: (id, repaymentId) =>
+      financeRequest(`/loans/${id}/repayments/${repaymentId}`, { method: "DELETE" }),
   },
 
   wallet: {

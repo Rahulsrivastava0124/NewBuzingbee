@@ -1,6 +1,8 @@
 const { errorDetail } = require("../utils/errors");
 const Enquiry = require("../models/Enquiry");
 
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const getClientIP = (req) => {
   return (
     req.headers["x-forwarded-for"]?.split(",")[0].trim() ||
@@ -66,12 +68,8 @@ const getAllEnquiries = async (req, res) => {
 
     if (status && status !== "all") query.status = status;
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { service: { $regex: search, $options: "i" } },
-        { message: { $regex: search, $options: "i" } },
-      ];
+      const rx = new RegExp(escapeRegex(search), "i");
+      query.$or = [{ name: rx }, { email: rx }, { service: rx }, { message: rx }];
     }
 
     const skip = (Number(page) - 1) * Number(limit);

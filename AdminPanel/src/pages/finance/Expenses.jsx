@@ -2,25 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import DialogActions from "@mui/material/DialogActions";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { financeAPI } from "../../services/api";
 import { useFeedback } from "../../components/Feedback";
-import { EmptyState, LoadingState, PageHeader } from "../../components/common";
+import { LoadingState, PageHeader, SearchField, TableToolbar } from "../../components/common";
+import DataTable from "../../components/DataTable";
 import { Modal } from "./shared";
 import {
   EXPENSE_CATEGORIES,
@@ -32,7 +26,7 @@ import {
   titleCase,
   toInputDate,
 } from "./format";
-import { Pencil, Plus, Printer, Receipt, Search, Trash2 } from "lucide-react";
+import { Plus, Printer, Receipt, Trash2 } from "lucide-react";
 
 const blank = () => ({
   title: "",
@@ -114,6 +108,51 @@ export default function Expenses() {
 
   if (loading) return <LoadingState text="Loading expenses..." />;
 
+  const columns = [
+    {
+      key: "spentAt",
+      label: "Date",
+      value: (x) => new Date(x.spentAt).getTime(),
+      render: (x) => fmtDate(x.spentAt),
+    },
+    {
+      key: "title",
+      label: "Title",
+      mobile: "title",
+      value: (x) => x.title,
+      render: (x) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 600 }}>{x.title}</Typography>
+          {x.note && (
+            <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 280 }}>
+              {x.note}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: "category",
+      label: "Category",
+      mobile: "subtitle",
+      value: (x) => x.category,
+      render: (x) => <Chip size="small" label={titleCase(x.category)} />,
+    },
+    { key: "vendor", label: "Vendor", value: (x) => x.vendor || "" , render: (x) => x.vendor || "—" },
+    { key: "method", label: "Method", value: (x) => methodLabel(x.method) },
+    {
+      key: "amount",
+      label: "Amount",
+      align: "right",
+      value: (x) => x.amount,
+      render: (x) => (
+        <Box component="span" sx={{ color: "error.main", fontWeight: 600 }}>
+          {money(x.amount)}
+        </Box>
+      ),
+    },
+  ];
+
   return (
     <Box>
       <PageHeader
@@ -152,116 +191,56 @@ export default function Expenses() {
           {byCategory.slice(0, 4).map((c) => (
             <Grid key={c.category} size={{ xs: 6, md: 3 }}>
               <Paper sx={{ p: 2 }}>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ fontWeight: 600, textTransform: "uppercase" }}
-                >
+                <Typography variant="body2" color="text.secondary">
                   {titleCase(c.category)}
                 </Typography>
-                <Typography variant="h6">{money(c.amount)}</Typography>
+                <Typography variant="h6" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                  {money(c.amount)}
+                </Typography>
               </Paper>
             </Grid>
           ))}
         </Grid>
       )}
 
-      <Stack className="no-print" direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
-        <TextField
-          placeholder="Search by title or vendor..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ maxWidth: { md: 380 } }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={18} />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        <TextField
-          select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          sx={{ maxWidth: { md: 220 } }}
-        >
-          <MenuItem value="all">All categories</MenuItem>
-          {EXPENSE_CATEGORIES.map((c) => (
-            <MenuItem key={c} value={c}>
-              {titleCase(c)}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Stack>
-
-      {expenses.length === 0 ? (
-        <EmptyState icon={<Receipt size={48} />}>
-          No expenses recorded.
-        </EmptyState>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 760 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>Title</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Vendor</TableCell>
-                <TableCell>Method</TableCell>
-                <TableCell align="right">Amount</TableCell>
-                <TableCell align="right" className="no-print">
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {expenses.map((x) => (
-                <TableRow key={x._id} hover>
-                  <TableCell>{fmtDate(x.spentAt)}</TableCell>
-                  <TableCell>
-                    <Typography sx={{ fontWeight: 600 }}>{x.title}</Typography>
-                    {x.note && (
-                      <Typography variant="caption" color="text.secondary">
-                        {x.note}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>{titleCase(x.category)}</TableCell>
-                  <TableCell>{x.vendor || "—"}</TableCell>
-                  <TableCell>{methodLabel(x.method)}</TableCell>
-                  <TableCell align="right" sx={{ color: "error.main", fontWeight: 600 }}>
-                    {money(x.amount)}
-                  </TableCell>
-                  <TableCell align="right" className="no-print" sx={{ whiteSpace: "nowrap" }}>
-                    <Tooltip title="Edit">
-                      <IconButton
-                        size="small"
-                        aria-label="Edit"
-                        onClick={() => setEditing({ ...x, spentAt: toInputDate(x.spentAt) })}
-                      >
-                        <Pencil size={18} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        aria-label="Delete"
-                        onClick={() => remove(x)}
-                      >
-                        <Trash2 size={18} />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
+      <DataTable
+        columns={columns}
+        rows={expenses}
+        minWidth={820}
+        pageSize={50}
+        empty={{ icon: <Receipt />, title: "No expenses", text: "No expenses match these filters." }}
+        toolbar={
+          <TableToolbar>
+            <SearchField value={search} onChange={setSearch} placeholder="Search title or vendor..." />
+            <TextField
+              select
+              label="Category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              sx={{ minWidth: 200, width: { md: "auto" } }}
+            >
+              <MenuItem value="all">All categories</MenuItem>
+              {EXPENSE_CATEGORIES.map((c) => (
+                <MenuItem key={c} value={c}>
+                  {titleCase(c)}
+                </MenuItem>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            </TextField>
+          </TableToolbar>
+        }
+        actions={(x) => (
+          <>
+            <Button size="small" variant="outlined" onClick={() => setEditing({ ...x, spentAt: toInputDate(x.spentAt) })}>
+              Edit
+            </Button>
+            <Tooltip title="Delete expense">
+              <IconButton size="small" color="error" aria-label={`Delete ${x.title}`} onClick={() => remove(x)}>
+                <Trash2 />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
+      />
 
       {editing && (
         <Modal title={editing._id ? "Edit expense" : "Add expense"} onClose={() => setEditing(null)}>

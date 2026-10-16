@@ -26,7 +26,9 @@ const ClientLedger = lazy(() => import("./pages/finance/ClientLedger"));
 const Invoices = lazy(() => import("./pages/finance/Invoices"));
 const InvoiceForm = lazy(() => import("./pages/finance/InvoiceForm"));
 const InvoiceDetails = lazy(() => import("./pages/finance/InvoiceDetails"));
-const ExpensesWallet = lazy(() => import("./pages/finance/ExpensesWallet"));
+const WalletLedger = lazy(() => import("./pages/finance/WalletLedger"));
+const Expenses = lazy(() => import("./pages/finance/Expenses"));
+const Loans = lazy(() => import("./pages/finance/Loans"));
 const Users = lazy(() => import("./pages/Users"));
 
 function PrivateRoute({ children }) {
@@ -83,11 +85,9 @@ function App() {
             <Route path="finance/invoices/new" element={<InvoiceForm />} />
             <Route path="finance/invoices/:id" element={<InvoiceDetails />} />
             <Route path="finance/invoices/:id/edit" element={<InvoiceForm />} />
-            <Route path="finance/wallet" element={<ExpensesWallet />} />
-            <Route
-              path="finance/expenses"
-              element={<Navigate to="/dashboard/finance/wallet?tab=expenses" replace />}
-            />
+            <Route path="finance/wallet" element={<WalletLedger />} />
+            <Route path="finance/expenses" element={<Expenses />} />
+            <Route path="finance/loans" element={<Loans />} />
             <Route path="users" element={<Users />} />
           </Route>
           <Route

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import AppBar from "@mui/material/AppBar";
 import Avatar from "@mui/material/Avatar";
-import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -22,7 +21,6 @@ import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Toolbar from "@mui/material/Toolbar";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
@@ -32,8 +30,9 @@ import {
   blogAPI,
   caseStudyAPI,
   enquiryAPI,
+  PORTAL,
 } from "../services/api";
-import { BookOpen, ChevronDown, Briefcase, Clock, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, PenLine, ReceiptText, Search, Settings, ShieldCheck, TrendingUp, UserRound } from "lucide-react";
+import { BookOpen, HandCoins, Wallet, ChevronDown, Briefcase, Clock, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, PenLine, ReceiptText, Search, Settings, ShieldCheck, TrendingUp, UserRound } from "lucide-react";
 import BrandMark from "../components/Brand";
 import NotificationBell from "../components/NotificationBell";
 
@@ -111,8 +110,18 @@ function Dashboard() {
   useEffect(() => {
     adminAPI
       .getProfile()
-      .then((res) => setAdmin(res?.admin || null))
+      .then((res) => {
+        const profile = res?.admin || null;
+        // A session from another role's portal (or after a role change) is signed out
+        if (profile && PORTAL && (profile.role || "admin") !== PORTAL) {
+          authHelper.removeToken();
+          navigate("/login", { replace: true });
+          return;
+        }
+        setAdmin(profile);
+      })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleSection = (label) =>
@@ -210,9 +219,21 @@ function Dashboard() {
         },
         {
           to: "/dashboard/finance/wallet",
-          label: "Expenses & Wallet",
+          label: "Wallet & Ledger",
           icon: <BookOpen />,
           selected: path.startsWith("/dashboard/finance/wallet"),
+        },
+        {
+          to: "/dashboard/finance/expenses",
+          label: "Expenses",
+          icon: <Wallet />,
+          selected: path.startsWith("/dashboard/finance/expenses"),
+        },
+        {
+          to: "/dashboard/finance/loans",
+          label: "Loans",
+          icon: <HandCoins />,
+          selected: path.startsWith("/dashboard/finance/loans"),
         },
       ],
     },
@@ -285,7 +306,9 @@ function Dashboard() {
       const subs = {
         clients: "Clients",
         invoices: "Invoices",
-        wallet: "Expenses & Wallet",
+        wallet: "Wallet & Ledger",
+        expenses: "Expenses",
+        loans: "Loans",
       };
       return ["Finance", subs[path.split("/")[3]] || "Finance"];
     }
@@ -316,7 +339,8 @@ function Dashboard() {
       <Box component="nav" aria-label="Main" sx={{ flex: 1, overflowY: "auto", px: 1.5, pb: 2 }}>
         {sections.map((section) => {
           const single = section.items.length === 1;
-          const isOpen = single || Boolean(openSections[section.label]);
+          // Groups never toggled before (e.g. newly added ones) start open
+          const isOpen = single || openSections[section.label] !== false;
 
           return (
             <Box key={section.label} sx={{ pt: single ? 1 : 1.5 }}>
@@ -428,6 +452,8 @@ function Dashboard() {
                 width: DRAWER_WIDTH,
                 maxWidth: "85vw",
                 boxSizing: "border-box",
+                borderRadius: 0,
+                border: 0,
               },
             }}
           >
@@ -443,7 +469,16 @@ function Dashboard() {
         <AppBar
           className="app-topbar"
           position="static"
-          sx={{ borderBottom: 1, borderColor: "divider", flexShrink: 0 }}
+          color="inherit"
+          elevation={0}
+          sx={{
+            border: 0,
+            borderBottom: 1,
+            borderColor: "divider",
+            borderRadius: 0,
+            boxShadow: "none",
+            flexShrink: 0,
+          }}
         >
           <Toolbar disableGutters sx={{ gap: { xs: 1, sm: 2 }, height: TOPBAR_HEIGHT, px: { xs: 1.5, sm: 2, md: 3 } }}>
             {/* Left and right zones share the leftover width equally, so the search stays centred */}

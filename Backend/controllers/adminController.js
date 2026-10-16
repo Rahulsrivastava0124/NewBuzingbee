@@ -147,6 +147,22 @@ const adminLogin = async (req, res) => {
       await admin.save();
     }
 
+    // Each role signs in on its own subdomain (super./admin./team.). The panel
+    // sends which one; an account may only sign in on its own role's portal.
+    const { portal } = req.body;
+    if (portal) {
+      if (!ROLES.includes(portal)) {
+        return res.status(400).json({ success: false, message: "Unknown sign-in portal" });
+      }
+      const role = admin.role || "admin";
+      if (role !== portal) {
+        return res.status(403).json({
+          success: false,
+          message: `This account can't sign in here. Use the ${role} portal: ${portalUrl(role)}`,
+        });
+      }
+    }
+
     const { token, expiresAt } = generateToken(admin);
 
     return res.status(200).json({
@@ -424,6 +440,22 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
+// Panel URL for a role: ADMIN_PANEL_URL with its "admin." label swapped for
+// the role, e.g. https://admin.buzingbee.com -> https://team.buzingbee.com.
+// Emails always link to the live domain unless ADMIN_PANEL_URL overrides it
+// (set it to http://localhost:5173 to get local links while developing).
+const DEFAULT_PANEL_URL = "https://admin.buzingbee.com";
+const portalUrl = (role) => {
+  const base = (process.env.ADMIN_PANEL_URL || DEFAULT_PANEL_URL).replace(/\/+$/, "");
+  try {
+    const url = new URL(base);
+    if (url.hostname.startsWith("admin.")) url.hostname = `${role}.${url.hostname.slice(6)}`;
+    return url.origin;
+  } catch {
+    return base;
+  }
+};
+
 // ── Forgot / reset password ───────────────────────────────────────────────
 
 const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
@@ -578,10 +610,7 @@ const forgotPassword = async (req, res) => {
       admin.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
       await admin.save();
 
-      const base = (
-        process.env.ADMIN_PANEL_URL || "http://localhost:5173"
-      ).replace(/\/+$/, "");
-      const link = `${base}/reset-password?token=${token}`;
+      const link = `${portalUrl(admin.role || "admin")}/reset-password?token=${token}`;
 
       // Not awaited: response time must not reveal whether the account exists
       sendMail({ to: admin.email, ...buildResetEmail(admin, link) }).catch(

@@ -5,28 +5,19 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
-import Link from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { adminAPI, financeAPI } from "../../services/api";
 import { useFeedback } from "../../components/Feedback";
-import { EmptyState, LoadingState, PageHeader } from "../../components/common";
+import { LoadingState, PageHeader, SearchField, TableToolbar } from "../../components/common";
+import DataTable from "../../components/DataTable";
 import ClientFormDialog from "./ClientFormDialog";
 import { money } from "./format";
 
-const NUM = { fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" };
-import { Contact, Plus, Search, Trash2 } from "lucide-react";
+import { Contact, Plus, Trash2 } from "lucide-react";
 
 export default function Clients() {
   const navigate = useNavigate();
@@ -92,11 +83,79 @@ export default function Clients() {
   const canEdit = (c) =>
     me?.role === "super" || !c.managedBy || String(c.managedBy._id || c.managedBy) === String(me?._id);
 
+  const totalDue = clients.reduce((t, c) => t + (c.outstanding || 0), 0);
+
+  const columns = [
+    {
+      key: "company",
+      label: "Company",
+      mobile: "title",
+      value: (c) => c.company || c.name,
+      render: (c) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <Typography sx={{ fontWeight: 600 }} noWrap>
+              {c.company || c.name}
+            </Typography>
+            {c.personal && <Chip size="small" variant="outlined" label="Personal" />}
+          </Stack>
+          {c.company && (
+            <Typography variant="body2" color="text.secondary" noWrap>
+              {c.name}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: "email",
+      label: "Email",
+      mobile: "subtitle",
+      value: (c) => c.email || "",
+      render: (c) => c.email || <Typography component="span" color="text.secondary">—</Typography>,
+    },
+    { key: "invoiced", label: "Total", align: "right", value: (c) => c.invoiced, render: (c) => money(c.invoiced) },
+    {
+      key: "paid",
+      label: "Paid",
+      align: "right",
+      value: (c) => c.paid,
+      render: (c) => (
+        <Box component="span" sx={{ color: c.paid > 0 ? "success.main" : undefined }}>
+          {money(c.paid)}
+        </Box>
+      ),
+    },
+    {
+      key: "outstanding",
+      label: "Due",
+      align: "right",
+      value: (c) => c.outstanding,
+      render: (c) => (
+        <Box component="span" sx={c.outstanding > 0 ? { color: "error.main", fontWeight: 600 } : undefined}>
+          {money(c.outstanding)}
+        </Box>
+      ),
+    },
+    { key: "invoiceCount", label: "Invoices", align: "right", value: (c) => c.invoiceCount },
+    {
+      key: "managedBy",
+      label: "Managed by",
+      value: (c) => c.managedBy?.username || "",
+      render: (c) =>
+        c.managedBy?.username || (
+          <Typography component="span" color="text.secondary">
+            Unassigned
+          </Typography>
+        ),
+    },
+  ];
+
   return (
     <Box>
       <PageHeader
         title="Clients"
-        subtitle={`${clients.length} clients`}
+        subtitle={`${clients.length} clients · ${money(totalDue)} due`}
         actions={
           <Button variant="contained" startIcon={<Plus />} onClick={() => setAdding(true)}>
             Add Client
@@ -110,138 +169,62 @@ export default function Clients() {
         </Alert>
       )}
 
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }}>
-        <TextField
-          placeholder="Search by name, company or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ maxWidth: { sm: 420 } }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={18} />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        <TextField
-          select
-          label="Managed by"
-          value={managerFilter}
-          onChange={(e) => setManagerFilter(e.target.value)}
-          sx={{ maxWidth: { sm: 240 } }}
-        >
-          <MenuItem value="all">Everyone</MenuItem>
-          {me && <MenuItem value="me">Me</MenuItem>}
-          <MenuItem value="none">Unassigned</MenuItem>
-          {team.map((t) => (
-            <MenuItem key={t._id} value={t._id}>
-              {t.username}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Stack>
-
-      {clients.length === 0 ? (
-        <EmptyState icon={<Contact size={48} />}>
-          No clients yet. Add your first client to start invoicing.
-        </EmptyState>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 1060 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Company</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell align="right">Total</TableCell>
-                <TableCell align="right">Paid</TableCell>
-                <TableCell align="right">Due</TableCell>
-                <TableCell align="right">Invoices</TableCell>
-                <TableCell>Managed by</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {clients.map((c) => (
-                <TableRow key={c._id} hover>
-                  <TableCell sx={{ maxWidth: 260 }}>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                      <Link
-                        component="button"
-                        underline="hover"
-                        color="inherit"
-                        sx={{ fontWeight: 600, textAlign: "left" }}
-                        onClick={() => view(c)}
-                      >
-                        {c.company || c.name}
-                      </Link>
-                      {c.personal && <Chip size="small" variant="outlined" label="Personal" />}
-                    </Stack>
-                    {c.company && (
-                      <Typography variant="body2" color="text.secondary" noWrap>
-                        {c.name}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ maxWidth: 240 }}>
-                    <Typography noWrap color={c.email ? "text.primary" : "text.secondary"}>
-                      {c.email || "—"}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right" sx={NUM}>{money(c.invoiced)}</TableCell>
-                  <TableCell align="right" sx={{ ...NUM, color: c.paid > 0 ? "success.main" : undefined }}>
-                    {money(c.paid)}
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{ ...NUM, ...(c.outstanding > 0 && { color: "error.main", fontWeight: 600 }) }}
-                  >
-                    {money(c.outstanding)}
-                  </TableCell>
-                  <TableCell align="right" sx={NUM}>{c.invoiceCount}</TableCell>
-                  <TableCell>
-                    {c.managedBy?.username || (
-                      <Typography component="span" color="text.secondary">
-                        Unassigned
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-                    <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", alignItems: "center" }}>
-                      <Button size="small" variant="outlined" onClick={() => view(c)}>
-                        View
-                      </Button>
-                      {canEdit(c) && (
-                        <Button size="small" variant="outlined" onClick={() => setEditing(c)}>
-                          Edit
-                        </Button>
-                      )}
-                      {c.nextDue && (
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={() => navigate(`/dashboard/finance/invoices/${c.nextDue.invoiceId}?pay=1`)}
-                        >
-                          Pay
-                        </Button>
-                      )}
-                      {canEdit(c) && (
-                        <Tooltip title="Delete client">
-                          <IconButton size="small" color="error" aria-label={`Delete ${c.name}`} onClick={() => remove(c)}>
-                            <Trash2 />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Stack>
-                  </TableCell>
-                </TableRow>
+      <DataTable
+        columns={columns}
+        rows={clients}
+        minWidth={1000}
+        onRowClick={view}
+        empty={{ icon: <Contact />, title: "No clients", text: "Add your first client to start invoicing." }}
+        toolbar={
+          <TableToolbar>
+            <SearchField value={search} onChange={setSearch} placeholder="Search name, company or email..." />
+            <TextField
+              select
+              label="Managed by"
+              value={managerFilter}
+              onChange={(e) => setManagerFilter(e.target.value)}
+              sx={{ minWidth: 200, width: { md: "auto" } }}
+            >
+              <MenuItem value="all">Everyone</MenuItem>
+              {me && <MenuItem value="me">Me</MenuItem>}
+              <MenuItem value="none">Unassigned</MenuItem>
+              {team.map((t) => (
+                <MenuItem key={t._id} value={t._id}>
+                  {t.username}
+                </MenuItem>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            </TextField>
+          </TableToolbar>
+        }
+        actions={(c) => (
+          <>
+            <Button size="small" variant="outlined" onClick={() => view(c)}>
+              View
+            </Button>
+            {canEdit(c) && (
+              <Button size="small" variant="outlined" onClick={() => setEditing(c)}>
+                Edit
+              </Button>
+            )}
+            {c.nextDue && (
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => navigate(`/dashboard/finance/invoices/${c.nextDue.invoiceId}?pay=1`)}
+              >
+                Pay
+              </Button>
+            )}
+            {canEdit(c) && (
+              <Tooltip title="Delete client">
+                <IconButton size="small" color="error" aria-label={`Delete ${c.name}`} onClick={() => remove(c)}>
+                  <Trash2 />
+                </IconButton>
+              </Tooltip>
+            )}
+          </>
+        )}
+      />
 
       {editing && (
         <ClientFormDialog

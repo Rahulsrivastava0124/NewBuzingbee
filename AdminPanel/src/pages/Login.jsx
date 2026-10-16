@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -9,7 +10,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { adminAPI, authHelper } from "../services/api";
+import { adminAPI, authHelper, PORTAL, PORTAL_LABELS } from "../services/api";
 import { PasswordField } from "../components/common";
 import BrandMark from "../components/Brand";
 
@@ -57,19 +58,34 @@ export default function Login() {
         bgcolor: "background.default",
       }}
     >
-      <Paper sx={{ width: "100%", maxWidth: 420, p: { xs: 3, sm: 5 }, borderRadius: 4 }}>
-        <Stack spacing={1} sx={{ alignItems: "center", mb: 3, textAlign: "center" }}>
-          <BrandMark size={56} />
+      <Paper
+        sx={{
+          width: "100%",
+          maxWidth: 460,
+          minHeight: { sm: 560 },
+          p: { xs: 4, sm: 6 },
+          borderRadius: 4,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+        }}
+      >
+        <Stack spacing={1.5} sx={{ alignItems: "center", mb: 4, textAlign: "center" }}>
+          <BrandMark size={68} />
+          {PORTAL && (
+            <Chip color="primary" label={`${PORTAL_LABELS[PORTAL]} sign in`} sx={{ fontWeight: 600 }} />
+          )}
           <Typography color="text.secondary">
             Welcome back to your creative workspace
           </Typography>
         </Stack>
 
         <Box component="form" onSubmit={handleSubmit}>
-          <Stack spacing={2.5}>
+          <Stack spacing={3}>
             {error && <Alert severity="error">{error}</Alert>}
 
             <TextField
+              size="medium"
               label="Username or Email"
               name="loginId"
               value={formData.loginId}
@@ -82,6 +98,7 @@ export default function Login() {
             />
 
             <PasswordField
+              size="medium"
               label="Password"
               name="password"
               value={formData.password}
@@ -106,6 +123,7 @@ export default function Login() {
               type="submit"
               variant="contained"
               size="large"
+              sx={{ minHeight: 52, fontSize: 16 }}
               disabled={loading}
               startIcon={loading ? <CircularProgress size={18} color="inherit" /> : null}
             >

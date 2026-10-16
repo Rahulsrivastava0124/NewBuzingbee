@@ -6,24 +6,16 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { caseStudyAPI } from "../services/api";
 import { useFeedback } from "../components/Feedback";
-import { EmptyState, LoadingState, PageHeader } from "../components/common";
-import { Briefcase, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { LoadingState, PageHeader, SearchField, TableToolbar } from "../components/common";
+import DataTable from "../components/DataTable";
+import { Briefcase, Plus, Search, Trash2 } from "lucide-react";
 
 export default function CaseStudyList() {
   const navigate = useNavigate();
@@ -118,108 +110,85 @@ export default function CaseStudyList() {
         </Alert>
       )}
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
-        <TextField
-          placeholder="Search case studies..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ maxWidth: { md: 380 } }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={18} />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          color="primary"
-          value={filterStatus}
-          onChange={(_, v) => v && setFilterStatus(v)}
-        >
-          {["all", "published", "draft"].map((s) => (
-            <ToggleButton key={s} value={s} sx={{ px: 2 }}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      </Stack>
-
-      {filtered.length === 0 ? (
-        <EmptyState icon={<Briefcase size={48} />}>
-          No case studies found. Use the &quot;Add Case Study&quot; button above
-          to get started.
-        </EmptyState>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell>Client</TableCell>
-                <TableCell>Industry</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Created</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filtered.map((item) => (
-                <TableRow key={item._id} hover>
-                  <TableCell>
-                    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-                      <Avatar variant="rounded" src={item.image} alt={item.title}>
-                        <Briefcase />
-                      </Avatar>
-                      <Box>
-                        <Typography sx={{ fontWeight: 600 }}>{item.title}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {item.summary || item.client}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>{item.client || "—"}</TableCell>
-                  <TableCell>{item.industry || "—"}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={item.status}
-                      color={item.status === "published" ? "success" : "default"}
-                    />
-                  </TableCell>
-                  <TableCell>{formatDate(item.createdAt)}</TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Edit">
-                      <IconButton
-                        size="small"
-                        aria-label="Edit"
-                        onClick={() => navigate(`/dashboard/edit-case-study/${item._id}`)}
-                      >
-                        <Pencil size={18} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        aria-label="Delete"
-                        onClick={() => handleDelete(item._id)}
-                      >
-                        <Trash2 size={18} />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
+      <DataTable
+        rows={filtered}
+        minWidth={820}
+        onRowClick={(item) => navigate(`/dashboard/edit-case-study/${item._id}`)}
+        empty={{
+          icon: <Briefcase />,
+          title: "No case studies",
+          text: "Use \"Add Case Study\" above to get started.",
+        }}
+        toolbar={
+          <TableToolbar>
+            <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="Search case studies..." />
+            <ToggleButtonGroup exclusive size="small" value={filterStatus} onChange={(_, v) => v && setFilterStatus(v)}>
+              {["all", "published", "draft"].map((s) => (
+                <ToggleButton key={s} value={s}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </ToggleButton>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            </ToggleButtonGroup>
+          </TableToolbar>
+        }
+        columns={[
+          {
+            key: "title",
+            label: "Title",
+            mobile: "title",
+            value: (item) => item.title,
+            render: (item) => (
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", minWidth: 0 }}>
+                <Avatar variant="rounded" src={item.image} alt="" sx={{ borderRadius: 2 }}>
+                  <Briefcase />
+                </Avatar>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 600 }} noWrap>
+                    {item.title}
+                  </Typography>
+                  {item.summary && (
+                    <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 320 }}>
+                      {item.summary}
+                    </Typography>
+                  )}
+                </Box>
+              </Stack>
+            ),
+          },
+          { key: "client", label: "Client", mobile: "subtitle", value: (item) => item.client || "", render: (item) => item.client || "—" },
+          { key: "industry", label: "Industry", value: (item) => item.industry || "", render: (item) => item.industry || "—" },
+          {
+            key: "status",
+            label: "Status",
+            value: (item) => item.status,
+            render: (item) => (
+              <Chip
+                size="small"
+                label={item.status?.charAt(0).toUpperCase() + item.status?.slice(1)}
+                color={item.status === "published" ? "success" : "default"}
+              />
+            ),
+          },
+          {
+            key: "createdAt",
+            label: "Created",
+            value: (item) => new Date(item.createdAt).getTime(),
+            render: (item) => formatDate(item.createdAt),
+          },
+        ]}
+        actions={(item) => (
+          <>
+            <Button size="small" variant="outlined" onClick={() => navigate(`/dashboard/edit-case-study/${item._id}`)}>
+              Edit
+            </Button>
+            <Tooltip title="Delete case study">
+              <IconButton size="small" color="error" aria-label={`Delete ${item.title}`} onClick={() => handleDelete(item._id)}>
+                <Trash2 />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
+      />
     </Box>
   );
 }

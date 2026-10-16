@@ -20,8 +20,10 @@ const pick = (body) => {
   return out;
 };
 
-// A personal client needs an owner; default it to whoever is saving it
+// A personal client needs an owner; default it to whoever is saving it.
+// Only admin/team members can mark clients personal, not the super admin.
 const ownPersonal = (data, req) => {
+  if (req.admin?.role === "super") delete data.personal;
   if (data.personal && !data.managedBy) data.managedBy = req.admin.id;
   return data;
 };

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
@@ -10,23 +11,17 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
-import Paper from "@mui/material/Paper";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
-import { adminAPI } from "../services/api";
+import { Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import { adminAPI, portalHost } from "../services/api";
 import { useFeedback } from "../components/Feedback";
 import { LoadingState, PageHeader } from "../components/common";
+import DataTable from "../components/DataTable";
 
 const ROLE_COLORS = { super: "warning", admin: "primary", team: "default" };
 const ROLE_LABELS = { super: "Super admin", admin: "Admin", team: "Team" };
@@ -173,98 +168,106 @@ export default function Users() {
       {loading ? (
         <LoadingState text="Loading users..." />
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Username</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Show bills</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((u) => {
-                const isSelf = me?.id === u._id;
+        <DataTable
+          rows={users}
+          minWidth={760}
+          initialSort={{ key: "role", dir: "asc" }}
+          empty={{ icon: <ShieldCheck />, title: "No users", text: "Add someone with the button above." }}
+          columns={[
+            {
+              key: "username",
+              label: "User",
+              mobile: "title",
+              value: (u) => u.username,
+              render: (u) => (
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                  <Avatar sx={{ width: 32, height: 32, fontSize: 14, bgcolor: "primary.main", color: "primary.contrastText" }}>
+                    {u.username?.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 600 }} noWrap>
+                      {u.username}
+                      {me?.id === u._id && <Chip size="small" label="you" sx={{ ml: 1 }} />}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                      {u.email}
+                    </Typography>
+                  </Box>
+                </Stack>
+              ),
+            },
+            {
+              key: "role",
+              label: "Role",
+              mobile: "subtitle",
+              value: (u) => ({ super: 0, admin: 1, team: 2 })[u.role || "admin"],
+              render: (u) =>
+                u.role === "super" ? (
+                  <Chip size="small" label={ROLE_LABELS.super} color={ROLE_COLORS.super} />
+                ) : (
+                  <Select
+                    size="small"
+                    value={u.role || "admin"}
+                    onChange={(e) => handleRoleChange(u, e.target.value)}
+                    disabled={me?.id === u._id}
+                    sx={{ borderRadius: 999, minWidth: 120 }}
+                  >
+                    <MenuItem value="admin">{ROLE_LABELS.admin}</MenuItem>
+                    <MenuItem value="team">{ROLE_LABELS.team}</MenuItem>
+                  </Select>
+                ),
+            },
+            {
+              key: "showBills",
+              label: "Show bills",
+              sortable: false,
+              render: (u) => {
                 const pinned = u.role === "super";
                 return (
-                  <TableRow key={u._id}>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 600 }}>
-                        {u.username}
-                        {isSelf && (
-                          <Chip size="small" label="you" sx={{ ml: 1 }} />
-                        )}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      {pinned ? (
-                        <Chip
-                          size="small"
-                          label={ROLE_LABELS.super}
-                          color={ROLE_COLORS.super}
-                        />
-                      ) : (
-                        <Select
-                          size="small"
-                          value={u.role || "admin"}
-                          onChange={(e) => handleRoleChange(u, e.target.value)}
-                          disabled={isSelf}
-                        >
-                          <MenuItem value="admin">{ROLE_LABELS.admin}</MenuItem>
-                          <MenuItem value="team">{ROLE_LABELS.team}</MenuItem>
-                        </Select>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip
-                        title={
-                          pinned
-                            ? "Super admin always sees bills"
-                            : u.showBills !== false
-                              ? "Can see invoices, payments and other finance pages"
-                              : "Finance pages are hidden"
-                        }
-                      >
-                        <span>
-                          <Switch
-                            checked={pinned || u.showBills !== false}
-                            disabled={pinned}
-                            onChange={(e) => handleBillsChange(u, e.target.checked)}
-                            slotProps={{ input: { "aria-label": `Show bills to ${u.username}` } }}
-                          />
-                        </span>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Tooltip
-                        title={
-                          pinned
-                            ? "Super admin cannot be deleted"
-                            : isSelf
-                              ? "You cannot delete yourself"
-                              : "Delete user"
-                        }
-                      >
-                        <span>
-                          <IconButton
-                            color="error"
-                            onClick={() => handleDelete(u)}
-                            disabled={pinned || isSelf}
-                          >
-                            <Trash2 size={18} />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
+                  <Tooltip
+                    title={
+                      pinned
+                        ? "Super admin always sees bills"
+                        : u.showBills !== false
+                          ? "Can see invoices, payments and other finance pages"
+                          : "Finance pages are hidden"
+                    }
+                  >
+                    <span>
+                      <Switch
+                        checked={pinned || u.showBills !== false}
+                        disabled={pinned}
+                        onChange={(e) => handleBillsChange(u, e.target.checked)}
+                        slotProps={{ input: { "aria-label": `Show bills to ${u.username}` } }}
+                      />
+                    </span>
+                  </Tooltip>
                 );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              },
+            },
+          ]}
+          actions={(u) => {
+            const pinned = u.role === "super";
+            const isSelf = me?.id === u._id;
+            return (
+              <Tooltip
+                title={pinned ? "Super admin cannot be deleted" : isSelf ? "You cannot delete yourself" : "Delete user"}
+              >
+                <span>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    aria-label={`Delete ${u.username}`}
+                    onClick={() => handleDelete(u)}
+                    disabled={pinned || isSelf}
+                  >
+                    <Trash2 />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            );
+          }}
+        />
       )}
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
@@ -298,6 +301,9 @@ export default function Users() {
               <MenuItem value="admin">{ROLE_LABELS.admin}</MenuItem>
               <MenuItem value="team">{ROLE_LABELS.team}</MenuItem>
             </Select>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
+              Signs in at <b>{portalHost(form.role)}</b>
+            </Typography>
             <FormControlLabel
               control={
                 <Switch
