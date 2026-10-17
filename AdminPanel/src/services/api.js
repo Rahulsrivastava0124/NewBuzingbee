@@ -346,6 +346,14 @@ export const blogAPI = {
     return handleResponse(response);
   },
 
+  // Daily views per post (last N days) for the blog graphs
+  getViewsDaily: async (days = 14) => {
+    const response = await fetch(`${API_BASE_URL}/blog/views/daily?days=${days}`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    return handleResponse(response);
+  },
+
   // Upload blog image
   uploadImage: async (file) => {
     const formData = new FormData();

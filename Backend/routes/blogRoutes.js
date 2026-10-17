@@ -7,6 +7,7 @@ const {
   updateBlog,
   deleteBlog,
   getBlogStats,
+  getBlogViewsDaily,
 } = require("../controllers/blogController");
 const { protectAdmin, optionalAdmin } = require("../middleware/authMiddleware");
 const { uploadBlogImage } = require("../middleware/uploadMiddleware");
@@ -19,6 +20,8 @@ router.get("/all", optionalAdmin, getAllBlogs);
 
 // REST-style endpoints used by frontend
 router.get("/stats", protectAdmin, getBlogStats);
+// Before "/:id" so "views" is not read as a blog id
+router.get("/views/daily", protectAdmin, getBlogViewsDaily);
 router.post(
   "/upload-image",
   protectAdmin,

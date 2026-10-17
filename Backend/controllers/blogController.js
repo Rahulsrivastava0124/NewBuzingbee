@@ -4,6 +4,46 @@ const Blog = require("../models/Blog");
 const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 const { sanitizeRichText } = require("../utils/sanitize");
 const { escapeRegex } = require("../utils/validate");
+const BlogViewDay = require("../models/BlogViewDay");
+
+const dayKey = (d = new Date()) => d.toISOString().slice(0, 10);
+
+// Count today's view for a post. Fire-and-forget: a failure here must never
+// break serving the post.
+const recordDailyView = (blogId) =>
+  BlogViewDay.updateOne(
+    { blog: blogId, day: dayKey() },
+    { $inc: { views: 1 }, $setOnInsert: { createdAt: new Date() } },
+    { upsert: true },
+  ).catch((error) => console.error("[blog] Could not record daily view:", error.message));
+
+// GET /blog/views/daily?days=14 — per-post daily views for the admin graphs
+const getBlogViewsDaily = async (req, res) => {
+  try {
+    const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
+    const keys = [];
+    for (let i = days - 1; i >= 0; i -= 1) {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - i);
+      keys.push(dayKey(d));
+    }
+    const rows = await BlogViewDay.find({ day: { $gte: keys[0] } }, "blog day views").lean();
+    const index = new Map(keys.map((k, i) => [k, i]));
+    const series = {};
+    const totals = keys.map(() => 0);
+    rows.forEach((r) => {
+      const i = index.get(r.day);
+      if (i === undefined) return;
+      const id = String(r.blog);
+      if (!series[id]) series[id] = keys.map(() => 0);
+      series[id][i] += r.views;
+      totals[i] += r.views;
+    });
+    return res.json({ success: true, days: keys, totals, series });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch blog views" });
+  }
+};
 
 const normalizeTags = (tags) => {
   if (!tags) return [];
@@ -238,6 +278,8 @@ const getBlogById = async (req, res) => {
         )
       : await Blog.findById(req.params.id);
 
+    if (blog && shouldTrackView) recordDailyView(blog._id);
+
     if (!blog) {
       traceBlogApiCall(req, {
         route: "getBlogById",
@@ -321,6 +363,8 @@ const getBlogBySlug = async (req, res) => {
           { new: true },
         )
       : await Blog.findOne(query);
+
+    if (blog && shouldTrackView) recordDailyView(blog._id);
 
     if (!blog) {
       traceBlogApiCall(req, {
@@ -581,5 +625,6 @@ module.exports = {
   updateBlog,
   deleteBlog,
   getBlogStats,
+  getBlogViewsDaily,
   autoPublishScheduledBlogs,
 };
