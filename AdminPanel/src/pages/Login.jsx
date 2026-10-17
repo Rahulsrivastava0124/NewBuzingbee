@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useFeedback } from "../components/Feedback";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -11,13 +12,37 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { adminAPI, authHelper, PORTAL, PORTAL_LABELS } from "../services/api";
+
+// Set by the dashboard when an account was signed out for using the wrong portal
+const readPortalNotice = () => {
+  try {
+    const notice = JSON.parse(sessionStorage.getItem("portalNotice") || "null");
+    sessionStorage.removeItem("portalNotice");
+    return notice;
+  } catch {
+    return null;
+  }
+};
 import { PasswordField } from "../components/common";
 import BrandMark from "../components/Brand";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { notify } = useFeedback();
+
+  // Deferred (and cancelled on cleanup) so it fires exactly once, after the
+  // toast container is ready, even when React runs effects twice in dev
+  useEffect(() => {
+    if (!sessionStorage.getItem("sessionExpired")) return undefined;
+    const t = setTimeout(() => {
+      sessionStorage.removeItem("sessionExpired");
+      notify("Your session expired. Please sign in again.", "warning");
+    }, 0);
+    return () => clearTimeout(t);
+  }, [notify]);
   const [formData, setFormData] = useState({ loginId: "", password: "" });
   const [error, setError] = useState("");
+  const [portalNotice] = useState(readPortalNotice);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -34,6 +59,7 @@ export default function Login() {
 
       if (response.token) {
         authHelper.saveToken(response.token, response.expiresAt);
+        notify(`Welcome back${response.data?.username ? `, ${response.data.username}` : ""}!`, "success");
         navigate("/dashboard");
       }
     } catch (err) {
@@ -82,6 +108,15 @@ export default function Login() {
 
         <Box component="form" onSubmit={handleSubmit}>
           <Stack spacing={3}>
+            {portalNotice && (
+              <Alert severity="warning">
+                This account is a {PORTAL_LABELS[portalNotice.role] || portalNotice.role} account and signs in at{" "}
+                <Link href={`${window.location.protocol}//${portalNotice.host}/login`} sx={{ fontWeight: 600 }}>
+                  {portalNotice.host}
+                </Link>
+                .
+              </Alert>
+            )}
             {error && <Alert severity="error">{error}</Alert>}
 
             <TextField

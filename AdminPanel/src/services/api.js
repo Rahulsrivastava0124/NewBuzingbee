@@ -123,6 +123,8 @@ const handleResponse = async (response) => {
     localStorage.getItem(AUTH_TOKEN_KEY)
   ) {
     clearStoredAuth();
+    // The login page shows this as a toast after the reload
+    sessionStorage.setItem("sessionExpired", "1");
     window.location.assign("/login");
     throw new Error("Your session has expired. Please sign in again.");
   }

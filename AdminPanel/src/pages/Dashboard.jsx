@@ -31,9 +31,11 @@ import {
   caseStudyAPI,
   enquiryAPI,
   PORTAL,
+  portalHost,
 } from "../services/api";
 import { BookOpen, HandCoins, Wallet, ChevronDown, Briefcase, Clock, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, PenLine, ReceiptText, Search, Settings, ShieldCheck, TrendingUp, UserRound } from "lucide-react";
 import BrandMark from "../components/Brand";
+import { useFeedback } from "../components/Feedback";
 import NotificationBell from "../components/NotificationBell";
 
 const DRAWER_WIDTH = 280;
@@ -56,6 +58,7 @@ const printStyles = {
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { notify } = useFeedback();
   const location = useLocation();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
@@ -114,7 +117,10 @@ function Dashboard() {
         const profile = res?.admin || null;
         // A session from another role's portal (or after a role change) is signed out
         if (profile && PORTAL && (profile.role || "admin") !== PORTAL) {
+          const role = profile.role || "admin";
           authHelper.removeToken();
+          // Shown on the login page so the person knows where to sign in instead
+          sessionStorage.setItem("portalNotice", JSON.stringify({ role, host: portalHost(role) }));
           navigate("/login", { replace: true });
           return;
         }
@@ -137,6 +143,7 @@ function Dashboard() {
 
   const handleLogout = () => {
     authHelper.removeToken();
+    notify("You've been signed out", "info");
     navigate("/login");
   };
 

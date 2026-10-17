@@ -39,8 +39,17 @@ function PrivateRoute({ children }) {
   );
 }
 
+// Checked on every render, not once at startup: after a sign-out the login page
+// must not bounce back to the dashboard (that caused an endless redirect loop)
+function PublicOnlyRoute({ children }) {
+  return authHelper.isAuthenticated() ? <Navigate to="/dashboard" replace /> : children;
+}
+
+function RootRedirect() {
+  return <Navigate to={authHelper.isAuthenticated() ? "/dashboard" : "/login"} replace />;
+}
+
 function App() {
-  const isAuthenticated = authHelper.isAuthenticated();
 
   return (
     <Router>
@@ -49,7 +58,9 @@ function App() {
           <Route
             path="/login"
             element={
-              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
             }
           />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -90,15 +101,7 @@ function App() {
             <Route path="finance/loans" element={<Loans />} />
             <Route path="users" element={<Users />} />
           </Route>
-          <Route
-            path="/"
-            element={
-              <Navigate
-                to={isAuthenticated ? "/dashboard" : "/login"}
-                replace
-              />
-            }
-          />
+          <Route path="/" element={<RootRedirect />} />
         </Routes>
       </Suspense>
     </Router>
