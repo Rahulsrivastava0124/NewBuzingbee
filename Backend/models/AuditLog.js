@@ -15,7 +15,8 @@ const auditLogSchema = new mongoose.Schema(
     success: { type: Boolean, default: true },
     ip: { type: String, default: "" },
     userAgent: { type: String, default: "" },
-    createdAt: { type: Date, default: Date.now, index: true },
+    // Indexed by the TTL index below; a plain index here would block the expiry
+    createdAt: { type: Date, default: Date.now },
   },
   { versionKey: false },
 );

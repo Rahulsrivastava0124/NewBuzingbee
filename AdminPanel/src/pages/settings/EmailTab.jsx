@@ -118,7 +118,7 @@ export default function EmailTab() {
   if (loading) return <LoadingState text="Loading email settings..." />;
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 820 }}>
+    <Stack spacing={3}>
       <Paper component="form" onSubmit={save} sx={{ p: { xs: 2.5, sm: 4 } }}>
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 0.5 }}>
           <Mail size={22} />

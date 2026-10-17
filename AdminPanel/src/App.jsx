@@ -19,18 +19,17 @@ const BlogDetails = lazy(() => import("./pages/BlogDetails"));
 const CaseStudyList = lazy(() => import("./pages/CaseStudyList"));
 const CaseStudyForm = lazy(() => import("./pages/CaseStudyForm"));
 const TrafficPage = lazy(() => import("./pages/TrafficPage"));
-const Audience = lazy(() => import("./pages/Audience"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const Enquiries = lazy(() => import("./pages/Enquiries"));
-const FinanceOverview = lazy(() => import("./pages/finance/FinanceOverview"));
 const Clients = lazy(() => import("./pages/finance/Clients"));
 const ClientLedger = lazy(() => import("./pages/finance/ClientLedger"));
 const Invoices = lazy(() => import("./pages/finance/Invoices"));
 const InvoiceForm = lazy(() => import("./pages/finance/InvoiceForm"));
 const InvoiceDetails = lazy(() => import("./pages/finance/InvoiceDetails"));
-const Payments = lazy(() => import("./pages/finance/Payments"));
-const Expenses = lazy(() => import("./pages/finance/Expenses"));
 const WalletLedger = lazy(() => import("./pages/finance/WalletLedger"));
+const Expenses = lazy(() => import("./pages/finance/Expenses"));
+const Loans = lazy(() => import("./pages/finance/Loans"));
+const Users = lazy(() => import("./pages/Users"));
 
 function PrivateRoute({ children }) {
   return authHelper.isAuthenticated() ? (
@@ -40,8 +39,17 @@ function PrivateRoute({ children }) {
   );
 }
 
+// Checked on every render, not once at startup: after a sign-out the login page
+// must not bounce back to the dashboard (that caused an endless redirect loop)
+function PublicOnlyRoute({ children }) {
+  return authHelper.isAuthenticated() ? <Navigate to="/dashboard" replace /> : children;
+}
+
+function RootRedirect() {
+  return <Navigate to={authHelper.isAuthenticated() ? "/dashboard" : "/login"} replace />;
+}
+
 function App() {
-  const isAuthenticated = authHelper.isAuthenticated();
 
   return (
     <Router>
@@ -50,7 +58,9 @@ function App() {
           <Route
             path="/login"
             element={
-              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
             }
           />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -76,29 +86,22 @@ function App() {
             <Route path="create-case-study" element={<CaseStudyForm />} />
             <Route path="edit-case-study/:id" element={<CaseStudyForm />} />
             <Route path="traffic" element={<TrafficPage />} />
-            <Route path="audience" element={<Audience />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="enquiries" element={<Enquiries />} />
-            <Route path="finance" element={<FinanceOverview />} />
+            {/* Finance overview now lives on the main dashboard */}
+            <Route path="finance" element={<Navigate to="/dashboard" replace />} />
             <Route path="finance/clients" element={<Clients />} />
           <Route path="finance/clients/:id" element={<ClientLedger />} />
             <Route path="finance/invoices" element={<Invoices />} />
             <Route path="finance/invoices/new" element={<InvoiceForm />} />
             <Route path="finance/invoices/:id" element={<InvoiceDetails />} />
             <Route path="finance/invoices/:id/edit" element={<InvoiceForm />} />
-            <Route path="finance/payments" element={<Payments />} />
-            <Route path="finance/expenses" element={<Expenses />} />
             <Route path="finance/wallet" element={<WalletLedger />} />
+            <Route path="finance/expenses" element={<Expenses />} />
+            <Route path="finance/loans" element={<Loans />} />
+            <Route path="users" element={<Users />} />
           </Route>
-          <Route
-            path="/"
-            element={
-              <Navigate
-                to={isAuthenticated ? "/dashboard" : "/login"}
-                replace
-              />
-            }
-          />
+          <Route path="/" element={<RootRedirect />} />
         </Routes>
       </Suspense>
     </Router>

@@ -126,7 +126,7 @@ export default function InvoiceForm() {
   if (loading) return <LoadingState text="Loading invoice..." />;
 
   return (
-    <Box sx={{ maxWidth: 1000 }}>
+    <Box>
       <PageHeader title={id ? "Edit Invoice" : "New Invoice"} />
 
       <Paper component="form" sx={{ p: { xs: 2, sm: 3 } }} onSubmit={(e) => submit(e, "sent")}>
@@ -171,7 +171,7 @@ export default function InvoiceForm() {
           </Grid>
         </Grid>
 
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>
           Line items
         </Typography>
         <Stack spacing={1.5}>

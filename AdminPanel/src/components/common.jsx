@@ -7,7 +7,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Search } from "lucide-react";
 
 // Tinted square that holds an icon: stat cards, empty states.
 export function IconTile({ children, color = "primary", size = 44 }) {
@@ -53,8 +53,14 @@ export function PageHeader({ title, subtitle, actions }) {
       {actions && (
         <Stack
           direction="row"
-          spacing={1.5}
-          sx={{ flexWrap: "wrap", rowGap: 1, alignItems: "center", flexShrink: 0 }}
+          sx={{
+            flexWrap: "wrap",
+            gap: 1.5,
+            alignItems: "center",
+            flexShrink: 0,
+            width: { xs: "100%", sm: "auto" },
+            "& > *": { flex: { xs: "1 1 auto", sm: "0 0 auto" } },
+          }}
         >
           {actions}
         </Stack>
@@ -139,5 +145,41 @@ export function StatCard({ label, value, icon, color = "primary", caption, chip 
         </Typography>
       )}
     </Paper>
+  );
+}
+
+// Rounded search box used in table toolbars
+export function SearchField({ value, onChange, placeholder = "Search...", sx }) {
+  return (
+    <TextField
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      sx={{ maxWidth: { sm: 340 }, ...sx }}
+      slotProps={{
+        input: {
+          sx: { borderRadius: 999 },
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search size={18} />
+            </InputAdornment>
+          ),
+        },
+        htmlInput: { "aria-label": placeholder },
+      }}
+    />
+  );
+}
+
+// Toolbar row above a table: search on the left, filters on the right
+export function TableToolbar({ children }) {
+  return (
+    <Stack
+      direction={{ xs: "column", md: "row" }}
+      spacing={1.5}
+      sx={{ alignItems: { md: "center" }, justifyContent: "space-between", flexWrap: "wrap", rowGap: 1.5 }}
+    >
+      {children}
+    </Stack>
   );
 }

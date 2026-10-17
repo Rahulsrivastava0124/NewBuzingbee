@@ -120,6 +120,18 @@ app.use((err, _req, res, _next) => {
   });
 });
 
+const assignUnownedInvoices = async () => {
+  const Admin = require("./models/Admin");
+  const Invoice = require("./models/Invoice");
+  const superAdmin = await Admin.findOne({ email: Admin.SUPER_EMAIL }, "_id");
+  if (!superAdmin) return;
+  const { modifiedCount } = await Invoice.updateMany(
+    { billedBy: { $exists: false } },
+    { $set: { billedBy: superAdmin._id } },
+  );
+  if (modifiedCount) console.log(`[invoices] Assigned ${modifiedCount} unowned invoice(s) to the super admin`);
+};
+
 let schedulerTimer = null;
 
 const server = app.listen(PORT, () => {
@@ -180,6 +192,11 @@ connectionPromise
 
     autoPublishScheduledBlogs().catch((error) => {
       console.error("Error auto-publishing scheduled blogs on startup:", error);
+    });
+
+    // Bills created before invoices had an owner belong to the super admin
+    assignUnownedInvoices().catch((error) => {
+      console.error("[invoices] Could not assign unowned invoices:", error.message);
     });
 
     schedulerTimer = setInterval(() => {

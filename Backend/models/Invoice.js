@@ -21,6 +21,8 @@ const invoiceSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // Who raised the bill; admin/team users only see their own
+    billedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", index: true },
     issueDate: { type: Date, default: Date.now },
     dueDate: { type: Date, required: true },
     items: {

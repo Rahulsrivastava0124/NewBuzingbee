@@ -204,7 +204,7 @@ export default function BlogForm() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1300 }} component="form" onSubmit={submit}>
+    <Box component="form" onSubmit={submit}>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}

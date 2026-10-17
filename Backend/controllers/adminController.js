@@ -1,9 +1,11 @@
 const crypto = require("crypto");
 const Admin = require("../models/Admin");
+const { ROLES, SUPER_EMAIL } = Admin;
 const { sendMail } = require("../services/mailService");
 const jwt = require("jsonwebtoken");
 const { getJwtSecret } = require("../config");
 const { logAuthEvent } = require("../middleware/auditLog");
+const { forgetAdmin } = require("../middleware/authMiddleware");
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "10d";
 
@@ -25,7 +27,18 @@ const generateToken = (admin) => {
 
 const adminRegister = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, role, showBills } = req.body;
+
+    // Only a super admin may create new users — except during bootstrap when
+    // no super exists yet (first install, or pre-role deployment), in which
+    // case any authenticated admin may register team@buzingbee.com and get
+    // the system going
+    if (req.admin?.role !== "super") {
+      const superExists = await Admin.exists({ role: "super" });
+      if (superExists) {
+        return res.status(403).json({ success: false, message: "Forbidden" });
+      }
+    }
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -60,10 +73,16 @@ const adminRegister = async (req, res) => {
       });
     }
 
+    // Only "admin" / "team" are assignable; the "super" role is reserved
+    // for the pinned SUPER_EMAIL and gets set by the model's pre-save hook
+    const assignedRole = role === "team" ? "team" : "admin";
+
     const admin = await Admin.create({
       username,
       email,
       password,
+      role: assignedRole,
+      showBills: showBills !== false,
     });
 
     return res.status(201).json({
@@ -73,6 +92,7 @@ const adminRegister = async (req, res) => {
         id: admin._id,
         username: admin.username,
         email: admin.email,
+        role: admin.role,
       },
     });
   } catch (error) {
@@ -138,12 +158,42 @@ const adminLogin = async (req, res) => {
       });
     }
 
+    // Bootstrap: ensure the designated super admin keeps that role even on an
+    // existing account that pre-dates the role column
+    if (admin.email === SUPER_EMAIL && admin.role !== "super") {
+      admin.role = "super";
+      await admin.save();
+    }
+
+    // Each role signs in on its own subdomain (super./admin./team.). The panel
+    // sends which one; an account may only sign in on its own role's portal.
+    const { portal } = req.body;
+    if (portal) {
+      if (!ROLES.includes(portal)) {
+        return res.status(400).json({ success: false, message: "Unknown sign-in portal" });
+      }
+      const role = admin.role || "admin";
+      if (role !== portal) {
+        logAuthEvent(req, {
+          action: "login_failed",
+          username: admin.username,
+          admin: admin._id,
+          success: false,
+        });
+        return res.status(403).json({
+          success: false,
+          message: `This account can't sign in here. Use the ${role} portal: ${portalUrl(role)}`,
+        });
+      }
+    }
+
     logAuthEvent(req, {
       action: "login",
       username: admin.username,
       admin: admin._id,
       success: true,
     });
+
     const { token, expiresAt } = generateToken(admin);
 
     return res.status(200).json({
@@ -155,6 +205,7 @@ const adminLogin = async (req, res) => {
         id: admin._id,
         username: admin.username,
         email: admin.email,
+        role: admin.role,
       },
     });
   } catch (error) {
@@ -190,9 +241,11 @@ const getAdminProfile = async (req, res) => {
 
 const updateAdminProfile = async (req, res) => {
   try {
-    const { username, email, currentPassword, newPassword, confirmPassword } =
+    const { username, email, currentPassword, newPassword, confirmPassword, otp } =
       req.body;
-    const admin = await Admin.findById(req.admin.id);
+    const admin = await Admin.findById(req.admin.id).select(
+      "+passwordOtp +passwordOtpExpires +passwordOtpAttempts",
+    );
 
     if (!admin) {
       return res.status(404).json({
@@ -291,7 +344,15 @@ const updateAdminProfile = async (req, res) => {
         });
       }
 
+      const otpError = await checkPasswordOtp(admin, otp);
+      if (otpError) {
+        return res.status(otpError.status).json({ success: false, message: otpError.message });
+      }
+
       admin.password = newPassword;
+      admin.passwordOtp = undefined;
+      admin.passwordOtpExpires = undefined;
+      admin.passwordOtpAttempts = 0;
       passwordChanged = true;
     }
 
@@ -328,13 +389,103 @@ const updateAdminProfile = async (req, res) => {
   }
 };
 
-// Team members that a client can be assigned to ("managed by")
+// Team members (used by the "managed by" dropdown AND the user-management page)
 const listAdmins = async (_req, res) => {
   try {
-    const admins = await Admin.find({}, "username email").sort({ username: 1 });
+    const admins = await Admin.find({}, "username email role showBills createdAt").sort({
+      role: 1,
+      username: 1,
+    });
     return res.json({ success: true, admins });
   } catch (_error) {
     return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Super admin edits another user's role and/or bill access
+const updateAdminRole = async (req, res) => {
+  try {
+    const { role, showBills } = req.body || {};
+    if (role !== undefined && (!ROLES.includes(role) || role === "super")) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Role must be 'admin' or 'team'" });
+    }
+    if (showBills !== undefined && typeof showBills !== "boolean") {
+      return res.status(400).json({ success: false, message: "showBills must be true or false" });
+    }
+    if (role === undefined && showBills === undefined) {
+      return res.status(400).json({ success: false, message: "No changes submitted" });
+    }
+
+    const admin = await Admin.findById(req.params.id);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    if (admin.email === SUPER_EMAIL) {
+      return res
+        .status(400)
+        .json({ success: false, message: "The super admin's access is pinned" });
+    }
+
+    if (role !== undefined) admin.role = role;
+    if (showBills !== undefined) admin.showBills = showBills;
+    await admin.save();
+    forgetAdmin(admin._id);
+    return res.json({
+      success: true,
+      message: "User updated",
+      admin: {
+        id: admin._id,
+        username: admin.username,
+        email: admin.email,
+        role: admin.role,
+        showBills: admin.showBills,
+      },
+    });
+  } catch (_error) {
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const deleteAdmin = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.params.id);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    if (admin.email === SUPER_EMAIL) {
+      return res
+        .status(400)
+        .json({ success: false, message: "The super admin cannot be deleted" });
+    }
+    if (String(admin._id) === String(req.admin.id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "You cannot delete yourself" });
+    }
+
+    await admin.deleteOne();
+    forgetAdmin(admin._id);
+    return res.json({ success: true, message: "User removed" });
+  } catch (_error) {
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Panel URL for a role: ADMIN_PANEL_URL with its "admin." label swapped for
+// the role, e.g. https://admin.buzingbee.com -> https://team.buzingbee.com.
+// Emails always link to the live domain unless ADMIN_PANEL_URL overrides it
+// (set it to http://localhost:5173 to get local links while developing).
+const DEFAULT_PANEL_URL = "https://admin.buzingbee.com";
+const portalUrl = (role) => {
+  const base = (process.env.ADMIN_PANEL_URL || DEFAULT_PANEL_URL).replace(/\/+$/, "");
+  try {
+    const url = new URL(base);
+    if (url.hostname.startsWith("admin.")) url.hostname = `${role}.${url.hostname.slice(6)}`;
+    return url.origin;
+  } catch {
+    return base;
   }
 };
 
@@ -383,6 +534,85 @@ const buildResetEmail = (admin, link) => {
   };
 };
 
+// ── Password-change OTP (Settings → Change password) ─────────────────────
+
+const PASSWORD_OTP_TTL_MS = 10 * 60 * 1000;
+const PASSWORD_OTP_MAX_ATTEMPTS = 5;
+
+const maskEmail = (email) => {
+  const [user, domain] = String(email).split("@");
+  return `${user.slice(0, 1)}${"*".repeat(Math.max(user.length - 1, 2))}@${domain}`;
+};
+
+// Returns null when the code is right, else { status, message }
+const checkPasswordOtp = async (admin, otp) => {
+  const code = String(otp || "").trim();
+  if (!code) {
+    return { status: 400, message: "Enter the verification code sent to your email" };
+  }
+  if (!admin.passwordOtp || !admin.passwordOtpExpires || admin.passwordOtpExpires < new Date()) {
+    return { status: 400, message: "Verification code expired. Request a new one." };
+  }
+  if ((admin.passwordOtpAttempts || 0) >= PASSWORD_OTP_MAX_ATTEMPTS) {
+    return { status: 429, message: "Too many wrong codes. Request a new one." };
+  }
+  const expected = Buffer.from(admin.passwordOtp, "hex");
+  const given = Buffer.from(hashToken(code), "hex");
+  if (expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) {
+    // updateOne so a failed attempt never saves other pending profile edits
+    await Admin.updateOne({ _id: admin._id }, { $inc: { passwordOtpAttempts: 1 } });
+    return { status: 400, message: "Incorrect verification code" };
+  }
+  return null;
+};
+
+const sendPasswordOtp = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+    admin.passwordOtp = hashToken(code);
+    admin.passwordOtpExpires = new Date(Date.now() + PASSWORD_OTP_TTL_MS);
+    admin.passwordOtpAttempts = 0;
+    await admin.save();
+
+    const name = escapeHtml(admin.username);
+    await sendMail({
+      to: admin.email,
+      subject: `${code} is your BuzingBee verification code`,
+      text: [
+        `Hi ${admin.username},`,
+        "",
+        `Your code to change your BuzingBee admin password is: ${code}`,
+        "It expires in 10 minutes.",
+        "",
+        "If you did not ask to change your password, ignore this email and consider changing it.",
+      ].join("\n"),
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#09090b">
+          <h2 style="margin:0 0 12px">Confirm your password change</h2>
+          <p>Hi ${name},</p>
+          <p>Use this code to change your BuzingBee admin password. It expires in 10 minutes.</p>
+          <p style="font-size:32px;font-weight:bold;letter-spacing:8px;margin:24px 0">${code}</p>
+          <p style="color:#71717a;font-size:13px">If you did not ask to change your password, ignore this email.</p>
+        </div>`,
+    });
+
+    return res.json({
+      success: true,
+      message: `Verification code sent to ${maskEmail(admin.email)}`,
+    });
+  } catch (error) {
+    console.error("[password-otp]", error.message);
+    return res
+      .status(502)
+      .json({ success: false, message: "Could not send the verification email. Try again." });
+  }
+};
+
 // Always answers the same way so the endpoint cannot be used to discover
 // which usernames or emails belong to admins.
 const GENERIC_FORGOT_RESPONSE = {
@@ -413,10 +643,7 @@ const forgotPassword = async (req, res) => {
       admin.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
       await admin.save();
 
-      const base = (
-        process.env.ADMIN_PANEL_URL || "http://localhost:5173"
-      ).replace(/\/+$/, "");
-      const link = `${base}/reset-password?token=${token}`;
+      const link = `${portalUrl(admin.role || "admin")}/reset-password?token=${token}`;
 
       // Not awaited: response time must not reveal whether the account exists
       sendMail({ to: admin.email, ...buildResetEmail(admin, link) }).catch(
@@ -484,4 +711,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   listAdmins,
+  updateAdminRole,
+  deleteAdmin,
+  sendPasswordOtp,
 };

@@ -7,16 +7,9 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Drawer from "@mui/material/Drawer";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
 import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
@@ -24,8 +17,9 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { enquiryAPI } from "../services/api";
 import { useFeedback } from "../components/Feedback";
-import { EmptyState, LoadingState, PageHeader } from "../components/common";
-import { Eye, MessagesSquare, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { LoadingState, PageHeader, SearchField, TableToolbar } from "../components/common";
+import DataTable from "../components/DataTable";
+import { MessagesSquare, RefreshCw, Search, Trash2, X } from "lucide-react";
 
 const STATUS_COLORS = {
   new: "success",
@@ -78,7 +72,7 @@ function Field({ label, children }) {
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}
+        sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}
       >
         {label}
       </Typography>
@@ -193,7 +187,7 @@ export default function Enquiries() {
   const newCount = enquiries.filter((e) => e.status === "new").length;
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="Enquiries"
         subtitle={`${total} total · ${newCount} new`}
@@ -214,100 +208,79 @@ export default function Enquiries() {
         </Alert>
       )}
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
-        <TextField
-          placeholder="Search by name, email or service..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ maxWidth: { md: 420 } }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={18} />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          color="primary"
-          value={filterStatus}
-          onChange={(_, v) => v && setFilterStatus(v)}
-          sx={{ flexWrap: "wrap" }}
-        >
-          {["all", "new", "read", "replied", "archived"].map((s) => (
-            <ToggleButton key={s} value={s} sx={{ px: 2 }}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      </Stack>
-
-      {enquiries.length === 0 ? (
-        <EmptyState icon={<MessagesSquare size={48} />}>
-          No enquiries found.
-        </EmptyState>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Service</TableCell>
-                <TableCell>Budget</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {enquiries.map((enq) => (
-                <TableRow
-                  key={enq._id}
-                  hover
-                  sx={enq.status === "new" ? { bgcolor: "action.hover" } : undefined}
-                >
-                  <TableCell sx={{ fontWeight: enq.status === "new" ? 700 : 500 }}>
-                    {enq.name}
-                  </TableCell>
-                  <TableCell>{enq.email}</TableCell>
-                  <TableCell>{SERVICE_LABELS[enq.service] || enq.service || "—"}</TableCell>
-                  <TableCell>{BUDGET_LABELS[enq.budget] || enq.budget || "—"}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={STATUS_LABELS[enq.status] || enq.status}
-                      color={STATUS_COLORS[enq.status] || "default"}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(enq.createdAt)}</TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="View">
-                      <IconButton size="small" aria-label="View" onClick={() => handleOpen(enq)}>
-                        <Eye size={18} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        aria-label="Delete"
-                        onClick={() => handleDelete(enq._id)}
-                      >
-                        <Trash2 size={18} />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
+      <DataTable
+        rows={enquiries}
+        minWidth={860}
+        onRowClick={handleOpen}
+        empty={{ icon: <MessagesSquare />, title: "No enquiries", text: "No enquiries match these filters." }}
+        toolbar={
+          <TableToolbar>
+            <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="Search name, email or service..." />
+            <ToggleButtonGroup exclusive size="small" value={filterStatus} onChange={(_, v) => v && setFilterStatus(v)}>
+              {["all", "new", "read", "replied", "archived"].map((s) => (
+                <ToggleButton key={s} value={s}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </ToggleButton>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            </ToggleButtonGroup>
+          </TableToolbar>
+        }
+        columns={[
+          {
+            key: "name",
+            label: "Name",
+            mobile: "title",
+            value: (enq) => enq.name,
+            render: (enq) => (
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                {enq.status === "new" && (
+                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "primary.main", flexShrink: 0 }} />
+                )}
+                <Typography sx={{ fontWeight: enq.status === "new" ? 700 : 500 }}>{enq.name}</Typography>
+              </Stack>
+            ),
+          },
+          { key: "email", label: "Email", mobile: "subtitle", value: (enq) => enq.email },
+          {
+            key: "service",
+            label: "Service",
+            value: (enq) => SERVICE_LABELS[enq.service] || enq.service || "",
+            render: (enq) => SERVICE_LABELS[enq.service] || enq.service || "—",
+          },
+          {
+            key: "budget",
+            label: "Budget",
+            value: (enq) => BUDGET_LABELS[enq.budget] || enq.budget || "",
+            render: (enq) => BUDGET_LABELS[enq.budget] || enq.budget || "—",
+          },
+          {
+            key: "status",
+            label: "Status",
+            value: (enq) => enq.status,
+            render: (enq) => (
+              <Chip size="small" label={STATUS_LABELS[enq.status] || enq.status} color={STATUS_COLORS[enq.status] || "default"} />
+            ),
+          },
+          {
+            key: "createdAt",
+            label: "Date",
+            value: (enq) => new Date(enq.createdAt).getTime(),
+            render: (enq) => formatDate(enq.createdAt),
+          },
+        ]}
+        actions={(enq) => (
+          <>
+            <Button size="small" variant="outlined" onClick={() => handleOpen(enq)}>
+              View
+            </Button>
+            <Tooltip title="Delete enquiry">
+              <IconButton size="small" color="error" aria-label={`Delete enquiry from ${enq.name}`} onClick={() => handleDelete(enq._id)}>
+                <Trash2 />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
+      />
 
       <Drawer
         anchor="right"
@@ -341,7 +314,7 @@ export default function Enquiries() {
             ) : (
               <Stack spacing={3} sx={{ p: 3, overflowY: "auto" }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
                     Status
                   </Typography>
                   <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, mt: 0.5 }}>
@@ -403,7 +376,7 @@ export default function Enquiries() {
                 </Paper>
 
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
                     Message
                   </Typography>
                   <Paper sx={{ p: 2, mt: 0.5, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>

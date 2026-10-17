@@ -1,5 +1,21 @@
 const normalizeApiBaseUrl = (value) => value?.replace(/\/$/, "");
 
+// Each role has its own sign-in subdomain: super. / admin. / team.
+// (buzingbee.com in production, *.localhost in development). On any other
+// host (e.g. plain localhost) there is no portal and every role may sign in.
+const PORTAL_ROLES = ["super", "admin", "team"];
+const hostLabel = typeof window !== "undefined" ? window.location.hostname.split(".")[0] : "";
+export const PORTAL = PORTAL_ROLES.includes(hostLabel) ? hostLabel : null;
+export const PORTAL_LABELS = { super: "Super admin", admin: "Admin", team: "Team" };
+
+// Where a role signs in, on the current domain: team -> team.buzingbee.com
+export const portalHost = (role) => {
+  if (typeof window === "undefined") return "";
+  const { hostname, port } = window.location;
+  const domain = PORTAL ? hostname.split(".").slice(1).join(".") : "buzingbee.com";
+  return `${role}.${domain}${PORTAL && port ? `:${port}` : ""}`;
+};
+
 const resolveApiBaseUrl = () => {
   const envApiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
@@ -10,7 +26,7 @@ const resolveApiBaseUrl = () => {
   if (typeof window !== "undefined") {
     const { hostname } = window.location;
 
-    if (hostname === "admin.buzingbee.com") {
+    if (/^(super|admin|team)\.buzingbee\.com$/.test(hostname)) {
       return "https://api.buzingbee.com/api";
     }
 
@@ -107,6 +123,8 @@ const handleResponse = async (response) => {
     localStorage.getItem(AUTH_TOKEN_KEY)
   ) {
     clearStoredAuth();
+    // The login page shows this as a toast after the reload
+    sessionStorage.setItem("sessionExpired", "1");
     window.location.assign("/login");
     throw new Error("Your session has expired. Please sign in again.");
   }
@@ -129,7 +147,7 @@ export const adminAPI = {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(credentials),
+      body: JSON.stringify({ ...credentials, ...(PORTAL && { portal: PORTAL }) }),
     });
     return handleResponse(response);
   },
@@ -191,6 +209,49 @@ export const adminAPI = {
         Authorization: `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  // Emails a 6-digit code that must accompany a password change
+  sendPasswordOtp: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/profile/password-otp`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+    });
+    return handleResponse(response);
+  },
+
+  // User management (super admin only on the server)
+  createUser: async (payload) => {
+    const response = await fetch(`${API_BASE_URL}/admin/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  // changes: { role?, showBills? }
+  updateUser: async (id, changes) => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify(changes),
+    });
+    return handleResponse(response);
+  },
+
+  deleteUser: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
     });
     return handleResponse(response);
   },
@@ -524,6 +585,7 @@ const settingsRequest = async (path, { method = "GET", body } = {}) => {
 
 export const settingsAPI = {
   get: () => settingsRequest(""),
+  getBrand: async () => handleResponse(await fetch(`${API_BASE_URL}/settings/brand`)),
   saveCompany: (body) => settingsRequest("/company", { method: "PUT", body }),
   saveSmtp: (body) => settingsRequest("/smtp", { method: "PUT", body }),
   uploadLogo: async (file) => {
@@ -588,7 +650,6 @@ export const financeAPI = {
   },
 
   payments: {
-    getAll: (params) => financeRequest("/payments", { params }),
     delete: (id) => financeRequest(`/payments/${id}`, { method: "DELETE" }),
   },
 
@@ -598,6 +659,17 @@ export const financeAPI = {
     update: (id, body) =>
       financeRequest(`/expenses/${id}`, { method: "PUT", body }),
     delete: (id) => financeRequest(`/expenses/${id}`, { method: "DELETE" }),
+  },
+
+  loans: {
+    getAll: (params) => financeRequest("/loans", { params }),
+    create: (body) => financeRequest("/loans", { method: "POST", body }),
+    update: (id, body) => financeRequest(`/loans/${id}`, { method: "PUT", body }),
+    delete: (id) => financeRequest(`/loans/${id}`, { method: "DELETE" }),
+    addRepayment: (id, body) =>
+      financeRequest(`/loans/${id}/repayments`, { method: "POST", body }),
+    deleteRepayment: (id, repaymentId) =>
+      financeRequest(`/loans/${id}/repayments/${repaymentId}`, { method: "DELETE" }),
   },
 
   wallet: {

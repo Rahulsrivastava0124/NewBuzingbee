@@ -207,7 +207,7 @@ export default function CaseStudyForm() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1300 }} component="form" onSubmit={handleSubmit}>
+    <Box component="form" onSubmit={handleSubmit}>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}

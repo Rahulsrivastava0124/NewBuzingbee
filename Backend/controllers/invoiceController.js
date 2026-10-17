@@ -3,6 +3,7 @@ const Client = require("../models/Client");
 const Payment = require("../models/Payment");
 const LedgerEntry = require("../models/LedgerEntry");
 const { nextSequence } = require("../models/Counter");
+const { invoiceScope, isScoped, clientScope } = require("../utils/billingScope");
 const { errorDetail } = require("../utils/errors");
 
 const fail = (res, message, error, code = 500) =>
@@ -62,7 +63,7 @@ const withLiveStatus = (invoice) => {
 const getInvoices = async (req, res) => {
   try {
     const { status, client, search, page = 1, limit = 50 } = req.query;
-    const query = {};
+    const query = { ...(await invoiceScope(req)) };
     const now = new Date();
     if (client) query.client = client;
     if (status && status !== "all") {
@@ -86,6 +87,7 @@ const getInvoices = async (req, res) => {
     const [invoices, total] = await Promise.all([
       Invoice.find(query)
         .populate("client", "name company email")
+        .populate("billedBy", "username email")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Number(limit)),
@@ -104,7 +106,9 @@ const getInvoices = async (req, res) => {
 
 const getInvoiceById = async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id).populate("client");
+    const invoice = await Invoice.findOne({ _id: req.params.id, ...(await invoiceScope(req)) })
+      .populate("client")
+      .populate("billedBy", "username email");
     if (!invoice) return notFound(res);
     const payments = await Payment.find({ invoice: invoice._id }).sort({
       paidAt: -1,
@@ -125,7 +129,7 @@ const createInvoice = async (req, res) => {
       req.body;
     const items = sanitizeItems(req.body.items);
 
-    if (!client || !(await Client.exists({ _id: client }))) {
+    if (!client || !(await Client.exists({ _id: client, ...clientScope(req) }))) {
       return bad(res, "Valid client is required");
     }
     if (!dueDate) return bad(res, "Due date is required");
@@ -150,6 +154,7 @@ const createInvoice = async (req, res) => {
     const invoice = await Invoice.create({
       number: formatNumber(seq, issued),
       client,
+      billedBy: req.admin.id,
       issueDate: issued,
       dueDate,
       items,
@@ -168,7 +173,7 @@ const createInvoice = async (req, res) => {
 
 const updateInvoice = async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id);
+    const invoice = await Invoice.findOne({ _id: req.params.id, ...(await invoiceScope(req)) });
     if (!invoice) return notFound(res);
 
     const { client, issueDate, dueDate, taxRate, discount, notes, terms } =
@@ -176,7 +181,7 @@ const updateInvoice = async (req, res) => {
 
     let clientChanged = false;
     if (client !== undefined && String(client) !== String(invoice.client)) {
-      if (!(await Client.exists({ _id: client }))) {
+      if (!(await Client.exists({ _id: client, ...clientScope(req) }))) {
         return bad(res, "Valid client is required");
       }
       invoice.client = client;
@@ -230,7 +235,7 @@ const updateInvoice = async (req, res) => {
 
 const deleteInvoice = async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id);
+    const invoice = await Invoice.findOne({ _id: req.params.id, ...(await invoiceScope(req)) });
     if (!invoice) return notFound(res);
 
     const payments = await Payment.find({ invoice: invoice._id }, "_id");
@@ -249,10 +254,10 @@ const deleteInvoice = async (req, res) => {
 
 const addPayment = async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id).populate(
-      "client",
-      "name",
-    );
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      ...(await invoiceScope(req)),
+    }).populate("client", "name");
     if (!invoice) return notFound(res);
     if (invoice.status === "cancelled") return bad(res, "Invoice is cancelled");
 
@@ -301,6 +306,10 @@ const getPayments = async (req, res) => {
       if (from) query.paidAt.$gte = new Date(from);
       if (to) query.paidAt.$lte = new Date(`${to}T23:59:59.999Z`);
     }
+    const scope = await invoiceScope(req);
+    if (isScoped(scope)) {
+      query.$and = [{ invoice: { $in: await Invoice.distinct("_id", scope) } }];
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
     const [payments, total, sum] = await Promise.all([
@@ -330,8 +339,12 @@ const getPayments = async (req, res) => {
 
 const deletePayment = async (req, res) => {
   try {
-    const payment = await Payment.findByIdAndDelete(req.params.id);
+    const payment = await Payment.findById(req.params.id);
     if (!payment) return notFound(res, "Payment");
+    if (!(await Invoice.exists({ _id: payment.invoice, ...(await invoiceScope(req)) }))) {
+      return notFound(res, "Payment");
+    }
+    await payment.deleteOne();
     await LedgerEntry.deleteMany({ refType: "payment", refId: payment._id });
     const invoice = await recalculateInvoice(payment.invoice);
     return res.json({ success: true, message: "Payment removed", invoice });
@@ -349,6 +362,7 @@ const getNotifications = async (req, res) => {
     const horizon = new Date(now.getTime() + days * DAY);
 
     const invoices = await Invoice.find({
+      ...(await invoiceScope(req)),
       status: { $nin: ["draft", "cancelled"] },
       $expr: { $gt: ["$total", "$amountPaid"] },
       dueDate: { $lte: horizon },

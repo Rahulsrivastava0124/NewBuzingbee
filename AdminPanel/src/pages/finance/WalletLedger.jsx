@@ -8,19 +8,15 @@ import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { financeAPI } from "../../services/api";
 import { useFeedback } from "../../components/Feedback";
-import { EmptyState, LoadingState, PageHeader } from "../../components/common";
+import { LoadingState, PageHeader, TableToolbar } from "../../components/common";
+import DataTable from "../../components/DataTable";
 import { Modal, StatusBadge } from "./shared";
 import { dateToApi, fmtDate, money, titleCase, toInputDate } from "./format";
 import { BookOpen, Plus, Printer, Trash2 } from "lucide-react";
@@ -30,6 +26,8 @@ const SOURCES = [
   ["payment", "Invoice payments"],
   ["expense", "Expenses"],
   ["manual", "Manual"],
+  ["loan", "Loans"],
+  ["loan-repayment", "Loan repayments"],
 ];
 
 const blank = () => ({
@@ -46,7 +44,7 @@ function Stat({ label, value, color }) {
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}
+        sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}
       >
         {label}
       </Typography>
@@ -127,7 +125,7 @@ export default function WalletLedger() {
   if (!data) return <Alert severity="error">{error}</Alert>;
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="Wallet & Ledger"
         subtitle="Every payment received and expense paid, with running balance"
@@ -175,110 +173,97 @@ export default function WalletLedger() {
         </Grid>
       </Grid>
 
-      <Stack
-        className="no-print"
-        direction={{ xs: "column", lg: "row" }}
-        spacing={2}
-        sx={{ mb: 3 }}
-      >
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          color="primary"
-          value={type}
-          onChange={(_, v) => v && setType(v)}
-        >
-          {["all", "credit", "debit"].map((t) => (
-            <ToggleButton key={t} value={t} sx={{ px: 2 }}>
-              {titleCase(t)}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-        <TextField
-          select
-          value={refType}
-          onChange={(e) => setRefType(e.target.value)}
-          sx={{ maxWidth: { lg: 220 } }}
-        >
-          {SOURCES.map(([v, l]) => (
-            <MenuItem key={v} value={v}>
-              {l}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          type="date"
-          label="From"
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ maxWidth: { lg: 180 } }}
-        />
-        <TextField
-          type="date"
-          label="To"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ maxWidth: { lg: 180 } }}
-        />
-      </Stack>
-
-      {data.entries.length === 0 ? (
-        <EmptyState icon={<BookOpen size={48} />}>
-          No ledger entries.
-        </EmptyState>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 760 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell align="right">Amount</TableCell>
-                <TableCell align="right">Balance</TableCell>
-                <TableCell className="no-print" />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {data.entries.map((e) => (
-                <TableRow key={e._id} hover>
-                  <TableCell>{fmtDate(e.date)}</TableCell>
-                  <TableCell>{e.description}</TableCell>
-                  <TableCell>{titleCase(e.category)}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={e.type} />
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{
-                      fontWeight: 700,
-                      color: e.type === "credit" ? "success.main" : "error.main",
-                    }}
-                  >
-                    {e.type === "credit" ? "+" : "−"} {money(e.amount)}
-                  </TableCell>
-                  <TableCell align="right">{money(e.balanceAfter)}</TableCell>
-                  <TableCell align="right" className="no-print">
-                    {e.refType === "manual" && (
-                      <IconButton
-                        size="small"
-                        color="error"
-                        aria-label="Delete entry"
-                        onClick={() => remove(e)}
-                      >
-                        <Trash2 size={18} />
-                      </IconButton>
-                    )}
-                  </TableCell>
-                </TableRow>
+      <DataTable
+        columns={[
+          {
+            key: "date",
+            label: "Date",
+            value: (e) => new Date(e.date).getTime(),
+            render: (e) => fmtDate(e.date),
+          },
+          { key: "description", label: "Description", mobile: "title", value: (e) => e.description },
+          {
+            key: "category",
+            label: "Category",
+            mobile: "subtitle",
+            value: (e) => titleCase(e.category),
+          },
+          { key: "type", label: "Type", value: (e) => e.type, render: (e) => <StatusBadge status={e.type} /> },
+          {
+            key: "amount",
+            label: "Amount",
+            align: "right",
+            value: (e) => (e.type === "credit" ? e.amount : -e.amount),
+            render: (e) => (
+              <Box component="span" sx={{ fontWeight: 600, color: e.type === "credit" ? "success.main" : "error.main" }}>
+                {e.type === "credit" ? "+" : "−"} {money(e.amount)}
+              </Box>
+            ),
+          },
+          {
+            key: "balanceAfter",
+            label: "Balance",
+            align: "right",
+            value: (e) => e.balanceAfter,
+            render: (e) => money(e.balanceAfter),
+          },
+        ]}
+        rows={data.entries}
+        minWidth={820}
+        pageSize={50}
+        empty={{ icon: <BookOpen />, title: "No entries", text: "No ledger entries match these filters." }}
+        toolbar={
+          <TableToolbar>
+            <ToggleButtonGroup exclusive size="small" value={type} onChange={(_, v) => v && setType(v)}>
+              {["all", "credit", "debit"].map((t) => (
+                <ToggleButton key={t} value={t}>
+                  {titleCase(t)}
+                </ToggleButton>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            </ToggleButtonGroup>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+              <TextField
+                select
+                label="Source"
+                value={refType}
+                onChange={(e) => setRefType(e.target.value)}
+                sx={{ minWidth: 190 }}
+              >
+                {SOURCES.map(([v, l]) => (
+                  <MenuItem key={v} value={v}>
+                    {l}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                type="date"
+                label="From"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ minWidth: 160 }}
+              />
+              <TextField
+                type="date"
+                label="To"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ minWidth: 160 }}
+              />
+            </Stack>
+          </TableToolbar>
+        }
+        actions={(e) =>
+          e.refType === "manual" ? (
+            <Tooltip title="Delete manual entry">
+              <IconButton size="small" color="error" aria-label="Delete entry" onClick={() => remove(e)}>
+                <Trash2 />
+              </IconButton>
+            </Tooltip>
+          ) : null
+        }
+      />
 
       {editing && (
         <Modal title="Manual ledger entry" onClose={() => setEditing(null)}>

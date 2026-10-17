@@ -2,6 +2,7 @@ const LedgerEntry = require("../models/LedgerEntry");
 const Invoice = require("../models/Invoice");
 const Expense = require("../models/Expense");
 const Payment = require("../models/Payment");
+const { invoiceScope, isScoped, ledgerScope } = require("../utils/billingScope");
 const { errorDetail } = require("../utils/errors");
 
 const fail = (res, message, error, code = 500) =>
@@ -32,9 +33,10 @@ const getLedger = async (req, res) => {
       if (to) filter.date.$lte = new Date(`${to}T23:59:59.999Z`);
     }
 
-    // Running balance is always computed over the full ledger so filtered
-    // views still show the true wallet balance after each entry.
-    const all = await LedgerEntry.find({})
+    // Running balance is always computed over every entry the viewer may see,
+    // so filtered views still show the true wallet balance after each entry.
+    const scope = await ledgerScope(req);
+    const all = await LedgerEntry.find(scope)
       .sort({ date: 1, _id: 1 })
       .lean();
     let running = 0;
@@ -46,7 +48,7 @@ const getLedger = async (req, res) => {
 
     const matchIds = filter && Object.keys(filter).length
       ? new Set(
-          (await LedgerEntry.find(filter, "_id").lean()).map((e) =>
+          (await LedgerEntry.find({ ...filter, ...scope }, "_id").lean()).map((e) =>
             String(e._id),
           ),
         )
@@ -58,7 +60,7 @@ const getLedger = async (req, res) => {
       .reverse()
       .slice(0, 500);
 
-    const totals = await sumByType();
+    const totals = await sumByType(scope);
     return res.json({
       success: true,
       balance: round2(totals.credit - totals.debit),
@@ -127,12 +129,16 @@ const getFinanceSummary = async (req, res) => {
   try {
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    // Invoice figures follow the viewer's bills (super admin: everyone's)
+    const scope = await invoiceScope(req);
+    const paymentMatch = { paidAt: { $gte: sixMonthsAgo } };
+    if (isScoped(scope)) paymentMatch.invoice = { $in: await Invoice.distinct("_id", scope) };
 
     const [wallet, invoiceAgg, expenseAgg, paymentSeries, expenseSeries] =
       await Promise.all([
-        sumByType(),
+        sumByType(await ledgerScope(req)),
         Invoice.aggregate([
-          { $match: { status: { $nin: ["draft", "cancelled"] } } },
+          { $match: { ...scope, status: { $nin: ["draft", "cancelled"] } } },
           {
             $group: {
               _id: null,
@@ -146,7 +152,7 @@ const getFinanceSummary = async (req, res) => {
           { $group: { _id: null, amount: { $sum: "$amount" } } },
         ]),
         Payment.aggregate([
-          { $match: { paidAt: { $gte: sixMonthsAgo } } },
+          { $match: paymentMatch },
           {
             $group: {
               _id: { y: { $year: "$paidAt" }, m: { $month: "$paidAt" } },
@@ -168,6 +174,7 @@ const getFinanceSummary = async (req, res) => {
     const overdue = await Invoice.aggregate([
       {
         $match: {
+          ...scope,
           status: { $in: ["sent", "partial", "overdue"] },
           dueDate: { $lt: now },
         },
@@ -182,6 +189,7 @@ const getFinanceSummary = async (req, res) => {
     ]);
 
     const nextDueDoc = await Invoice.findOne({
+      ...scope,
       status: { $nin: ["draft", "cancelled"] },
       $expr: { $gt: ["$total", "$amountPaid"] },
     })

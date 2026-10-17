@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import AppBar from "@mui/material/AppBar";
 import Avatar from "@mui/material/Avatar";
-import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
+import ButtonBase from "@mui/material/ButtonBase";
+import MuiMenu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
@@ -19,7 +21,6 @@ import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Toolbar from "@mui/material/Toolbar";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
@@ -29,12 +30,17 @@ import {
   blogAPI,
   caseStudyAPI,
   enquiryAPI,
+  PORTAL,
+  portalHost,
 } from "../services/api";
-import { BookOpen, ChevronDown, Briefcase, Clock, Contact, CreditCard, FileText, HandCoins, Inbox, LayoutDashboard, LogOut, Menu, PenLine, ReceiptText, Search, Settings, TrendingUp, Users, Wallet } from "lucide-react";
+import { BookOpen, HandCoins, Wallet, ChevronDown, Briefcase, Clock, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, PenLine, ReceiptText, Search, Settings, ShieldCheck, TrendingUp, UserRound } from "lucide-react";
 import BrandMark from "../components/Brand";
+import { useFeedback } from "../components/Feedback";
 import NotificationBell from "../components/NotificationBell";
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = 280;
+const TOPBAR_HEIGHT = 64;
+const SIDEBAR_BG = "background.paper";
 const SIDEBAR_KEY = "adminSidebarSections";
 
 const printStyles = {
@@ -52,6 +58,7 @@ const printStyles = {
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { notify } = useFeedback();
   const location = useLocation();
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
@@ -60,6 +67,8 @@ function Dashboard() {
   const [csCount, setCsCount] = useState(0);
   const [newEnqCount, setNewEnqCount] = useState(0);
   const [admin, setAdmin] = useState(null);
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const initial = (admin?.username || "A").charAt(0).toUpperCase();
   const [search, setSearch] = useState("");
   const [openSections, setOpenSections] = useState(() => {
     try {
@@ -104,8 +113,21 @@ function Dashboard() {
   useEffect(() => {
     adminAPI
       .getProfile()
-      .then((res) => setAdmin(res?.admin || null))
+      .then((res) => {
+        const profile = res?.admin || null;
+        // A session from another role's portal (or after a role change) is signed out
+        if (profile && PORTAL && (profile.role || "admin") !== PORTAL) {
+          const role = profile.role || "admin";
+          authHelper.removeToken();
+          // Shown on the login page so the person knows where to sign in instead
+          sessionStorage.setItem("portalNotice", JSON.stringify({ role, host: portalHost(role) }));
+          navigate("/login", { replace: true });
+          return;
+        }
+        setAdmin(profile);
+      })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleSection = (label) =>
@@ -121,6 +143,7 @@ function Dashboard() {
 
   const handleLogout = () => {
     authHelper.removeToken();
+    notify("You've been signed out", "info");
     navigate("/login");
   };
 
@@ -134,6 +157,9 @@ function Dashboard() {
     const q = search.trim();
     navigate(`/dashboard/blogs${q ? `?search=${encodeURIComponent(q)}` : ""}`);
   };
+
+  // Wait for the profile so the Finance group doesn't flash for users without access
+  const canSeeBills = Boolean(admin) && (admin.role === "super" || admin.showBills !== false);
 
   const sections = [
     {
@@ -181,15 +207,11 @@ function Dashboard() {
         },
       ],
     },
+    ...(canSeeBills
+      ? [
     {
       label: "Finance",
       items: [
-        {
-          to: "/dashboard/finance",
-          label: "Overview",
-          icon: <HandCoins />,
-          selected: path === "/dashboard/finance",
-        },
         {
           to: "/dashboard/finance/clients",
           label: "Clients",
@@ -203,10 +225,10 @@ function Dashboard() {
           selected: path.startsWith("/dashboard/finance/invoices"),
         },
         {
-          to: "/dashboard/finance/payments",
-          label: "Payments",
-          icon: <CreditCard />,
-          selected: path.startsWith("/dashboard/finance/payments"),
+          to: "/dashboard/finance/wallet",
+          label: "Wallet & Ledger",
+          icon: <BookOpen />,
+          selected: path.startsWith("/dashboard/finance/wallet"),
         },
         {
           to: "/dashboard/finance/expenses",
@@ -215,13 +237,15 @@ function Dashboard() {
           selected: path.startsWith("/dashboard/finance/expenses"),
         },
         {
-          to: "/dashboard/finance/wallet",
-          label: "Wallet & Ledger",
-          icon: <BookOpen />,
-          selected: path.startsWith("/dashboard/finance/wallet"),
+          to: "/dashboard/finance/loans",
+          label: "Loans",
+          icon: <HandCoins />,
+          selected: path.startsWith("/dashboard/finance/loans"),
         },
       ],
     },
+        ]
+      : []),
     {
       label: "Manage",
       items: [
@@ -239,12 +263,16 @@ function Dashboard() {
           icon: <TrendingUp />,
           selected: path.startsWith("/dashboard/traffic"),
         },
-        {
-          to: "/dashboard/audience",
-          label: "Audience",
-          icon: <Users />,
-          selected: path.startsWith("/dashboard/audience"),
-        },
+        ...(admin?.role === "super"
+          ? [
+              {
+                to: "/dashboard/users",
+                label: "Users",
+                icon: <ShieldCheck />,
+                selected: path.startsWith("/dashboard/users"),
+              },
+            ]
+          : []),
         {
           to: "/dashboard/settings",
           label: "Settings",
@@ -285,15 +313,15 @@ function Dashboard() {
       const subs = {
         clients: "Clients",
         invoices: "Invoices",
-        payments: "Payments",
-        expenses: "Expenses",
         wallet: "Wallet & Ledger",
+        expenses: "Expenses",
+        loans: "Loans",
       };
-      return ["Finance", subs[path.split("/")[3]] || "Overview"];
+      return ["Finance", subs[path.split("/")[3]] || "Finance"];
     }
     if (path.startsWith("/dashboard/enquiries")) return ["Manage", "Enquiries"];
     if (path.startsWith("/dashboard/traffic")) return ["Analytics", "Traffic & Leads"];
-    if (path.startsWith("/dashboard/audience")) return ["Manage", "Audience"];
+    if (path.startsWith("/dashboard/users")) return ["Manage", "Users"];
     if (path.startsWith("/dashboard/settings")) return ["Manage", "Settings"];
     return ["Dashboard", "Overview"];
   };
@@ -301,78 +329,83 @@ function Dashboard() {
   const [crumbMain, crumbSub] = getBreadcrumb();
 
   const drawerContent = (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", bgcolor: SIDEBAR_BG }}>
       <Stack
         direction="row"
-        spacing={1.5}
-        sx={{ p: 2.5, alignItems: "center", borderBottom: 1, borderColor: "divider" }}
+        sx={{ height: TOPBAR_HEIGHT, flexShrink: 0, px: 2, alignItems: "center" }}
       >
-        <BrandMark />
-        <Box>
-          <Typography sx={{ fontWeight: 800, lineHeight: 1.2 }}>BuzingBee</Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 1 }}>
-            ADMIN PANEL
-          </Typography>
-        </Box>
+        <ButtonBase
+          onClick={() => go("/dashboard")}
+          aria-label="Go to dashboard"
+          sx={{ borderRadius: 1.5, p: 0.25, "&.Mui-focusVisible": { boxShadow: "0 0 0 3px rgba(161,161,170,.5)" } }}
+        >
+          <BrandMark size={58} />
+        </ButtonBase>
       </Stack>
 
-      <Box sx={{ flex: 1, overflowY: "auto", py: 1, scrollbarWidth: "thin" }}>
+      <Box component="nav" aria-label="Main" sx={{ flex: 1, overflowY: "auto", px: 1.5, pb: 2 }}>
         {sections.map((section) => {
           const single = section.items.length === 1;
-          const isOpen = single || Boolean(openSections[section.label]);
-          const hasActive = section.items.some((i) => i.selected);
+          // Groups never toggled before (e.g. newly added ones) start open
+          const isOpen = single || openSections[section.label] !== false;
 
           return (
-            <List key={section.label} dense sx={{ px: 1.5, py: 0.25 }}>
+            <Box key={section.label} sx={{ pt: single ? 1 : 1.5 }}>
               {!single && (
-                <ListItemButton
+                <ButtonBase
                   onClick={() => toggleSection(section.label)}
                   aria-expanded={isOpen}
-                  sx={{ borderRadius: 2, mb: 0.25, py: 0.75 }}
+                  sx={{
+                    width: "100%",
+                    height: 40,
+                    px: 1.5,
+                    borderRadius: 1,
+                    justifyContent: "space-between",
+                    color: "text.primary",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    "&:hover": { color: "text.primary", bgcolor: "action.hover" },
+                  }}
                 >
-                  <ListItemText
-                    primary={section.label}
-                    slotProps={{
-                      primary: {
-                        sx: {
-                          fontSize: 12,
-                          fontWeight: 700,
-                          letterSpacing: "0.08em",
-                          textTransform: "uppercase",
-                          color: hasActive ? "primary.dark" : "text.secondary",
-                        },
-                      },
-                    }}
-                  />
+                  {section.label}
                   <ChevronDown
-                    size={16}
+                    size={18}
                     style={{
-                      transition: "transform 0.2s ease",
-                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform .2s ease",
+                      transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
                     }}
                   />
-                </ListItemButton>
+                </ButtonBase>
               )}
               <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                <List component="div" disablePadding>
+                <List disablePadding sx={{ display: "grid", gap: 0.5 }}>
                   {section.items.map((item) => (
                     <ListItemButton
                       key={item.to}
                       selected={item.selected}
                       onClick={() => go(item.to)}
+                      aria-current={item.selected ? "page" : undefined}
                       sx={(t) => ({
-                        borderRadius: 2,
-                        mb: 0.25,
-                        pl: single ? 1.5 : 2.5,
+                        color: "text.primary",
                         "&.Mui-selected, &.Mui-selected:hover": {
                           bgcolor: `color-mix(in srgb, ${t.vars.palette.primary.main} 16%, transparent)`,
                         },
-                        "&.Mui-selected .MuiListItemIcon-root, &.Mui-selected .MuiListItemText-primary":
-                          { color: "primary.dark", fontWeight: 700 },
+                        "&.Mui-selected .MuiListItemIcon-root, &.Mui-selected .MuiListItemText-primary": {
+                          color: "primary.dark",
+                        },
+                        minHeight: 40,
+                        px: 1.5,
+                        gap: 1.5,
+                        borderRadius: 2,
+                        "& .MuiListItemIcon-root": { minWidth: 0 },
+                        "& .MuiListItemIcon-root svg": { width: 20, height: 20 },
                       })}
                     >
-                      <ListItemIcon sx={{ minWidth: 38 }}>{item.icon}</ListItemIcon>
-                      <ListItemText primary={item.label} />
+                      <ListItemIcon>{item.icon}</ListItemIcon>
+                      <ListItemText
+                        primary={item.label}
+                        slotProps={{ primary: { noWrap: true, sx: { fontSize: 15, fontWeight: item.selected ? 600 : 400 } } }}
+                      />
                       {item.badge > 0 && (
                         <Chip
                           size="small"
@@ -385,42 +418,21 @@ function Dashboard() {
                   ))}
                 </List>
               </Collapse>
-            </List>
+            </Box>
           );
         })}
       </Box>
-
-      <Divider />
-      <Stack direction="row" spacing={1.5} sx={{ p: 2, alignItems: "center" }}>
-        <Avatar sx={{ bgcolor: "primary.main", color: "primary.contrastText", width: 36, height: 36 }}>
-          {(admin?.username || "A").charAt(0).toUpperCase()}
-        </Avatar>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography noWrap sx={{ fontWeight: 700, fontSize: 14 }}>
-            {admin?.username || "Admin"}
-          </Typography>
-          <Typography noWrap variant="caption" color="text.secondary">
-            {admin?.email || ""}
-          </Typography>
-        </Box>
-        <Tooltip title="Logout">
-          <IconButton onClick={handleLogout} aria-label="Logout" size="small">
-            <LogOut size={18} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
     </Box>
   );
 
+  const accountName = admin?.username || "Admin";
+  const accountEmail = admin?.email || "";
+
   return (
-    <Box
-      className="app-shell"
-      sx={{ display: "flex", height: "100vh", bgcolor: "background.default" }}
-    >
+    <Box className="app-shell" sx={{ display: "flex", height: "100dvh", bgcolor: "background.default" }}>
       <GlobalStyles styles={printStyles} />
 
       <Box
-        component="nav"
         className="app-sidebar"
         sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
       >
@@ -429,7 +441,6 @@ function Dashboard() {
             sx={{
               width: DRAWER_WIDTH,
               height: "100%",
-              bgcolor: "background.paper",
               borderRight: 1,
               borderColor: "divider",
               overflow: "hidden",
@@ -446,8 +457,10 @@ function Dashboard() {
             sx={{
               "& .MuiDrawer-paper": {
                 width: DRAWER_WIDTH,
+                maxWidth: "85vw",
                 boxSizing: "border-box",
                 borderRadius: 0,
+                border: 0,
               },
             }}
           >
@@ -458,13 +471,7 @@ function Dashboard() {
 
       <Box
         className="app-main"
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-        }}
+        sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}
       >
         <AppBar
           className="app-topbar"
@@ -472,47 +479,142 @@ function Dashboard() {
           color="inherit"
           elevation={0}
           sx={{
+            border: 0,
             borderBottom: 1,
             borderColor: "divider",
             borderRadius: 0,
+            boxShadow: "none",
             flexShrink: 0,
           }}
         >
-          <Toolbar sx={{ gap: 2 }}>
-            {!isDesktop && (
-              <IconButton edge="start" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
-                <Menu />
-              </IconButton>
-            )}
-            <Breadcrumbs separator="/" sx={{ flexShrink: 0 }}>
-              <Typography sx={{ fontWeight: 700 }}>{crumbMain}</Typography>
-              <Typography color="primary.dark" sx={{ fontWeight: 700 }}>
-                {crumbSub}
-              </Typography>
-            </Breadcrumbs>
+          <Toolbar disableGutters sx={{ gap: { xs: 1, sm: 2 }, height: TOPBAR_HEIGHT, px: { xs: 1.5, sm: 2, md: 3 } }}>
+            {/* Left and right zones share the leftover width equally, so the search stays centred */}
+            <Stack direction="row" sx={{ flex: "1 1 0", minWidth: 0, alignItems: "center", gap: 1 }}>
+              {!isDesktop && (
+                <>
+                  <IconButton aria-label="Open menu" onClick={() => setMobileOpen(true)} size="small">
+                    <Menu />
+                  </IconButton>
+                  <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
+                </>
+              )}
+              <Breadcrumbs separator="/" sx={{ minWidth: 0, "& .MuiBreadcrumbs-ol": { flexWrap: "nowrap" } }}>
+                <Typography noWrap color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
+                  {crumbMain}
+                </Typography>
+                <Typography noWrap sx={{ fontWeight: 500 }}>
+                  {crumbSub}
+                </Typography>
+              </Breadcrumbs>
+            </Stack>
 
             <Box
               component="form"
+              role="search"
               onSubmit={submitSearch}
-              sx={{ flex: 1, maxWidth: 420, display: { xs: "none", sm: "block" } }}
+              sx={{ flex: "0 1 420px", minWidth: 0, display: { xs: "none", sm: "block" } }}
             >
               <TextField
                 placeholder="Search blogs…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 slotProps={{
+                  htmlInput: { "aria-label": "Search blogs" },
                   input: {
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Search size={18} />
+                        <Search size={16} />
                       </InputAdornment>
                     ),
                   },
                 }}
               />
             </Box>
-            <Box sx={{ flex: 1 }} />
-            <NotificationBell newEnquiries={newEnqCount} />
+
+            <Stack
+              direction="row"
+              sx={{ flex: "1 1 0", minWidth: 0, alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}
+            >
+              <IconButton
+                aria-label="Search blogs"
+                onClick={() => navigate("/dashboard/blogs")}
+                sx={{ display: { xs: "inline-flex", sm: "none" } }}
+              >
+                <Search size={18} />
+              </IconButton>
+              <NotificationBell newEnquiries={newEnqCount} />
+              <ButtonBase
+                onClick={(e) => setMenuAnchor(e.currentTarget)}
+                aria-label="Open account menu"
+                aria-haspopup="menu"
+                aria-expanded={Boolean(menuAnchor)}
+                sx={{
+                  borderRadius: 1.5,
+                  p: 0.5,
+                  pr: { xs: 0.5, md: 1 },
+                  gap: 1,
+                  minWidth: 0,
+                  "&:hover": { bgcolor: "action.hover" },
+                  "&.Mui-focusVisible": { boxShadow: "0 0 0 3px rgba(161,161,170,.5)" },
+                }}
+              >
+                <Avatar sx={{ bgcolor: "primary.main", color: "primary.contrastText", width: 36, height: 36 }}>
+                  {initial}
+                </Avatar>
+                <Box sx={{ textAlign: "left", display: { xs: "none", md: "block" }, minWidth: 0, maxWidth: 180 }}>
+                  <Typography noWrap sx={{ fontWeight: 500, lineHeight: 1.25 }}>
+                    {accountName}
+                  </Typography>
+                  <Typography noWrap variant="caption" color="text.secondary" component="div">
+                    {accountEmail}
+                  </Typography>
+                </Box>
+                <ChevronDown size={14} style={{ opacity: 0.6 }} />
+              </ButtonBase>
+              <MuiMenu
+                anchorEl={menuAnchor}
+                open={Boolean(menuAnchor)}
+                onClose={() => setMenuAnchor(null)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                slotProps={{ paper: { sx: { minWidth: 224, mt: 1 } } }}
+              >
+                <Stack direction="row" spacing={1} sx={{ px: 1, py: 0.75, alignItems: "center" }}>
+                  <Avatar sx={{ bgcolor: "primary.main", color: "primary.contrastText", width: 36, height: 36 }}>
+                    {initial}
+                  </Avatar>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography noWrap sx={{ fontWeight: 500, lineHeight: 1.25 }}>
+                      {accountName}
+                    </Typography>
+                    <Typography noWrap variant="caption" color="text.secondary" component="div">
+                      {accountEmail}
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Divider sx={{ my: "4px !important", mx: -0.5 }} />
+                <MenuItem
+                  onClick={() => {
+                    setMenuAnchor(null);
+                    navigate("/dashboard/settings?tab=profile");
+                  }}
+                >
+                  <ListItemIcon><UserRound size={16} /></ListItemIcon>
+                  Profile
+                </MenuItem>
+                <Divider sx={{ my: "4px !important", mx: -0.5 }} />
+                <MenuItem
+                  onClick={() => {
+                    setMenuAnchor(null);
+                    handleLogout();
+                  }}
+                  sx={{ color: "error.main" }}
+                >
+                  <ListItemIcon><LogOut size={16} /></ListItemIcon>
+                  Log out
+                </MenuItem>
+              </MuiMenu>
+            </Stack>
           </Toolbar>
         </AppBar>
 
@@ -523,12 +625,12 @@ function Dashboard() {
             flex: 1,
             minHeight: 0,
             overflowY: "auto",
-            p: { xs: 2, md: 3 },
-            borderRadius: 0,
+            px: { xs: 2, sm: 3, lg: 4 },
+            py: { xs: 2, sm: 3 },
             bgcolor: "background.default",
           }}
         >
-          <Outlet />
+          <Outlet context={{ admin, canSeeBills }} />
         </Box>
       </Box>
     </Box>

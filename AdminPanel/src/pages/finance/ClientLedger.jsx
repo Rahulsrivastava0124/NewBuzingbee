@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -16,8 +16,9 @@ import TableFooter from "@mui/material/TableFooter";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { ArrowLeft, BookOpen, FilePlus, Printer } from "lucide-react";
-import { financeAPI } from "../../services/api";
+import { ArrowLeft, BookOpen, FilePlus, Pencil, Printer } from "lucide-react";
+import { adminAPI, financeAPI } from "../../services/api";
+import ClientFormDialog from "./ClientFormDialog";
 import { EmptyState, LoadingState, PageHeader } from "../../components/common";
 import { dueLabel, fmtDate, methodLabel, money } from "./format";
 
@@ -27,7 +28,7 @@ function Stat({ label, value, sub, color }) {
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}
+        sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}
       >
         {label}
       </Typography>
@@ -48,13 +49,21 @@ export default function ClientLedger() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const { admin } = useOutletContext() || {};
+  const [team, setTeam] = useState([]);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     financeAPI.clients
       .ledger(id)
       .then(setData)
       .catch((e) => setError(e.message));
   }, [id]);
+
+  useEffect(() => {
+    load();
+    adminAPI.listUsers().then(setTeam).catch(() => {});
+  }, [load]);
 
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!data) return <LoadingState text="Loading client ledger..." />;
@@ -64,7 +73,7 @@ export default function ClientLedger() {
     navigate(`/dashboard/finance/invoices/${invoiceId}`);
 
   return (
-    <Box sx={{ maxWidth: 1200 }}>
+    <Box>
       <PageHeader
         title={client.name}
         subtitle={
@@ -73,6 +82,7 @@ export default function ClientLedger() {
             client.email,
             client.phone,
             client.managedBy ? `Managed by ${client.managedBy.username}` : "",
+            client.personal ? "Personal" : "",
           ]
             .filter(Boolean)
             .join(" · ") || "Client ledger"
@@ -95,6 +105,18 @@ export default function ClientLedger() {
             >
               Print
             </Button>
+            {(admin?.role === "super" ||
+              !client.managedBy ||
+              String(client.managedBy._id) === String(admin?._id)) && (
+              <Button
+                className="no-print"
+                variant="outlined"
+                startIcon={<Pencil />}
+                onClick={() => setEditing(true)}
+              >
+                Edit
+              </Button>
+            )}
             <Button
               className="no-print"
               variant="contained"
@@ -159,7 +181,7 @@ export default function ClientLedger() {
                       <Link
                         component="button"
                         underline="hover"
-                        sx={{ fontWeight: 700 }}
+                        sx={{ fontWeight: 600 }}
                         onClick={() => openInvoice(inv._id)}
                       >
                         {inv.number}
@@ -174,7 +196,7 @@ export default function ClientLedger() {
                       />
                     </TableCell>
                     <TableCell align="right">{money(inv.total)}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>
                       {money(inv.balance)}
                     </TableCell>
                   </TableRow>
@@ -240,7 +262,7 @@ export default function ClientLedger() {
                   >
                     {e.credit ? money(e.credit) : "—"}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>
                     {money(e.balance)}
                   </TableCell>
                 </TableRow>
@@ -248,16 +270,16 @@ export default function ClientLedger() {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={3} sx={{ fontWeight: 700 }}>
+                <TableCell colSpan={3} sx={{ fontWeight: 600 }}>
                   Totals
                 </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>
                   {money(totals.invoiced)}
                 </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: "success.main" }}>
+                <TableCell align="right" sx={{ fontWeight: 600, color: "success.main" }}>
                   {money(totals.paid)}
                 </TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>
                   {money(totals.balance)}
                 </TableCell>
               </TableRow>
@@ -271,6 +293,17 @@ export default function ClientLedger() {
           Drafts and cancelled invoices are not included.
         </Typography>
       </Stack>
+      {editing && (
+        <ClientFormDialog
+          client={client}
+          team={team}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            load();
+          }}
+        />
+      )}
     </Box>
   );
 }

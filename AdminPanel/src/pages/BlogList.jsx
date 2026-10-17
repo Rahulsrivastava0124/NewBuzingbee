@@ -3,24 +3,18 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardActions from "@mui/material/CardActions";
-import CardContent from "@mui/material/CardContent";
-import CardMedia from "@mui/material/CardMedia";
 import Chip from "@mui/material/Chip";
-import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { blogAPI } from "../services/api";
 import { useFeedback } from "../components/Feedback";
-import { EmptyState, LoadingState, PageHeader } from "../components/common";
-import { Eye, FileText, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { LoadingState, PageHeader, SearchField, TableToolbar } from "../components/common";
+import DataTable from "../components/DataTable";
+import { FileText, Plus, Search, Trash2 } from "lucide-react";
 
 const STATUS_FILTERS = [
   ["all", "All"],
@@ -125,7 +119,7 @@ export default function BlogList() {
   if (loading) return <LoadingState text="Loading blogs..." />;
 
   return (
-    <Box sx={{ maxWidth: 1400 }}>
+    <Box>
       <PageHeader
         title="All Blogs"
         subtitle={`${filteredBlogs.length} total posts`}
@@ -140,141 +134,118 @@ export default function BlogList() {
         }
       />
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
-        <TextField
-          placeholder="Search blogs..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ maxWidth: { md: 380 } }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={18} />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          color="primary"
-          value={filterStatus}
-          onChange={(_, v) => updateStatusFilter(v)}
-          sx={{ flexWrap: "wrap" }}
-        >
-          {STATUS_FILTERS.map(([value, label]) => (
-            <ToggleButton key={value} value={value} sx={{ px: 2 }}>
-              {label}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      </Stack>
-
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
 
-      {filteredBlogs.length === 0 ? (
-        <EmptyState
-          icon={<FileText size={48} />}
-          title="No blogs found"
-        >
-          Try adjusting your search or filter criteria
-        </EmptyState>
-      ) : (
-        <Grid container spacing={2}>
-          {filteredBlogs.map((blog) => {
-            const id = blog._id || blog.id;
-            return (
-              <Grid key={id} size={{ xs: 12, sm: 6, lg: 4 }}>
-                <Card
-                  variant="outlined"
-                  sx={{ height: "100%", display: "flex", flexDirection: "column" }}
-                >
-                  {blog.image ? (
-                    <CardMedia
-                      component="img"
-                      height="160"
-                      image={blog.image}
-                      alt={blog.title}
-                      sx={{ objectFit: "cover" }}
-                    />
-                  ) : (
-                    <Box
-                      sx={{
-                        height: 160,
-                        display: "grid",
-                        placeItems: "center",
-                        bgcolor: "action.hover",
-                      }}
-                    >
-                      <FileText size={44} color="var(--mui-palette-text-disabled)" />
-                    </Box>
-                  )}
-                  <CardContent sx={{ flex: 1 }}>
-                    <Chip
-                      size="small"
-                      label={
-                        blog.status
-                          ? blog.status.charAt(0).toUpperCase() + blog.status.slice(1)
-                          : "Draft"
-                      }
-                      color={STATUS_COLOR[blog.status] || "default"}
-                      sx={{ mb: 1 }}
-                    />
-                    <Typography variant="h6" sx={{ fontSize: 16, mb: 0.5 }}>
-                      {blog.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {blog.author || "Admin"} ·{" "}
-                      {formatDate(blog.createdAt || blog.date)}
-                    </Typography>
-                  </CardContent>
-                  <CardActions sx={{ justifyContent: "space-between", px: 2, pb: 1.5 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {(blog.views || 0).toLocaleString()} views
-                    </Typography>
-                    <Box>
-                      <Tooltip title="View details">
-                        <IconButton
-                          size="small"
-                          aria-label="View details"
-                          onClick={() => navigate(`/dashboard/blog/${id}`)}
-                        >
-                          <Eye size={18} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit">
-                        <IconButton
-                          size="small"
-                          aria-label="Edit"
-                          onClick={() => navigate(`/dashboard/edit-blog/${id}`)}
-                        >
-                          <Pencil size={18} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          aria-label="Delete"
-                          onClick={() => handleDelete(id)}
-                        >
-                          <Trash2 size={18} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </CardActions>
-                </Card>
-              </Grid>
-            );
-          })}
-        </Grid>
-      )}
+      <DataTable
+        rows={filteredBlogs}
+        getRowId={(b) => b._id || b.id}
+        minWidth={820}
+        onRowClick={(b) => navigate(`/dashboard/blog/${b._id || b.id}`)}
+        empty={{ icon: <FileText />, title: "No blogs found", text: "Try adjusting your search or filter." }}
+        toolbar={
+          <TableToolbar>
+            <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="Search blogs..." />
+            <ToggleButtonGroup exclusive size="small" value={filterStatus} onChange={(_, v) => updateStatusFilter(v)}>
+              {STATUS_FILTERS.map(([value, label]) => (
+                <ToggleButton key={value} value={value}>
+                  {label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </TableToolbar>
+        }
+        columns={[
+          {
+            key: "title",
+            label: "Post",
+            mobile: "title",
+            value: (b) => b.title,
+            render: (b) => (
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", minWidth: 0 }}>
+                {b.image ? (
+                  <Box
+                    component="img"
+                    src={b.image}
+                    alt=""
+                    sx={{ width: 56, height: 40, borderRadius: 2, objectFit: "cover", flexShrink: 0 }}
+                  />
+                ) : (
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: "action.hover",
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                      color: "text.disabled",
+                    }}
+                  >
+                    <FileText size={18} />
+                  </Box>
+                )}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 600 }} noWrap>
+                    {b.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {b.author || "Admin"}
+                  </Typography>
+                </Box>
+              </Stack>
+            ),
+          },
+          {
+            key: "status",
+            label: "Status",
+            mobile: "subtitle",
+            value: (b) => b.status || "draft",
+            render: (b) => (
+              <Chip
+                size="small"
+                label={b.status ? b.status.charAt(0).toUpperCase() + b.status.slice(1) : "Draft"}
+                color={STATUS_COLOR[b.status] || "default"}
+              />
+            ),
+          },
+          {
+            key: "views",
+            label: "Views",
+            align: "right",
+            value: (b) => b.views || 0,
+            render: (b) => (b.views || 0).toLocaleString(),
+          },
+          {
+            key: "date",
+            label: "Date",
+            value: (b) => new Date(b.createdAt || b.date || 0).getTime(),
+            render: (b) => formatDate(b.createdAt || b.date),
+          },
+        ]}
+        actions={(b) => {
+          const id = b._id || b.id;
+          return (
+            <>
+              <Button size="small" variant="outlined" onClick={() => navigate(`/dashboard/blog/${id}`)}>
+                View
+              </Button>
+              <Button size="small" variant="outlined" onClick={() => navigate(`/dashboard/edit-blog/${id}`)}>
+                Edit
+              </Button>
+              <Tooltip title="Delete post">
+                <IconButton size="small" color="error" aria-label={`Delete ${b.title}`} onClick={() => handleDelete(id)}>
+                  <Trash2 />
+                </IconButton>
+              </Tooltip>
+            </>
+          );
+        }}
+      />
     </Box>
   );
 }
