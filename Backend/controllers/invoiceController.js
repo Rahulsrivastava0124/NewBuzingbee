@@ -4,9 +4,10 @@ const Payment = require("../models/Payment");
 const LedgerEntry = require("../models/LedgerEntry");
 const { nextSequence } = require("../models/Counter");
 const { invoiceScope, isScoped, clientScope } = require("../utils/billingScope");
+const { errorDetail } = require("../utils/errors");
 
 const fail = (res, message, error, code = 500) =>
-  res.status(code).json({ success: false, message, error: error?.message });
+  res.status(code).json({ success: false, message, error: errorDetail(error) });
 
 const notFound = (res, what = "Invoice") =>
   res.status(404).json({ success: false, message: `${what} not found` });

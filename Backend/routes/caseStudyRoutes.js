@@ -8,19 +8,19 @@ const {
   deleteCaseStudy,
   getCaseStudyStats,
 } = require("../controllers/caseStudyController");
-const { protectAdmin } = require("../middleware/authMiddleware");
+const { protectAdmin, optionalAdmin } = require("../middleware/authMiddleware");
 const { uploadBlogImage } = require("../middleware/uploadMiddleware");
 
 const router = express.Router();
 
 // Public
-router.get("/", getAllCaseStudies);
-router.get("/slug/:slug", getCaseStudyBySlug);
+router.get("/", optionalAdmin, getAllCaseStudies);
+router.get("/slug/:slug", optionalAdmin, getCaseStudyBySlug);
 
 // Protected
 router.get("/stats", protectAdmin, getCaseStudyStats);
 router.post("/", protectAdmin, uploadBlogImage.single("image"), addCaseStudy);
-router.get("/:id", getCaseStudyById);
+router.get("/:id", optionalAdmin, getCaseStudyById);
 router.put(
   "/:id",
   protectAdmin,

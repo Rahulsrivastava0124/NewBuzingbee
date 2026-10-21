@@ -13,6 +13,7 @@ const {
   sendPasswordOtp,
 } = require("../controllers/adminController");
 const { protectAdmin, requireSuper } = require("../middleware/authMiddleware");
+const { listAuditLog } = require("../middleware/auditLog");
 
 const {
   checkSmtpConnection,
@@ -89,6 +90,8 @@ router.post("/smtp/test", protectAdmin, requireSuper, async (req, res) => {
   }
 });
 
+// Audit log of admin actions: super admin only now that there are roles
+router.get("/audit-log", protectAdmin, requireSuper, listAuditLog);
 router.get("/users", protectAdmin, listAdmins);
 router.patch("/users/:id", protectAdmin, requireSuper, updateAdminRole);
 router.delete("/users/:id", protectAdmin, requireSuper, deleteAdmin);

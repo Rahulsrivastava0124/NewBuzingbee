@@ -1,8 +1,9 @@
 const Expense = require("../models/Expense");
 const LedgerEntry = require("../models/LedgerEntry");
+const { errorDetail } = require("../utils/errors");
 
 const fail = (res, message, error, code = 500) =>
-  res.status(code).json({ success: false, message, error: error?.message });
+  res.status(code).json({ success: false, message, error: errorDetail(error) });
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 

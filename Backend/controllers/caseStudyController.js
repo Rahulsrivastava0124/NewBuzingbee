@@ -1,6 +1,8 @@
 const { errorDetail } = require("../utils/errors");
 const CaseStudy = require("../models/CaseStudy");
 const { uploadBlogImageAndGetUrl } = require("../services/storageService");
+const { sanitizeRichText } = require("../utils/sanitize");
+const { escapeRegex } = require("../utils/validate");
 
 const normalizeTags = (tags) => {
   if (!tags) return [];
@@ -68,9 +70,9 @@ const addCaseStudy = async (req, res) => {
       client: client || "",
       industry: industry || "",
       summary: summary || "",
-      challenge: challenge || "",
-      solution: solution || "",
-      results: results || "",
+      challenge: sanitizeRichText(challenge || ""),
+      solution: sanitizeRichText(solution || ""),
+      results: sanitizeRichText(results || ""),
       metrics: parseMetrics(metrics),
       tags: normalizeTags(tags),
       image: uploadedImageUrl || image || "",
@@ -108,15 +110,20 @@ const getAllCaseStudies = async (req, res) => {
   try {
     const { status, search, category } = req.query;
     const query = {};
+    const text = (v) => (typeof v === "string" ? v : "");
 
-    if (status) query.status = status;
-    if (category) query.category = category;
-    if (search) {
+    // Only a signed-in admin may see drafts
+    if (!req.admin) query.status = "published";
+    else if (text(status)) query.status = text(status);
+
+    if (text(category)) query.category = text(category);
+    if (text(search)) {
+      const rx = escapeRegex(text(search).slice(0, 100));
       query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { client: { $regex: search, $options: "i" } },
-        { industry: { $regex: search, $options: "i" } },
-        { summary: { $regex: search, $options: "i" } },
+        { title: { $regex: rx, $options: "i" } },
+        { client: { $regex: rx, $options: "i" } },
+        { industry: { $regex: rx, $options: "i" } },
+        { summary: { $regex: rx, $options: "i" } },
       ];
     }
 
@@ -144,6 +151,15 @@ const getCaseStudyById = async (req, res) => {
     const { id } = req.params;
     const shouldTrackView =
       String(req.query.trackView || "false").toLowerCase() === "true";
+
+    if (!req.admin) {
+      const visible = await CaseStudy.exists({ _id: id, status: "published" });
+      if (!visible) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Case study not found" });
+      }
+    }
 
     if (shouldTrackView) {
       await CaseStudy.updateOne({ _id: id }, { $inc: { views: 1 } });
@@ -175,7 +191,10 @@ const getCaseStudyBySlug = async (req, res) => {
     const shouldTrackView =
       String(req.query.trackView || "false").toLowerCase() === "true";
 
-    const caseStudy = await CaseStudy.findOne({ slug });
+    const caseStudy = await CaseStudy.findOne({
+      slug,
+      ...(req.admin ? {} : { status: "published" }),
+    });
 
     if (!caseStudy) {
       return res
@@ -246,9 +265,9 @@ const updateCaseStudy = async (req, res) => {
         ...(client !== undefined && { client }),
         ...(industry !== undefined && { industry }),
         ...(summary !== undefined && { summary }),
-        ...(challenge !== undefined && { challenge }),
-        ...(solution !== undefined && { solution }),
-        ...(results !== undefined && { results }),
+        ...(challenge !== undefined && { challenge: sanitizeRichText(challenge) }),
+        ...(solution !== undefined && { solution: sanitizeRichText(solution) }),
+        ...(results !== undefined && { results: sanitizeRichText(results) }),
         ...(metrics !== undefined && { metrics: parseMetrics(metrics) }),
         ...(tags !== undefined && { tags: normalizeTags(tags) }),
         ...(category !== undefined && { category }),

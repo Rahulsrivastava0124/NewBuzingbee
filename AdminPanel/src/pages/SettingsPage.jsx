@@ -13,7 +13,8 @@ import { adminAPI } from "../services/api";
 import { IconTile, LoadingState, PageHeader, PasswordField } from "../components/common";
 import CompanyTab from "./settings/CompanyTab";
 import EmailTab from "./settings/EmailTab";
-import { Building2, Lock, Mail, MailCheck, Save, User } from "lucide-react";
+import ActivityTab from "./settings/ActivityTab";
+import { Building2, Lock, Mail, MailCheck, Save, ScrollText, User } from "lucide-react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 
 const EMPTY_PASSWORDS = {
@@ -365,6 +366,7 @@ const TABS = [
   { key: "profile", label: "Profile & password", icon: <User size={18} /> },
   { key: "company", label: "Company", icon: <Building2 size={18} />, superOnly: true },
   { key: "email", label: "Email (SMTP)", icon: <Mail size={18} />, superOnly: true },
+  { key: "activity", label: "Activity log", icon: <ScrollText size={18} />, superOnly: true },
 ];
 
 export default function SettingsPage() {
@@ -381,7 +383,7 @@ export default function SettingsPage() {
         title="Settings"
         subtitle={
           tabs.length > 1
-            ? "Your profile, company details and outgoing email."
+            ? "Your profile, company details, outgoing email and activity."
             : "Your profile and password."
         }
       />
@@ -407,6 +409,7 @@ export default function SettingsPage() {
       {current === "profile" && <ProfileSettings />}
       {current === "company" && <CompanyTab />}
       {current === "email" && <EmailTab />}
+      {current === "activity" && <ActivityTab />}
     </Box>
   );
 }

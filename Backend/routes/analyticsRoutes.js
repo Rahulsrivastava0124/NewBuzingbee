@@ -1,4 +1,5 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const {
   trackAnalyticsEvent,
   getAnalyticsOverview,
@@ -9,8 +10,17 @@ const { protectAdmin } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// Public tracking endpoint for website/app events
-router.post("/track", trackAnalyticsEvent);
+// Public tracking endpoint for website/app events. Real visitors send one event
+// per page view; this stops scripted floods.
+const trackLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many tracking events" },
+});
+
+router.post("/track", trackLimiter, trackAnalyticsEvent);
 
 // Admin dashboard analytics
 router.get("/overview", protectAdmin, getAnalyticsOverview);

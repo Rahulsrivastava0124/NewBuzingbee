@@ -2,6 +2,7 @@ const Settings = require("../models/Settings");
 const { encrypt, decrypt } = require("../utils/secretBox");
 const { errorDetail } = require("../utils/errors");
 const { uploadLogoAndGetUrl } = require("../services/storageService");
+const { sniffImageType } = require("../utils/imageSniff");
 const {
   applySmtpOverrides,
   checkSmtpConnection,
@@ -217,6 +218,9 @@ const testSmtp = async (req, res) => {
 const uploadLogo = async (req, res) => {
   try {
     if (!req.file) return fail(res, 400, "Choose an image to upload");
+    const detected = sniffImageType(req.file.buffer);
+    if (!detected) return fail(res, 400, "The uploaded file is not a valid image");
+    req.file.mimetype = detected;
     const url = await uploadLogoAndGetUrl(req.file);
     if (!url) return fail(res, 400, "The uploaded file was empty");
 

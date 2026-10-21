@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { SITE_CONFIG } from "@/lib/constants";
+import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 
 interface ContactFormData {
   name: string;
@@ -39,15 +40,24 @@ export default function ContactPage() {
     "idle",
   );
   const [submitMessage, setSubmitMessage] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const onSubmit = async (data: ContactFormData) => {
     setSubmitState("idle");
     setSubmitMessage("");
+
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setSubmitState("error");
+      setSubmitMessage("Please complete the verification below.");
+      return;
+    }
+
     try {
       const res = await fetch(ENQUIRY_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, source: "contact-form" }),
+        body: JSON.stringify({ ...data, source: "contact-form", captchaToken }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Submission failed");
@@ -56,7 +66,9 @@ export default function ContactPage() {
         json.message || "Thank you! We'll get back to you within 24 hours.",
       );
       reset();
+      setCaptchaReset((n) => n + 1); // a token can only be used once
     } catch (err: unknown) {
+      setCaptchaReset((n) => n + 1);
       setSubmitState("error");
       setSubmitMessage(
         err instanceof Error
@@ -199,6 +211,11 @@ export default function ContactPage() {
                   </p>
                 )}
               </div>
+
+              <TurnstileWidget
+                onToken={setCaptchaToken}
+                resetSignal={captchaReset}
+              />
 
               <button
                 type="submit"
