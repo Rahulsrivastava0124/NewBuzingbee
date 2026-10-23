@@ -207,14 +207,6 @@ function DashboardHome() {
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 24, md: 30 } }}>
-          Welcome back,{" "}
-          <Box component="span" sx={{ color: "primary.main" }}>
-            Admin
-          </Box>
-        </Typography>
-      </Box>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
