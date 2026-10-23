@@ -25,7 +25,7 @@ import { LoadingState, PageHeader } from "../../components/common";
 import DataTable from "../../components/DataTable";
 import { Modal } from "./shared";
 import { PAYMENT_METHODS, dateToApi, dueLabel, fmtDate, methodLabel, money, toInputDate } from "./format";
-import { HandCoins, Plus, Trash2 } from "lucide-react";
+import { Eye, HandCoins, Pencil, Plus, Trash2 } from "lucide-react";
 
 const DIRECTION_LABEL = { taken: "Taken", given: "Given" };
 const NUM = { fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" };
@@ -176,7 +176,6 @@ export default function Loans() {
     <Box>
       <PageHeader
         title="Loans"
-        subtitle="Money borrowed and lent, with repayments. Every movement is mirrored in the wallet."
         actions={
           <Button
             variant="contained"
@@ -301,23 +300,28 @@ export default function Loans() {
         ]}
         actions={(l) => (
           <>
-            <Button size="small" variant="outlined" onClick={() => setViewing(l)}>
-              View
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => {
-                setFormError("");
-                setEditing({
-                  ...l,
-                  startDate: toInputDate(l.startDate),
-                  dueDate: l.dueDate ? toInputDate(l.dueDate) : "",
-                });
-              }}
-            >
-              Edit
-            </Button>
+            <Tooltip title="View">
+              <IconButton size="small" color="primary" aria-label="View" onClick={() => setViewing(l)}>
+                <Eye />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                color="primary"
+                aria-label="Edit"
+                onClick={() => {
+                  setFormError("");
+                  setEditing({
+                    ...l,
+                    startDate: toInputDate(l.startDate),
+                    dueDate: l.dueDate ? toInputDate(l.dueDate) : "",
+                  });
+                }}
+              >
+                <Pencil />
+              </IconButton>
+            </Tooltip>
             {l.balance > 0 && (
               <Button
                 size="small"

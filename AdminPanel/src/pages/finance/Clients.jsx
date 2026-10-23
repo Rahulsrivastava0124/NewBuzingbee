@@ -17,7 +17,7 @@ import DataTable from "../../components/DataTable";
 import ClientFormDialog from "./ClientFormDialog";
 import { money } from "./format";
 
-import { Contact, Plus, Trash2 } from "lucide-react";
+import { Contact, Eye, Pencil, Plus, Trash2 } from "lucide-react";
 
 export default function Clients() {
   const navigate = useNavigate();
@@ -107,13 +107,6 @@ export default function Clients() {
         </Box>
       ),
     },
-    {
-      key: "email",
-      label: "Email",
-      mobile: "subtitle",
-      value: (c) => c.email || "",
-      render: (c) => c.email || <Typography component="span" color="text.secondary">—</Typography>,
-    },
     { key: "invoiced", label: "Total", align: "right", value: (c) => c.invoiced, render: (c) => money(c.invoiced) },
     {
       key: "paid",
@@ -198,13 +191,17 @@ export default function Clients() {
         }
         actions={(c) => (
           <>
-            <Button size="small" variant="outlined" onClick={() => view(c)}>
-              View
-            </Button>
+            <Tooltip title="View">
+              <IconButton size="small" color="primary" aria-label="View" onClick={() => view(c)}>
+                <Eye />
+              </IconButton>
+            </Tooltip>
             {canEdit(c) && (
-              <Button size="small" variant="outlined" onClick={() => setEditing(c)}>
-                Edit
-              </Button>
+              <Tooltip title="Edit">
+                <IconButton size="small" color="primary" aria-label="Edit" onClick={() => setEditing(c)}>
+                  <Pencil />
+                </IconButton>
+              </Tooltip>
             )}
             {c.nextDue && (
               <Button

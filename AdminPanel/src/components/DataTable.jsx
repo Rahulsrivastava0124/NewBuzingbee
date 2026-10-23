@@ -98,7 +98,7 @@ export default function DataTable({
     <Paper sx={{ overflow: "hidden" }}>
       {toolbar && (
         <>
-          <Box className="no-print" sx={{ p: { xs: 1.5, sm: 2 } }}>
+          <Box className="no-print" sx={{ py: { xs: 1.5, sm: 2 }, px: "10px" }}>
             {toolbar}
           </Box>
           <Divider className="no-print" />

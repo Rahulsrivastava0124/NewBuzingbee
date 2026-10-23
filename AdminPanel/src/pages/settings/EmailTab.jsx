@@ -130,11 +130,6 @@ export default function EmailTab() {
             variant="outlined"
           />
         </Stack>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Used for password-reset links and other system emails. These
-          settings are stored in the database; nothing needs to be set on the
-          server.
-        </Typography>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -247,9 +242,6 @@ export default function EmailTab() {
 
       <Paper sx={{ p: { xs: 2.5, sm: 4 } }}>
         <Typography variant="h6">Send a test email</Typography>
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
-          Sends a short message using the saved settings above.
-        </Typography>
         <Divider sx={{ mb: 2 }} />
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           <TextField

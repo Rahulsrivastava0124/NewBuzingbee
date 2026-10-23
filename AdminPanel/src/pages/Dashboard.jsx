@@ -31,6 +31,7 @@ import {
   caseStudyAPI,
   enquiryAPI,
   PORTAL,
+  PORTAL_LABELS,
   portalHost,
 } from "../services/api";
 import { BookOpen, HandCoins, Wallet, ChevronDown, Briefcase, Clock, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, PenLine, ReceiptText, Search, Settings, ShieldCheck, TrendingUp, UserRound } from "lucide-react";
@@ -44,6 +45,9 @@ const SIDEBAR_BG = "background.paper";
 const SIDEBAR_KEY = "adminSidebarSections";
 
 const printStyles = {
+  // No page margin = no room for the browser's date/title/URL header and footer;
+  // the content gets its own padding instead, repeated on every page
+  "@page": { margin: 0 },
   "@media print": {
     ".app-sidebar, .app-topbar, .no-print": { display: "none !important" },
     "html, body, #root, .app-shell, .app-main, .app-content": {
@@ -53,6 +57,7 @@ const printStyles = {
       padding: "0 !important",
       background: "#fff !important",
     },
+    "html body": { padding: "12mm !important", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" },
   },
 };
 
@@ -498,14 +503,26 @@ function Dashboard() {
                   <Divider orientation="vertical" flexItem sx={{ my: 2 }} />
                 </>
               )}
-              <Breadcrumbs separator="/" sx={{ minWidth: 0, "& .MuiBreadcrumbs-ol": { flexWrap: "nowrap" } }}>
-                <Typography noWrap color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
-                  {crumbMain}
-                </Typography>
-                <Typography noWrap sx={{ fontWeight: 500 }}>
-                  {crumbSub}
-                </Typography>
-              </Breadcrumbs>
+              {/* Home greets the signed-in user with their role; other pages show where you are */}
+              {path === "/dashboard" || path === "/dashboard/" ? (
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", minWidth: 0 }}>
+                  <Typography noWrap sx={{ fontWeight: 500 }}>
+                    Welcome, {admin?.username || "there"}
+                  </Typography>
+                  {admin?.role && (
+                    <Chip size="small" color="primary" label={PORTAL_LABELS[admin.role] || admin.role} />
+                  )}
+                </Stack>
+              ) : (
+                <Breadcrumbs separator="/" sx={{ minWidth: 0, "& .MuiBreadcrumbs-ol": { flexWrap: "nowrap" } }}>
+                  <Typography noWrap color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
+                    {crumbMain}
+                  </Typography>
+                  <Typography noWrap sx={{ fontWeight: 500 }}>
+                    {crumbSub}
+                  </Typography>
+                </Breadcrumbs>
+              )}
             </Stack>
 
             <Box
@@ -625,7 +642,7 @@ function Dashboard() {
             flex: 1,
             minHeight: 0,
             overflowY: "auto",
-            px: { xs: 2, sm: 3, lg: 4 },
+            px: "10px",
             py: { xs: 2, sm: 3 },
             bgcolor: "background.default",
           }}

@@ -200,6 +200,19 @@ export const adminAPI = {
     return handleResponse(response);
   },
 
+  // Bank/UPI details for the signed-in admin's personal-client invoices
+  updatePayment: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/admin/profile/payment`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
   // Update admin profile
   updateProfile: async (data) => {
     const response = await fetch(`${API_BASE_URL}/admin/profile`, {

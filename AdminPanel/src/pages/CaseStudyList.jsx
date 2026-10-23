@@ -15,7 +15,7 @@ import { caseStudyAPI } from "../services/api";
 import { useFeedback } from "../components/Feedback";
 import { LoadingState, PageHeader, SearchField, TableToolbar } from "../components/common";
 import DataTable from "../components/DataTable";
-import { Briefcase, Plus, Search, Trash2 } from "lucide-react";
+import { Briefcase, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 export default function CaseStudyList() {
   const navigate = useNavigate();
@@ -178,9 +178,11 @@ export default function CaseStudyList() {
         ]}
         actions={(item) => (
           <>
-            <Button size="small" variant="outlined" onClick={() => navigate(`/dashboard/edit-case-study/${item._id}`)}>
-              Edit
-            </Button>
+            <Tooltip title="Edit">
+              <IconButton size="small" color="primary" aria-label="Edit" onClick={() => navigate(`/dashboard/edit-case-study/${item._id}`)}>
+                <Pencil />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Delete case study">
               <IconButton size="small" color="error" aria-label={`Delete ${item.title}`} onClick={() => handleDelete(item._id)}>
                 <Trash2 />

@@ -132,7 +132,7 @@ const theme = createTheme({
     MuiTableContainer: { styleOverrides: { root: { borderRadius: 16 } } },
     MuiTableCell: {
       styleOverrides: {
-        root: { borderColor: "#f1f1f3", paddingBlock: 12 },
+        root: { borderColor: "#f1f1f3", paddingBlock: 12, paddingInline: 10 },
         head: {
           fontSize: 12,
           fontWeight: 600,

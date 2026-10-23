@@ -14,7 +14,8 @@ import { IconTile, LoadingState, PageHeader, PasswordField } from "../components
 import CompanyTab from "./settings/CompanyTab";
 import EmailTab from "./settings/EmailTab";
 import ActivityTab from "./settings/ActivityTab";
-import { Building2, Lock, Mail, MailCheck, Save, ScrollText, User } from "lucide-react";
+import PaymentTab from "./settings/PaymentTab";
+import { Building2, Landmark, Lock, Mail, MailCheck, Save, ScrollText, User } from "lucide-react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 
 const EMPTY_PASSWORDS = {
@@ -32,9 +33,11 @@ function SectionTitle({ icon, title, subtitle }) {
       <IconTile>{icon}</IconTile>
       <Box sx={{ minWidth: 0 }}>
         <Typography variant="h6">{title}</Typography>
-        <Typography variant="body2" color="text.secondary">
-          {subtitle}
-        </Typography>
+        {subtitle && (
+          <Typography variant="body2" color="text.secondary">
+            {subtitle}
+          </Typography>
+        )}
       </Box>
     </Stack>
   );
@@ -259,11 +262,7 @@ function ProfileSettings() {
 
         <Grid size={{ xs: 12, lg: 7 }}>
           <Paper component="form" onSubmit={handlePasswordSubmit} sx={{ p: { xs: 2.5, sm: 3 } }}>
-            <SectionTitle
-              icon={<Lock />}
-              title="Change password"
-              subtitle="We'll email you a 6-digit code to confirm it's you."
-            />
+            <SectionTitle icon={<Lock />} title="Change password" />
             <Grid container spacing={2}>
               {passwordError && (
                 <Grid size={12}>
@@ -364,6 +363,8 @@ function ProfileSettings() {
 
 const TABS = [
   { key: "profile", label: "Profile & password", icon: <User size={18} /> },
+  // Super admin's payment details live on the Company tab
+  { key: "payment", label: "Payment details", icon: <Landmark size={18} />, notSuper: true },
   { key: "company", label: "Company", icon: <Building2 size={18} />, superOnly: true },
   { key: "email", label: "Email (SMTP)", icon: <Mail size={18} />, superOnly: true },
   { key: "activity", label: "Activity log", icon: <ScrollText size={18} />, superOnly: true },
@@ -372,7 +373,8 @@ const TABS = [
 export default function SettingsPage() {
   const [params, setParams] = useSearchParams();
   const { admin } = useOutletContext() || {};
-  const tabs = TABS.filter((t) => !t.superOnly || admin?.role === "super");
+  const isSuper = admin?.role === "super";
+  const tabs = TABS.filter((t) => (t.superOnly ? isSuper : t.notSuper ? !isSuper : true));
   const current = tabs.some((t) => t.key === params.get("tab"))
     ? params.get("tab")
     : "profile";
@@ -381,11 +383,6 @@ export default function SettingsPage() {
     <Box>
       <PageHeader
         title="Settings"
-        subtitle={
-          tabs.length > 1
-            ? "Your profile, company details, outgoing email and activity."
-            : "Your profile and password."
-        }
       />
       <Tabs
         value={current}
@@ -407,6 +404,7 @@ export default function SettingsPage() {
       </Tabs>
 
       {current === "profile" && <ProfileSettings />}
+      {current === "payment" && <PaymentTab />}
       {current === "company" && <CompanyTab />}
       {current === "email" && <EmailTab />}
       {current === "activity" && <ActivityTab />}

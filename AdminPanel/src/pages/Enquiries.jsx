@@ -19,7 +19,7 @@ import { enquiryAPI } from "../services/api";
 import { useFeedback } from "../components/Feedback";
 import { LoadingState, PageHeader, SearchField, TableToolbar } from "../components/common";
 import DataTable from "../components/DataTable";
-import { MessagesSquare, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Eye, MessagesSquare, RefreshCw, Search, Trash2, X } from "lucide-react";
 
 const STATUS_COLORS = {
   new: "success",
@@ -270,9 +270,11 @@ export default function Enquiries() {
         ]}
         actions={(enq) => (
           <>
-            <Button size="small" variant="outlined" onClick={() => handleOpen(enq)}>
-              View
-            </Button>
+            <Tooltip title="View">
+              <IconButton size="small" color="primary" aria-label="View" onClick={() => handleOpen(enq)}>
+                <Eye />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Delete enquiry">
               <IconButton size="small" color="error" aria-label={`Delete enquiry from ${enq.name}`} onClick={() => handleDelete(enq._id)}>
                 <Trash2 />

@@ -4,22 +4,20 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import DialogActions from "@mui/material/DialogActions";
 import Grid from "@mui/material/Grid";
-import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { financeAPI } from "../../services/api";
 import { useFeedback } from "../../components/Feedback";
 import { LoadingState, PageHeader, TableToolbar } from "../../components/common";
 import DataTable from "../../components/DataTable";
-import { Modal, StatusBadge } from "./shared";
+import { Modal } from "./shared";
 import { dateToApi, fmtDate, money, titleCase, toInputDate } from "./format";
-import { BookOpen, Plus, Printer, Trash2 } from "lucide-react";
+import { BookOpen, Plus, Printer } from "lucide-react";
 
 const SOURCES = [
   ["all", "All sources"],
@@ -56,7 +54,7 @@ function Stat({ label, value, color }) {
 }
 
 export default function WalletLedger() {
-  const { confirm, notify } = useFeedback();
+  const { notify } = useFeedback();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [type, setType] = useState("all");
@@ -103,22 +101,6 @@ export default function WalletLedger() {
     }
   };
 
-  const remove = async (entry) => {
-    const ok = await confirm({
-      title: "Delete entry",
-      message: "Delete this manual entry?",
-      confirmLabel: "Delete",
-    });
-    if (!ok) return;
-    try {
-      await financeAPI.wallet.deleteEntry(entry._id);
-      notify("Entry deleted", "success");
-      await load();
-    } catch (err) {
-      notify(err.message, "error");
-    }
-  };
-
   const set = (k) => (e) => setEditing({ ...editing, [k]: e.target.value });
 
   if (!data && !error) return <LoadingState text="Loading ledger..." />;
@@ -128,7 +110,6 @@ export default function WalletLedger() {
     <Box>
       <PageHeader
         title="Wallet & Ledger"
-        subtitle="Every payment received and expense paid, with running balance"
         actions={
           <>
             <Button
@@ -188,18 +169,26 @@ export default function WalletLedger() {
             mobile: "subtitle",
             value: (e) => titleCase(e.category),
           },
-          { key: "type", label: "Type", value: (e) => e.type, render: (e) => <StatusBadge status={e.type} /> },
-          {
-            key: "amount",
-            label: "Amount",
+          // Classic ledger: money out and money in each get their own column
+          ...[
+            ["debit", "Debit", "error.main"],
+            ["credit", "Credit", "success.main"],
+          ].map(([type, label, color]) => ({
+            key: type,
+            label,
             align: "right",
-            value: (e) => (e.type === "credit" ? e.amount : -e.amount),
-            render: (e) => (
-              <Box component="span" sx={{ fontWeight: 600, color: e.type === "credit" ? "success.main" : "error.main" }}>
-                {e.type === "credit" ? "+" : "−"} {money(e.amount)}
-              </Box>
-            ),
-          },
+            value: (e) => (e.type === type ? e.amount : 0),
+            render: (e) =>
+              e.type === type ? (
+                <Box component="span" sx={{ fontWeight: 600, color }}>
+                  {money(e.amount)}
+                </Box>
+              ) : (
+                <Box component="span" sx={{ color: "text.disabled" }}>
+                  —
+                </Box>
+              ),
+          })),
           {
             key: "balanceAfter",
             label: "Balance",
@@ -253,15 +242,6 @@ export default function WalletLedger() {
               />
             </Stack>
           </TableToolbar>
-        }
-        actions={(e) =>
-          e.refType === "manual" ? (
-            <Tooltip title="Delete manual entry">
-              <IconButton size="small" color="error" aria-label="Delete entry" onClick={() => remove(e)}>
-                <Trash2 />
-              </IconButton>
-            </Tooltip>
-          ) : null
         }
       />
 

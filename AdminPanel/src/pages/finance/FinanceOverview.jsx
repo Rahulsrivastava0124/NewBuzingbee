@@ -71,9 +71,6 @@ export default function FinanceOverview() {
       >
         <Box>
           <Typography variant="h6">Finance</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Wallet, invoices and expenses
-          </Typography>
         </Box>
         <Button
           variant="contained"
@@ -118,9 +115,6 @@ export default function FinanceOverview() {
       <Paper sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack sx={{ mb: 2 }}>
           <Typography variant="h6">Last 6 months</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Payments received vs expenses paid
-          </Typography>
         </Stack>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data.months} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>

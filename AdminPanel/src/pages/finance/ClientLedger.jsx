@@ -288,11 +288,6 @@ export default function ClientLedger() {
         </TableContainer>
       )}
 
-      <Stack sx={{ mt: 2 }}>
-        <Typography variant="caption" color="text.secondary">
-          Drafts and cancelled invoices are not included.
-        </Typography>
-      </Stack>
       {editing && (
         <ClientFormDialog
           client={client}

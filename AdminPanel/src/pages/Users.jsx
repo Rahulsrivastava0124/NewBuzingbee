@@ -143,7 +143,6 @@ export default function Users() {
     <Box>
       <PageHeader
         title="User management"
-        subtitle="Super admin manages who can sign in and what role they hold."
         actions={
           <>
             <Button

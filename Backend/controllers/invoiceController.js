@@ -1,6 +1,7 @@
 const Invoice = require("../models/Invoice");
 const Client = require("../models/Client");
 const Payment = require("../models/Payment");
+const Admin = require("../models/Admin");
 const LedgerEntry = require("../models/LedgerEntry");
 const { nextSequence } = require("../models/Counter");
 const { invoiceScope, isScoped, clientScope } = require("../utils/billingScope");
@@ -113,10 +114,17 @@ const getInvoiceById = async (req, res) => {
     const payments = await Payment.find({ invoice: invoice._id }).sort({
       paidAt: -1,
     });
+    // Personal clients pay the admin who manages them, not the company
+    let payTo = null;
+    if (invoice.client?.personal && invoice.client.managedBy) {
+      const manager = await Admin.findById(invoice.client.managedBy).select("username payment").lean();
+      if (manager) payTo = { name: manager.username, ...manager.payment };
+    }
     return res.json({
       success: true,
       invoice: withLiveStatus(invoice),
       payments,
+      payTo,
     });
   } catch (error) {
     return fail(res, "Failed to fetch invoice", error);

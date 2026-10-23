@@ -30,7 +30,8 @@ import {
   money,
   toInputDate,
 } from "./format";
-import { ArrowLeft, Ban, Banknote, Pencil, Printer, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Ban, Banknote, Link2, Pencil, Printer, Send, Trash2 } from "lucide-react";
+import QRCode from "qrcode";
 import BrandMark from "../../components/Brand";
 
 function SumRow({ label, value, strong, color }) {
@@ -54,6 +55,7 @@ export default function InvoiceDetails() {
   const { confirm, notify } = useFeedback();
   const [invoice, setInvoice] = useState(null);
   const [payments, setPayments] = useState([]);
+  const [payTo, setPayTo] = useState(null);
   const [error, setError] = useState("");
   const [payOpen, setPayOpen] = useState(false);
   const [pay, setPay] = useState({});
@@ -65,6 +67,7 @@ export default function InvoiceDetails() {
       const data = await financeAPI.invoices.getById(id);
       setInvoice(data.invoice);
       setPayments(data.payments || []);
+      setPayTo(data.payTo);
     } catch (e) {
       setError(e.message);
     }
@@ -82,6 +85,46 @@ export default function InvoiceDetails() {
       .then((data) => setCompany(data.company || {}))
       .catch(() => {});
   }, []);
+
+  // Personal clients pay their managing admin (Settings > Payment details); others pay the company
+  const payee = invoice?.client?.personal
+    ? { ...payTo, payeeName: payTo?.bankAccountName || payTo?.name }
+    : { ...company, payeeName: company.name || company.legalName };
+
+  // UPI deep link for the balance due; any UPI app opens it with the amount filled in
+  const upiLink =
+    invoice && payee.upiId && invoice.status !== "cancelled" && invoice.balance > 0
+      ? "upi://pay?" +
+        [
+          ["pa", payee.upiId],
+          ["pn", payee.payeeName],
+          ["am", Number(invoice.balance).toFixed(2)],
+          ["cu", "INR"],
+          ["tn", `Invoice ${invoice.number}`],
+        ]
+          .filter(([, v]) => v)
+          // Keep "@" literal: some UPI apps don't decode %40 in the payee address
+          .map(([k, v]) => `${k}=${encodeURIComponent(v).replace(/%40/g, "@")}`)
+          .join("&")
+      : "";
+  const [qr, setQr] = useState({ link: "", url: "" });
+  useEffect(() => {
+    if (!upiLink) return;
+    let live = true;
+    QRCode.toDataURL(upiLink, { margin: 1, width: 240 })
+      .then((url) => live && setQr({ link: upiLink, url }))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [upiLink]);
+  const qrUrl = qr.link === upiLink ? qr.url : "";
+
+  const copyPayLink = () =>
+    navigator.clipboard
+      .writeText(upiLink)
+      .then(() => notify("UPI payment link copied", "success"))
+      .catch(() => notify("Could not copy the link", "error"));
 
   const openPay = () => {
     setPay({
@@ -159,6 +202,14 @@ export default function InvoiceDetails() {
 
   const c = invoice.client || {};
 
+  // Browsers use the page title as the saved PDF's file name
+  const printInvoice = () => {
+    const prev = document.title;
+    document.title = `${c.company || c.name || invoice.number} - ${fmtDate(invoice.issueDate)}`.replace(/[\\/:*?"<>|]/g, "-");
+    window.addEventListener("afterprint", () => (document.title = prev), { once: true });
+    window.print();
+  };
+
   // Ledger: the invoice is a debit, each payment a credit (oldest first)
   let running = 0;
   const ledgerRows = [
@@ -218,9 +269,14 @@ export default function InvoiceDetails() {
               Edit
             </Button>
           )}
-          <Button variant="outlined" startIcon={<Printer />} onClick={() => window.print()}>
-            Print / PDF
+          <Button variant="outlined" startIcon={<Printer />} onClick={printInvoice}>
+            Invoice PDF
           </Button>
+          {upiLink && (
+            <Button variant="outlined" startIcon={<Link2 />} onClick={copyPayLink}>
+              Copy pay link
+            </Button>
+          )}
           {canPay && (
             <Button variant="contained" startIcon={<Banknote />} onClick={openPay}>
               Record payment
@@ -234,7 +290,7 @@ export default function InvoiceDetails() {
         </Stack>
       </Stack>
 
-      <Paper sx={{ p: { xs: 2.5, sm: 5 } }}>
+      <Paper sx={{ p: { xs: 2.5, sm: 5 }, "@media print": { border: 0, p: 0 } }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={2}
@@ -249,16 +305,25 @@ export default function InvoiceDetails() {
                 {company.legalName}
               </Typography>
             )}
+            {company.email && (
+              <Typography variant="body2" color="text.secondary">
+                {company.email}
+              </Typography>
+            )}
             {(company.address || company.city) && (
               <Typography variant="body2" color="text.secondary">
-                {[company.address, company.city, company.state, company.postalCode]
+                {[
+                  company.address,
+                  company.city,
+                  [company.state, company.postalCode].filter(Boolean).join(" "),
+                ]
                   .filter(Boolean)
                   .join(", ")}
               </Typography>
             )}
-            {(company.phone || company.email) && (
+            {company.phone && (
               <Typography variant="body2" color="text.secondary">
-                {[company.phone, company.email].filter(Boolean).join(" · ")}
+                {company.phone}
               </Typography>
             )}
             {(company.gstin || company.pan) && (
@@ -335,7 +400,84 @@ export default function InvoiceDetails() {
           <SumRow label="Paid" value={money(invoice.amountPaid)} color="success.main" />
           <Divider />
           <SumRow strong label="Balance due" value={money(invoice.balance)} />
+          {canPay && (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "right" }}>
+              Next due date: <b>{fmtDate(invoice.dueDate)}</b>
+            </Typography>
+          )}
         </Stack>
+
+        {/* Partly paid: the invoice lists what has been received so far */}
+        {canPay && payments.length > 0 && (
+          <Box sx={{ mt: 4, breakInside: "avoid" }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+              PAYMENT HISTORY
+            </Typography>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Date</TableCell>
+                  <TableCell>Method</TableCell>
+                  <TableCell>Reference</TableCell>
+                  <TableCell align="right">Amount</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {payments.map((p) => (
+                  <TableRow key={p._id}>
+                    <TableCell>{fmtDate(p.paidAt)}</TableCell>
+                    <TableCell>{methodLabel(p.method)}</TableCell>
+                    <TableCell>{p.reference || "—"}</TableCell>
+                    <TableCell align="right">{money(p.amount)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        )}
+
+        {(payee.bankAccountNumber || payee.upiId) && (
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={3}
+            sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: "divider", justifyContent: "space-between", breakInside: "avoid" }}
+          >
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                PAYMENT INFORMATION
+              </Typography>
+              {[
+                ["Account name", payee.bankAccountName],
+                ["Bank", payee.bankName],
+                ["Account no.", payee.bankAccountNumber],
+                ["IFSC", payee.bankIfsc],
+                ["UPI ID", payee.upiId],
+              ]
+                .filter(([, v]) => v)
+                .map(([label, v]) => (
+                  <Typography key={label} variant="body2">
+                    <b>{label}:</b> {v}
+                  </Typography>
+                ))}
+              {upiLink && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  <b>Amount due:</b> {money(invoice.balance)} ·{" "}
+                  <Box component="a" href={upiLink} sx={{ color: "primary.dark", fontWeight: 600 }}>
+                    Pay via UPI
+                  </Box>
+                </Typography>
+              )}
+            </Box>
+            {qrUrl && (
+              <Box sx={{ textAlign: "center", flexShrink: 0 }}>
+                <Box component="img" src={qrUrl} alt="UPI payment QR code" sx={{ width: 120, height: 120, display: "block", mx: "auto" }} />
+                <Typography variant="caption" color="text.secondary">
+                  Scan to pay {money(invoice.balance)}
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+        )}
 
         {company.invoiceFooter && (
           <Typography
@@ -360,12 +502,8 @@ export default function InvoiceDetails() {
       </Paper>
 
       <Paper className="no-print" sx={{ mt: 3 }}>
-        <Typography variant="h6" sx={{ p: 2.5, pb: 0.5 }}>
+        <Typography variant="h6" sx={{ p: 2.5, pb: 1 }}>
           Invoice ledger
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ px: 2.5, pb: 1 }}>
-          The invoice amount and every payment received, with the balance after
-          each entry.
         </Typography>
         <TableContainer>
           <Table size="small">

@@ -22,7 +22,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { blogAPI } from "../services/api";
 import { useFeedback } from "../components/Feedback";
 import { EmptyState, LoadingState, PageHeader, SearchField, TableToolbar } from "../components/common";
-import { Eye, FileText, Plus, Trash2 } from "lucide-react";
+import { Eye, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 
 // Time filter for the views graphs (the API allows up to 90 days)
 const RANGES = [
@@ -401,12 +401,16 @@ export default function BlogList() {
                     </Stack>
                   </CardContent>
                   <CardActions sx={{ px: 2, pb: 2, pt: 0, gap: 1 }}>
-                    <Button size="small" variant="outlined" onClick={() => navigate(`/dashboard/blog/${id}`)}>
-                      View
-                    </Button>
-                    <Button size="small" variant="outlined" onClick={() => navigate(`/dashboard/edit-blog/${id}`)}>
-                      Edit
-                    </Button>
+                    <Tooltip title="View">
+                      <IconButton size="small" color="primary" aria-label="View" onClick={() => navigate(`/dashboard/blog/${id}`)}>
+                        <Eye />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Edit">
+                      <IconButton size="small" color="primary" aria-label="Edit" onClick={() => navigate(`/dashboard/edit-blog/${id}`)}>
+                        <Pencil />
+                      </IconButton>
+                    </Tooltip>
                     <Box sx={{ flex: 1 }} />
                     <Tooltip title="Delete post">
                       <IconButton size="small" color="error" aria-label={`Delete ${blog.title}`} onClick={() => handleDelete(id)}>

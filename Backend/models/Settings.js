@@ -18,6 +18,12 @@ const settingsSchema = new mongoose.Schema(
       gstin: { type: String, trim: true, uppercase: true, default: "" },
       pan: { type: String, trim: true, uppercase: true, default: "" },
       logoUrl: { type: String, trim: true, default: "" },
+      // Payment details printed on invoices
+      bankAccountName: { type: String, trim: true, default: "" },
+      bankName: { type: String, trim: true, default: "" },
+      bankAccountNumber: { type: String, trim: true, default: "" },
+      bankIfsc: { type: String, trim: true, uppercase: true, default: "" },
+      upiId: { type: String, trim: true, lowercase: true, default: "" },
       invoiceFooter: { type: String, default: "" },
     },
     smtp: {

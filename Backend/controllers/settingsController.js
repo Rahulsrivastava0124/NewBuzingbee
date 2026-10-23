@@ -3,6 +3,7 @@ const { encrypt, decrypt } = require("../utils/secretBox");
 const { errorDetail } = require("../utils/errors");
 const { uploadLogoAndGetUrl } = require("../services/storageService");
 const { sniffImageType } = require("../utils/imageSniff");
+const { PAYMENT_FIELDS, UPI_RE } = require("../utils/payment");
 const {
   applySmtpOverrides,
   checkSmtpConnection,
@@ -26,6 +27,7 @@ const COMPANY_FIELDS = [
   "pan",
   "logoUrl",
   "invoiceFooter",
+  ...PAYMENT_FIELDS,
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -116,6 +118,9 @@ const updateCompany = async (req, res) => {
 
     if (body.email && !EMAIL_RE.test(String(body.email).trim())) {
       return fail(res, 400, "Company email is not valid");
+    }
+    if (body.upiId && !UPI_RE.test(String(body.upiId).trim())) {
+      return fail(res, 400, "UPI ID must look like name@bank");
     }
     if (!String(body.name ?? doc.company.name ?? "").trim()) {
       return fail(res, 400, "Company name is required");

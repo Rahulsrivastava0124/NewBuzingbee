@@ -214,9 +214,6 @@ function DashboardHome() {
             Admin
           </Box>
         </Typography>
-        <Typography color="text.secondary">
-          Here&apos;s what&apos;s happening with your blog today.
-        </Typography>
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>

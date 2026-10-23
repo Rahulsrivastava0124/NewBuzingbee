@@ -126,23 +126,27 @@ export function PasswordField({ disabled, ...props }) {
 export function StatCard({ label, value, icon, color = "primary", caption, chip }) {
   return (
     <Paper sx={{ p: 2.5, height: "100%" }}>
-      <Stack
-        direction="row"
-        sx={{ justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}
-      >
+      {/* Count and label on the left, icon on the right */}
+      <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "center" }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography color="text.secondary" sx={{ fontWeight: 600, fontSize: 14 }} noWrap>
+            {label}
+          </Typography>
+          <Typography variant="h4" sx={{ fontSize: 28, lineHeight: 1.2 }}>
+            {value}
+          </Typography>
+        </Box>
         <IconTile color={color}>{icon}</IconTile>
-        {chip}
       </Stack>
-      <Typography variant="h4" sx={{ fontSize: 28 }}>
-        {value}
-      </Typography>
-      <Typography color="text.secondary" sx={{ fontWeight: 600, fontSize: 14 }}>
-        {label}
-      </Typography>
-      {caption && (
-        <Typography variant="caption" color="text.disabled">
-          {caption}
-        </Typography>
+      {(caption || chip) && (
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mt: 1.5, minHeight: 24 }}>
+          {caption && (
+            <Typography variant="caption" color="text.secondary">
+              {caption}
+            </Typography>
+          )}
+          {chip}
+        </Stack>
       )}
     </Paper>
   );

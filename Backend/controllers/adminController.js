@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const { getJwtSecret } = require("../config");
 const { logAuthEvent } = require("../middleware/auditLog");
 const { forgetAdmin } = require("../middleware/authMiddleware");
+const { PAYMENT_FIELDS, UPI_RE } = require("../utils/payment");
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "10d";
 
@@ -389,6 +390,27 @@ const updateAdminProfile = async (req, res) => {
   }
 };
 
+// Bank/UPI details for the signed-in admin's personal-client invoices
+const updatePaymentDetails = async (req, res) => {
+  try {
+    const body = req.body || {};
+    if (body.upiId && !UPI_RE.test(String(body.upiId).trim())) {
+      return res.status(400).json({ success: false, message: "UPI ID must look like name@bank" });
+    }
+    const admin = await Admin.findById(req.admin.id);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+    PAYMENT_FIELDS.forEach((field) => {
+      if (body[field] !== undefined) admin.payment[field] = String(body[field]);
+    });
+    await admin.save();
+    return res.json({ success: true, payment: admin.payment });
+  } catch (_error) {
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 // Team members (used by the "managed by" dropdown AND the user-management page)
 const listAdmins = async (_req, res) => {
   try {
@@ -708,6 +730,7 @@ module.exports = {
   adminLogin,
   getAdminProfile,
   updateAdminProfile,
+  updatePaymentDetails,
   forgotPassword,
   resetPassword,
   listAdmins,

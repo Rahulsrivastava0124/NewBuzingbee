@@ -26,7 +26,7 @@ import {
   titleCase,
   toInputDate,
 } from "./format";
-import { Plus, Printer, Receipt, Trash2 } from "lucide-react";
+import { Pencil, Plus, Printer, Receipt, Trash2 } from "lucide-react";
 
 const blank = () => ({
   title: "",
@@ -230,9 +230,11 @@ export default function Expenses() {
         }
         actions={(x) => (
           <>
-            <Button size="small" variant="outlined" onClick={() => setEditing({ ...x, spentAt: toInputDate(x.spentAt) })}>
-              Edit
-            </Button>
+            <Tooltip title="Edit">
+              <IconButton size="small" color="primary" aria-label="Edit" onClick={() => setEditing({ ...x, spentAt: toInputDate(x.spentAt) })}>
+                <Pencil />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Delete expense">
               <IconButton size="small" color="error" aria-label={`Delete ${x.title}`} onClick={() => remove(x)}>
                 <Trash2 />

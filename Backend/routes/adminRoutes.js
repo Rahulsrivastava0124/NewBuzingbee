@@ -5,6 +5,7 @@ const {
   adminLogin,
   getAdminProfile,
   updateAdminProfile,
+  updatePaymentDetails,
   forgotPassword,
   resetPassword,
   listAdmins,
@@ -97,6 +98,7 @@ router.patch("/users/:id", protectAdmin, requireSuper, updateAdminRole);
 router.delete("/users/:id", protectAdmin, requireSuper, deleteAdmin);
 router.get("/profile", protectAdmin, getAdminProfile);
 router.put("/profile", protectAdmin, updateAdminProfile);
+router.put("/profile/payment", protectAdmin, updatePaymentDetails);
 router.post("/profile/password-otp", protectAdmin, makeResetLimiter(5), sendPasswordOtp);
 
 module.exports = router;

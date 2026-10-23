@@ -17,7 +17,7 @@ import { LoadingState, PageHeader, SearchField, TableToolbar } from "../../compo
 import DataTable from "../../components/DataTable";
 import { StatusBadge } from "./shared";
 import { fmtDate, money, titleCase } from "./format";
-import { Plus, ReceiptText, Trash2 } from "lucide-react";
+import { Eye, Plus, ReceiptText, Trash2 } from "lucide-react";
 
 const FILTERS = ["all", "draft", "sent", "partial", "overdue", "paid", "cancelled"];
 
@@ -87,7 +87,12 @@ export default function Invoices() {
       render: (inv) => <Typography sx={{ fontWeight: 600 }}>{inv.number}</Typography>,
       value: (inv) => inv.number,
     },
-    { key: "client", label: "Client", mobile: "subtitle", value: (inv) => inv.client?.name || "—" },
+    {
+      key: "client",
+      label: "Company",
+      mobile: "subtitle",
+      value: (inv) => inv.client?.company || inv.client?.name || "—",
+    },
     ...(isSuper ? [{ key: "billedBy", label: "Billed by", value: (inv) => inv.billedBy?.username || "—" }] : []),
     {
       key: "dueDate",
@@ -171,9 +176,11 @@ export default function Invoices() {
         }
         actions={(inv) => (
           <>
-            <Button size="small" variant="outlined" onClick={() => open(inv)}>
-              View
-            </Button>
+            <Tooltip title="View">
+              <IconButton size="small" color="primary" aria-label="View" onClick={() => open(inv)}>
+                <Eye />
+              </IconButton>
+            </Tooltip>
             {!["cancelled", "paid"].includes(inv.status) && inv.balance > 0 && (
               <Button
                 size="small"

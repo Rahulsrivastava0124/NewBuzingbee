@@ -32,6 +32,14 @@ const adminSchema = new mongoose.Schema(
     },
     // Super admin decides who can see bills (the whole Finance section)
     showBills: { type: Boolean, default: true },
+    // Printed on invoices for this admin's personal clients
+    payment: {
+      bankAccountName: { type: String, trim: true, default: "" },
+      bankName: { type: String, trim: true, default: "" },
+      bankAccountNumber: { type: String, trim: true, default: "" },
+      bankIfsc: { type: String, trim: true, uppercase: true, default: "" },
+      upiId: { type: String, trim: true, lowercase: true, default: "" },
+    },
     // SHA-256 of the emailed token; the token itself is never stored
     resetPasswordToken: { type: String, select: false, default: undefined },
     resetPasswordExpires: { type: Date, select: false, default: undefined },

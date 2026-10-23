@@ -77,10 +77,6 @@ export default function ActivityTab() {
         spacing={2}
         sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}
       >
-        <Typography color="text.secondary">
-          Every change made by a signed-in admin, plus sign-ins. Kept for about
-          6 months.
-        </Typography>
         <TextField
           select
           label="Show"

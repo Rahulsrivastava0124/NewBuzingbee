@@ -27,6 +27,11 @@ const EMPTY = {
   pan: "",
   logoUrl: "",
   invoiceFooter: "",
+  bankAccountName: "",
+  bankName: "",
+  bankAccountNumber: "",
+  bankIfsc: "",
+  upiId: "",
 };
 
 export default function CompanyTab() {
@@ -116,9 +121,7 @@ export default function CompanyTab() {
         <Building2 size={22} />
         <Typography variant="h6">Company details</Typography>
       </Stack>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Shown on invoices and used as the sender identity in emails.
-      </Typography>
+      <Box sx={{ mb: 3 }} />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -238,13 +241,31 @@ export default function CompanyTab() {
           </Stack>
         </Grid>
         <Grid size={12}>
+          <Typography variant="subtitle2">Payment details</Typography>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <TextField label="Account holder name" value={form.bankAccountName} onChange={set("bankAccountName")} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <TextField label="Bank name" value={form.bankName} onChange={set("bankName")} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <TextField label="Account number" value={form.bankAccountNumber} onChange={set("bankAccountNumber")} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <TextField label="IFSC" value={form.bankIfsc} onChange={set("bankIfsc")} />
+        </Grid>
+        <Grid size={12}>
+          <TextField label="UPI ID" value={form.upiId} onChange={set("upiId")} placeholder="buzingbee@okaxis" />
+        </Grid>
+        <Grid size={12}>
           <TextField
             label="Invoice footer"
             multiline
             minRows={2}
             value={form.invoiceFooter}
             onChange={set("invoiceFooter")}
-            placeholder="Bank details, payment instructions, thank-you note…"
+            placeholder="Payment instructions, thank-you note…"
           />
         </Grid>
       </Grid>
