@@ -37,6 +37,7 @@ const blank = () => ({
   method: "bank-transfer",
   spentAt: toInputDate(),
   note: "",
+  paidFrom: "mine",
 });
 
 // Admin/team: their own expense wallet. Balance < 0 means the company owes them.
@@ -174,15 +175,12 @@ export default function Expenses() {
       value: (x) => x.category,
       render: (x) => <Chip size="small" label={titleCase(x.category)} />,
     },
-    ...(isSuper
-      ? [
-          {
-            key: "spentBy",
-            label: "Spent by",
-            value: (x) => x.spentBy?.username || "Company",
-          },
-        ]
-      : []),
+    {
+      key: "spentBy",
+      label: "Paid from",
+      value: (x) => (x.spentBy ? (isSuper ? x.spentBy.username : "My wallet") : "Company"),
+    },
+    { key: "createdBy", label: "Added by", value: (x) => x.createdBy?.username || "—" },
     { key: "vendor", label: "Vendor", value: (x) => x.vendor || "" , render: (x) => x.vendor || "—" },
     { key: "method", label: "Method", value: (x) => methodLabel(x.method) },
     {
@@ -253,7 +251,7 @@ export default function Expenses() {
       <DataTable
         columns={columns}
         rows={expenses}
-        minWidth={820}
+        minWidth={1000}
         pageSize={50}
         empty={{ icon: <Receipt />, title: "No expenses", text: "No expenses match these filters." }}
         toolbar={
@@ -276,7 +274,7 @@ export default function Expenses() {
             {isSuper && (
               <TextField
                 select
-                label="Spent by"
+                label="Paid from"
                 value={spentBy}
                 onChange={(e) => setSpentBy(e.target.value)}
                 sx={{ minWidth: 180, width: { md: "auto" } }}
@@ -352,6 +350,14 @@ export default function Expenses() {
                   ))}
                 </TextField>
               </Grid>
+              {!isSuper && !editing._id && (
+                <Grid size={12}>
+                  <TextField select label="Paid from" value={editing.paidFrom} onChange={set("paidFrom")}>
+                    <MenuItem value="mine">My expense wallet</MenuItem>
+                    <MenuItem value="company">Company wallet</MenuItem>
+                  </TextField>
+                </Grid>
+              )}
               <Grid size={12}>
                 <TextField label="Vendor" value={editing.vendor} onChange={set("vendor")} />
               </Grid>

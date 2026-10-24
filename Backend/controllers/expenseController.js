@@ -11,8 +11,9 @@ const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const toId = (id) => new mongoose.Types.ObjectId(String(id));
 const isSuper = (req) => req.admin?.role === "super";
 
-// Admin/team only ever touch their own expenses; the super admin can touch all
-const ownScope = (req) => (isSuper(req) ? {} : { spentBy: toId(req.admin.id) });
+// Admin/team touch expenses from their own wallet or ones they entered; the super admin, all
+const ownScope = (req) =>
+  isSuper(req) ? {} : { $or: [{ spentBy: toId(req.admin.id) }, { createdBy: toId(req.admin.id) }] };
 
 // Listing: the super admin can narrow to one wallet with ?spentBy=<id>|company
 const listScope = (req) => {
@@ -47,11 +48,12 @@ const syncLedger = (expense) =>
 const getExpenses = async (req, res) => {
   try {
     const { category, search, from, to, page = 1, limit = 100 } = req.query;
-    const query = listScope(req);
+    // $and keeps the scope's $or and the search's $or apart
+    const query = { $and: [listScope(req)] };
     if (category && category !== "all") query.category = category;
     if (search) {
       const rx = new RegExp(escapeRegex(String(search)), "i");
-      query.$or = [{ title: rx }, { vendor: rx }];
+      query.$and.push({ $or: [{ title: rx }, { vendor: rx }] });
     }
     if (from || to) {
       query.spentAt = {};
@@ -65,7 +67,8 @@ const getExpenses = async (req, res) => {
         .sort({ spentAt: -1 })
         .skip(skip)
         .limit(Number(limit))
-        .populate("spentBy", "username"),
+        .populate("spentBy", "username")
+        .populate("createdBy", "username"),
       Expense.countDocuments(query),
       Expense.aggregate([
         { $match: query },
@@ -91,7 +94,7 @@ const getExpenses = async (req, res) => {
 
 const createExpense = async (req, res) => {
   try {
-    const { title, category, amount, vendor, method, spentAt, note } = req.body;
+    const { title, category, amount, vendor, method, spentAt, note, paidFrom } = req.body;
     if (!title?.trim() || !(Number(amount) > 0)) {
       return res.status(400).json({
         success: false,
@@ -106,7 +109,9 @@ const createExpense = async (req, res) => {
       method,
       spentAt,
       note,
-      spentBy: isSuper(req) ? null : req.admin.id,
+      // Admin/team default to their own wallet but may log a company expense
+      spentBy: isSuper(req) || paidFrom === "company" ? null : req.admin.id,
+      createdBy: req.admin.id,
     });
     await syncLedger(expense);
     return res.status(201).json({ success: true, expense });
