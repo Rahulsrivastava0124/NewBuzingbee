@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -38,8 +39,38 @@ const blank = () => ({
   note: "",
 });
 
+// Admin/team: their own expense wallet. Balance < 0 means the company owes them.
+function WalletCards({ wallet }) {
+  const cards = [
+    ["Received", wallet.paid, "success.main"],
+    ["Spent", wallet.spent, "error.main"],
+    [wallet.balance < 0 ? "Owed to you" : "Balance in hand", Math.abs(wallet.balance), wallet.balance < 0 ? "warning.main" : "text.primary"],
+  ];
+  return (
+    <Grid container spacing={2} sx={{ mb: 2 }}>
+      {cards.map(([label, value, color]) => (
+        <Grid key={label} size={{ xs: 12, sm: 4 }}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {label}
+            </Typography>
+            <Typography variant="h6" sx={{ color, fontVariantNumeric: "tabular-nums" }}>
+              {money(value)}
+            </Typography>
+          </Paper>
+        </Grid>
+      ))}
+    </Grid>
+  );
+}
+
 export default function Expenses() {
   const { confirm, notify } = useFeedback();
+  const { admin } = useOutletContext() || {};
+  const isSuper = admin?.role === "super";
+  const [wallet, setWallet] = useState(null);
+  const [wallets, setWallets] = useState([]);
+  const [spentBy, setSpentBy] = useState("all");
   const [expenses, setExpenses] = useState([]);
   const [byCategory, setByCategory] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -53,7 +84,12 @@ export default function Expenses() {
 
   const load = useCallback(async () => {
     try {
-      const data = await financeAPI.expenses.getAll({ search, category });
+      const [data, walletData] = await Promise.all([
+        financeAPI.expenses.getAll({ search, category, spentBy: isSuper && spentBy !== "all" ? spentBy : undefined }),
+        isSuper ? financeAPI.expenseWallets.getAll() : financeAPI.expenseWallets.mine(),
+      ]);
+      if (isSuper) setWallets(walletData.wallets || []);
+      else setWallet(walletData);
       setExpenses(data.expenses || []);
       setByCategory(data.byCategory || []);
       setTotalAmount(data.totalAmount || 0);
@@ -63,7 +99,7 @@ export default function Expenses() {
     } finally {
       setLoading(false);
     }
-  }, [search, category]);
+  }, [search, category, spentBy, isSuper]);
 
   useEffect(() => {
     const t = setTimeout(load, 250);
@@ -138,6 +174,15 @@ export default function Expenses() {
       value: (x) => x.category,
       render: (x) => <Chip size="small" label={titleCase(x.category)} />,
     },
+    ...(isSuper
+      ? [
+          {
+            key: "spentBy",
+            label: "Spent by",
+            value: (x) => x.spentBy?.username || "Company",
+          },
+        ]
+      : []),
     { key: "vendor", label: "Vendor", value: (x) => x.vendor || "" , render: (x) => x.vendor || "—" },
     { key: "method", label: "Method", value: (x) => methodLabel(x.method) },
     {
@@ -186,6 +231,8 @@ export default function Expenses() {
         </Alert>
       )}
 
+      {!isSuper && wallet && <WalletCards wallet={wallet} />}
+
       {byCategory.length > 0 && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {byCategory.slice(0, 4).map((c) => (
@@ -226,6 +273,23 @@ export default function Expenses() {
                 </MenuItem>
               ))}
             </TextField>
+            {isSuper && (
+              <TextField
+                select
+                label="Spent by"
+                value={spentBy}
+                onChange={(e) => setSpentBy(e.target.value)}
+                sx={{ minWidth: 180, width: { md: "auto" } }}
+              >
+                <MenuItem value="all">Everyone</MenuItem>
+                <MenuItem value="company">Company</MenuItem>
+                {wallets.map((w) => (
+                  <MenuItem key={w.adminId} value={w.adminId}>
+                    {w.username}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
           </TableToolbar>
         }
         actions={(x) => (

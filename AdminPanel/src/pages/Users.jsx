@@ -18,10 +18,12 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
-import { adminAPI, portalHost } from "../services/api";
+import { adminAPI, financeAPI, portalHost } from "../services/api";
 import { useFeedback } from "../components/Feedback";
 import { LoadingState, PageHeader } from "../components/common";
 import DataTable from "../components/DataTable";
+import { Modal } from "./finance/shared";
+import { PAYMENT_METHODS, dateToApi, money, toInputDate } from "./finance/format";
 
 const ROLE_COLORS = { super: "warning", admin: "primary", team: "default" };
 const ROLE_LABELS = { super: "Super admin", admin: "Admin", team: "Team" };
@@ -35,6 +37,10 @@ export default function Users() {
   const [form, setForm] = useState({ username: "", email: "", password: "", role: "team", showBills: true });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // Expense wallet per user (adminId -> { spent, paid, balance })
+  const [wallets, setWallets] = useState({});
+  const [paying, setPaying] = useState(null);
+  const [payError, setPayError] = useState("");
 
   const isSuper = me?.role === "super";
 
@@ -54,8 +60,12 @@ export default function Users() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await adminAPI.listUsers();
+      const [list, walletData] = await Promise.all([
+        adminAPI.listUsers(),
+        financeAPI.expenseWallets.getAll().catch(() => ({ wallets: [] })),
+      ]);
       setUsers(list);
+      setWallets(Object.fromEntries((walletData.wallets || []).map((w) => [String(w.adminId), w])));
     } catch (err) {
       notify(err.message || "Could not load users", "error");
     } finally {
@@ -128,6 +138,41 @@ export default function Users() {
     }
   };
 
+  // Pay defaults to what the company owes them, if anything
+  const openPay = (user) => {
+    const owed = -(wallets[user._id]?.balance || 0);
+    setPayError("");
+    setPaying({ user, amount: owed > 0 ? owed : "", method: "upi", paidAt: toInputDate(), note: "" });
+  };
+
+  const submitPay = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setPayError("");
+    try {
+      const { user, ...body } = paying;
+      await financeAPI.expenseWallets.pay(user._id, { ...body, paidAt: dateToApi(body.paidAt) });
+      notify(`Paid ${money(body.amount)} to ${user.username}`, "success");
+      setPaying(null);
+      await load();
+    } catch (err) {
+      setPayError(err.message || "Could not record payment");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setPay = (k) => (e) => setPaying({ ...paying, [k]: e.target.value });
+
+  // Spent / received / balance columns for each user's expense wallet
+  const walletCol = (key, label, render) => ({
+    key,
+    label,
+    align: "right",
+    value: (u) => wallets[u._id]?.[key] ?? -Infinity,
+    render: (u) => (wallets[u._id] ? render(wallets[u._id]) : "—"),
+  });
+
   if (!isSuper) {
     return (
       <Box>
@@ -169,7 +214,7 @@ export default function Users() {
       ) : (
         <DataTable
           rows={users}
-          minWidth={760}
+          minWidth={1000}
           initialSort={{ key: "role", dir: "asc" }}
           empty={{ icon: <ShieldCheck />, title: "No users", text: "Add someone with the button above." }}
           columns={[
@@ -244,29 +289,94 @@ export default function Users() {
                 );
               },
             },
+            walletCol("spent", "Spent", (w) => money(w.spent)),
+            walletCol("paid", "Received", (w) => money(w.paid)),
+            walletCol("balance", "Balance", (w) => (
+              <Box
+                component="span"
+                sx={{ fontWeight: 600, color: w.balance < 0 ? "error.main" : w.balance > 0 ? "success.main" : "text.primary" }}
+              >
+                {w.balance < 0 ? `Owed ${money(-w.balance)}` : money(w.balance)}
+              </Box>
+            )),
           ]}
           actions={(u) => {
             const pinned = u.role === "super";
             const isSelf = me?.id === u._id;
             return (
-              <Tooltip
-                title={pinned ? "Super admin cannot be deleted" : isSelf ? "You cannot delete yourself" : "Delete user"}
-              >
-                <span>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    aria-label={`Delete ${u.username}`}
-                    onClick={() => handleDelete(u)}
-                    disabled={pinned || isSelf}
-                  >
-                    <Trash2 />
-                  </IconButton>
-                </span>
-              </Tooltip>
+              <>
+                {!pinned && (
+                  <Button size="small" variant="contained" onClick={() => openPay(u)}>
+                    Pay
+                  </Button>
+                )}
+                <Tooltip
+                  title={pinned ? "Super admin cannot be deleted" : isSelf ? "You cannot delete yourself" : "Delete user"}
+                >
+                  <span>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      aria-label={`Delete ${u.username}`}
+                      onClick={() => handleDelete(u)}
+                      disabled={pinned || isSelf}
+                    >
+                      <Trash2 />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </>
             );
           }}
         />
+      )}
+
+      {paying && (
+        <Modal title={`Pay ${paying.user.username}`} onClose={() => setPaying(null)}>
+          <Box component="form" onSubmit={submitPay}>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              {wallets[paying.user._id] && (
+                <Typography variant="body2" color="text.secondary">
+                  Spent {money(wallets[paying.user._id].spent)} · Received {money(wallets[paying.user._id].paid)}
+                </Typography>
+              )}
+              <TextField
+                type="number"
+                label="Amount (₹)"
+                required
+                value={paying.amount}
+                onChange={setPay("amount")}
+                slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+              />
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <TextField select label="Paid via" value={paying.method} onChange={setPay("method")}>
+                  {PAYMENT_METHODS.map(([v, l]) => (
+                    <MenuItem key={v} value={v}>
+                      {l}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  type="date"
+                  label="Date"
+                  value={paying.paidAt}
+                  onChange={setPay("paidAt")}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              </Stack>
+              <TextField label="Note" value={paying.note} onChange={setPay("note")} />
+              {payError && <Alert severity="error">{payError}</Alert>}
+            </Stack>
+            <DialogActions sx={{ px: 0, pt: 3, pb: 0 }}>
+              <Button color="inherit" onClick={() => setPaying(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="contained" disabled={saving}>
+                {saving ? "Saving..." : "Record payment"}
+              </Button>
+            </DialogActions>
+          </Box>
+        </Modal>
       )}
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>

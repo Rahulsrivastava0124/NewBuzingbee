@@ -682,6 +682,13 @@ export const financeAPI = {
     delete: (id) => financeRequest(`/expenses/${id}`, { method: "DELETE" }),
   },
 
+  // Per-person expense wallets (list + pay are super admin only)
+  expenseWallets: {
+    getAll: () => financeRequest("/expense-wallets"),
+    mine: () => financeRequest("/expense-wallets/me"),
+    pay: (id, body) => financeRequest(`/expense-wallets/${id}/pay`, { method: "POST", body }),
+  },
+
   loans: {
     getAll: (params) => financeRequest("/loans", { params }),
     create: (body) => financeRequest("/loans", { method: "POST", body }),

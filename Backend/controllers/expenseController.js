@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Expense = require("../models/Expense");
 const LedgerEntry = require("../models/LedgerEntry");
 const { errorDetail } = require("../utils/errors");
@@ -6,6 +7,21 @@ const fail = (res, message, error, code = 500) =>
   res.status(code).json({ success: false, message, error: errorDetail(error) });
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const toId = (id) => new mongoose.Types.ObjectId(String(id));
+const isSuper = (req) => req.admin?.role === "super";
+
+// Admin/team only ever touch their own expenses; the super admin can touch all
+const ownScope = (req) => (isSuper(req) ? {} : { spentBy: toId(req.admin.id) });
+
+// Listing: the super admin can narrow to one wallet with ?spentBy=<id>|company
+const listScope = (req) => {
+  if (!isSuper(req)) return ownScope(req);
+  const by = req.query?.spentBy;
+  if (by === "company") return { spentBy: null };
+  if (by && mongoose.isValidObjectId(by)) return { spentBy: toId(by) };
+  return {};
+};
 
 const ledgerFor = (expense) => ({
   type: "debit",
@@ -19,10 +35,19 @@ const ledgerFor = (expense) => ({
   date: expense.spentAt,
 });
 
+// Only company expenses hit the company wallet; a person's own expense comes out
+// of their expense wallet, and the company wallet pays when the super admin pays them
+const syncLedger = (expense) =>
+  expense.spentBy
+    ? LedgerEntry.deleteMany({ refType: "expense", refId: expense._id })
+    : LedgerEntry.findOneAndUpdate({ refType: "expense", refId: expense._id }, ledgerFor(expense), {
+        upsert: true,
+      });
+
 const getExpenses = async (req, res) => {
   try {
     const { category, search, from, to, page = 1, limit = 100 } = req.query;
-    const query = {};
+    const query = listScope(req);
     if (category && category !== "all") query.category = category;
     if (search) {
       const rx = new RegExp(escapeRegex(String(search)), "i");
@@ -36,7 +61,11 @@ const getExpenses = async (req, res) => {
 
     const skip = (Number(page) - 1) * Number(limit);
     const [expenses, total, byCategory] = await Promise.all([
-      Expense.find(query).sort({ spentAt: -1 }).skip(skip).limit(Number(limit)),
+      Expense.find(query)
+        .sort({ spentAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .populate("spentBy", "username"),
       Expense.countDocuments(query),
       Expense.aggregate([
         { $match: query },
@@ -77,8 +106,9 @@ const createExpense = async (req, res) => {
       method,
       spentAt,
       note,
+      spentBy: isSuper(req) ? null : req.admin.id,
     });
-    await LedgerEntry.create(ledgerFor(expense));
+    await syncLedger(expense);
     return res.status(201).json({ success: true, expense });
   } catch (error) {
     return fail(res, "Failed to create expense", error);
@@ -87,7 +117,7 @@ const createExpense = async (req, res) => {
 
 const updateExpense = async (req, res) => {
   try {
-    const expense = await Expense.findById(req.params.id);
+    const expense = await Expense.findOne({ _id: req.params.id, ...ownScope(req) });
     if (!expense) {
       return res
         .status(404)
@@ -106,11 +136,7 @@ const updateExpense = async (req, res) => {
     }
     await expense.save();
 
-    await LedgerEntry.findOneAndUpdate(
-      { refType: "expense", refId: expense._id },
-      ledgerFor(expense),
-      { upsert: true },
-    );
+    await syncLedger(expense);
     return res.json({ success: true, expense });
   } catch (error) {
     return fail(res, "Failed to update expense", error);
@@ -119,7 +145,7 @@ const updateExpense = async (req, res) => {
 
 const deleteExpense = async (req, res) => {
   try {
-    const expense = await Expense.findByIdAndDelete(req.params.id);
+    const expense = await Expense.findOneAndDelete({ _id: req.params.id, ...ownScope(req) });
     if (!expense) {
       return res
         .status(404)
@@ -132,4 +158,4 @@ const deleteExpense = async (req, res) => {
   }
 };
 
-module.exports = { getExpenses, createExpense, updateExpense, deleteExpense };
+module.exports = { getExpenses, createExpense, updateExpense, deleteExpense, ledgerFor };

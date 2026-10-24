@@ -26,6 +26,7 @@ const SOURCES = [
   ["manual", "Manual"],
   ["loan", "Loans"],
   ["loan-repayment", "Loan repayments"],
+  ["payout", "Expense wallet payouts"],
 ];
 
 const blank = () => ({

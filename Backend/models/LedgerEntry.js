@@ -10,7 +10,7 @@ const ledgerEntrySchema = new mongoose.Schema(
     category: { type: String, trim: true, default: "general" },
     refType: {
       type: String,
-      enum: ["payment", "expense", "manual", "loan", "loan-repayment"],
+      enum: ["payment", "expense", "manual", "loan", "loan-repayment", "payout"],
       default: "manual",
     },
     refId: { type: mongoose.Schema.Types.ObjectId, default: null },

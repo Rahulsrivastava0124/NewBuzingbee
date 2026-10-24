@@ -1,8 +1,9 @@
 const express = require("express");
-const { protectAdmin, requireBills } = require("../middleware/authMiddleware");
+const { protectAdmin, requireBills, requireSuper } = require("../middleware/authMiddleware");
 const client = require("../controllers/clientController");
 const invoice = require("../controllers/invoiceController");
 const expense = require("../controllers/expenseController");
+const expenseWallet = require("../controllers/expenseWalletController");
 const wallet = require("../controllers/walletController");
 const loan = require("../controllers/loanController");
 
@@ -37,6 +38,11 @@ router.get("/expenses", expense.getExpenses);
 router.post("/expenses", expense.createExpense);
 router.put("/expenses/:id", expense.updateExpense);
 router.delete("/expenses/:id", expense.deleteExpense);
+
+// Per-person expense wallets: super admin pays people, everyone sees their own
+router.get("/expense-wallets", requireSuper, expenseWallet.getExpenseWallets);
+router.get("/expense-wallets/me", expenseWallet.getMyExpenseWallet);
+router.post("/expense-wallets/:id/pay", requireSuper, expenseWallet.payExpenseWallet);
 
 // Loans (taken or given) + repayments; each one is mirrored in the wallet
 router.get("/loans", loan.getLoans);

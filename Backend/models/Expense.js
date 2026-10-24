@@ -27,6 +27,8 @@ const expenseSchema = new mongoose.Schema(
     },
     spentAt: { type: Date, default: Date.now },
     note: { type: String, default: "" },
+    // Whose expense wallet paid it; null = the company wallet (super admin, older entries)
+    spentBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", default: null, index: true },
   },
   { timestamps: true },
 );
