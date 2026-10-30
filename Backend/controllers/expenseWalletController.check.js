@@ -1,7 +1,9 @@
 // Run: node controllers/expenseWalletController.check.js  (no database needed)
 const assert = require("assert");
 const ExpensePayout = require("../models/ExpensePayout");
+const Expense = require("../models/Expense");
 const { walletSummary, ledgerForPayout } = require("./expenseWalletController");
+const { hitsCompanyWallet } = require("./expenseController");
 
 // Balance = paid - spent: negative means the company owes the person
 assert.deepStrictEqual(walletSummary(1500.1, 0), { spent: 1500.1, paid: 0, balance: -1500.1 });
@@ -16,5 +18,16 @@ assert.strictEqual(entry.amount, 2000);
 assert.strictEqual(entry.refType, "payout");
 assert.strictEqual(String(entry.refId), String(payout._id));
 assert.match(entry.description, /Rahul Kumar/);
+
+// Only approved company expenses come out of the company wallet
+const admin = "6accce58a1c5368f1a629acd";
+assert.strictEqual(hitsCompanyWallet(new Expense({ title: "x", amount: 1 })), true); // older entry, no status
+assert.strictEqual(hitsCompanyWallet(new Expense({ title: "x", amount: 1, status: "pending" })), false);
+assert.strictEqual(hitsCompanyWallet(new Expense({ title: "x", amount: 1, status: "rejected" })), false);
+assert.strictEqual(hitsCompanyWallet(new Expense({ title: "x", amount: 1, status: "cancelled" })), false);
+assert.strictEqual(hitsCompanyWallet(new Expense({ title: "x", amount: 1, spentBy: admin, status: "approved" })), false);
+
+// Wallet totals skip anything not approved; older entries without a status still count
+assert.deepStrictEqual(Expense.APPROVED, { status: { $nin: ["pending", "rejected", "cancelled"] } });
 
 console.log("expenseWalletController checks passed");

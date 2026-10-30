@@ -149,6 +149,7 @@ const getFinanceSummary = async (req, res) => {
           },
         ]),
         Expense.aggregate([
+          { $match: Expense.APPROVED },
           { $group: { _id: null, amount: { $sum: "$amount" } } },
         ]),
         Payment.aggregate([
@@ -161,7 +162,7 @@ const getFinanceSummary = async (req, res) => {
           },
         ]),
         Expense.aggregate([
-          { $match: { spentAt: { $gte: sixMonthsAgo } } },
+          { $match: { spentAt: { $gte: sixMonthsAgo }, ...Expense.APPROVED } },
           {
             $group: {
               _id: { y: { $year: "$spentAt" }, m: { $month: "$spentAt" } },

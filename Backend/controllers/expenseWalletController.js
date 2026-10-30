@@ -7,7 +7,7 @@ const { errorDetail } = require("../utils/errors");
 
 // Each admin/team member has an expense wallet:
 //   paid    = what the super admin has paid them (advances + reimbursements)
-//   spent   = expenses they recorded themselves
+//   spent   = their own expenses the super admin approved
 //   balance = paid - spent  (positive: advance in hand, negative: the company owes them)
 
 const fail = (res, message, error, code = 500) =>
@@ -41,7 +41,7 @@ const getExpenseWallets = async (_req, res) => {
   try {
     const [admins, spent, paid] = await Promise.all([
       Admin.find({ role: { $ne: "super" } }, "username email role").lean(),
-      sumBy(Expense, "spentBy", { spentBy: { $ne: null } }),
+      sumBy(Expense, "spentBy", { spentBy: { $ne: null }, ...Expense.APPROVED }),
       sumBy(ExpensePayout, "to"),
     ]);
     const amountFor = (rows, id) => rows.find((r) => String(r._id) === String(id))?.amount || 0;
@@ -61,7 +61,7 @@ const getMyExpenseWallet = async (req, res) => {
   try {
     const me = new mongoose.Types.ObjectId(String(req.admin.id));
     const [spent, paid, payouts] = await Promise.all([
-      sumBy(Expense, "spentBy", { spentBy: me }),
+      sumBy(Expense, "spentBy", { spentBy: me, ...Expense.APPROVED }),
       sumBy(ExpensePayout, "to", { to: me }),
       ExpensePayout.find({ to: me }).sort({ paidAt: -1 }).limit(50),
     ]);

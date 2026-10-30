@@ -177,7 +177,7 @@ export default function Invoices() {
         actions={(inv) => (
           <>
             <Tooltip title="View">
-              <IconButton size="small" color="primary" aria-label="View" onClick={() => open(inv)}>
+              <IconButton size="small" color="info" aria-label="View" onClick={() => open(inv)}>
                 <Eye />
               </IconButton>
             </Tooltip>

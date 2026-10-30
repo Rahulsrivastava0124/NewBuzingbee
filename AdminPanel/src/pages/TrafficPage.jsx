@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -32,6 +33,7 @@ const csvCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 function TrafficPage() {
   const [traffic, setTraffic] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filters, setFilters] = useState({
     website: "buzingbee",
     page: "",
@@ -53,8 +55,9 @@ function TrafficPage() {
       setTraffic(response.data || []);
       setPagination((prev) => ({ ...prev, total: response.total || 0 }));
       setLastUpdated(new Date());
-    } catch (error) {
-      console.error("Failed to fetch traffic data:", error);
+      setError("");
+    } catch (err) {
+      setError(err.message || "Could not load traffic data");
       setTraffic([]);
     } finally {
       setLoading(false);
@@ -165,6 +168,12 @@ function TrafficPage() {
           </>
         }
       />
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ alignItems: { md: "center" } }}>

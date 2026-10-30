@@ -16,18 +16,17 @@ import { financeAPI } from "../../services/api";
 import { useFeedback } from "../../components/Feedback";
 import { LoadingState, PageHeader, SearchField, TableToolbar } from "../../components/common";
 import DataTable from "../../components/DataTable";
-import { Modal } from "./shared";
+import { Modal, StatusBadge } from "./shared";
 import {
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
   dateToApi,
   fmtDate,
-  methodLabel,
   money,
   titleCase,
   toInputDate,
 } from "./format";
-import { Pencil, Plus, Printer, Receipt, Trash2 } from "lucide-react";
+import { Check, Plus, Printer, Receipt, X } from "lucide-react";
 
 const blank = () => ({
   title: "",
@@ -72,6 +71,7 @@ export default function Expenses() {
   const [wallet, setWallet] = useState(null);
   const [wallets, setWallets] = useState([]);
   const [spentBy, setSpentBy] = useState("all");
+  const [status, setStatus] = useState("all");
   const [expenses, setExpenses] = useState([]);
   const [byCategory, setByCategory] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -86,7 +86,12 @@ export default function Expenses() {
   const load = useCallback(async () => {
     try {
       const [data, walletData] = await Promise.all([
-        financeAPI.expenses.getAll({ search, category, spentBy: isSuper && spentBy !== "all" ? spentBy : undefined }),
+        financeAPI.expenses.getAll({
+          search,
+          category,
+          spentBy: isSuper && spentBy !== "all" ? spentBy : undefined,
+          status: status !== "all" ? status : undefined,
+        }),
         isSuper ? financeAPI.expenseWallets.getAll() : financeAPI.expenseWallets.mine(),
       ]);
       if (isSuper) setWallets(walletData.wallets || []);
@@ -100,7 +105,7 @@ export default function Expenses() {
     } finally {
       setLoading(false);
     }
-  }, [search, category, spentBy, isSuper]);
+  }, [search, category, spentBy, status, isSuper]);
 
   useEffect(() => {
     const t = setTimeout(load, 250);
@@ -113,10 +118,9 @@ export default function Expenses() {
     setFormError("");
     try {
       const body = { ...editing, spentAt: dateToApi(editing.spentAt) };
-      if (editing._id) await financeAPI.expenses.update(editing._id, body);
-      else await financeAPI.expenses.create(body);
+      await financeAPI.expenses.create(body);
       setEditing(null);
-      notify("Expense saved", "success");
+      notify(isSuper ? "Expense saved" : "Expense sent to the super admin for approval", "success");
       await load();
     } catch (err) {
       setFormError(err.message);
@@ -125,16 +129,26 @@ export default function Expenses() {
     }
   };
 
-  const remove = async (x) => {
+  const review = async (x, approve) => {
+    try {
+      await (approve ? financeAPI.expenses.approve(x._id) : financeAPI.expenses.reject(x._id));
+      notify(approve ? `Approved "${x.title}"` : `Rejected "${x.title}"`, "success");
+      await load();
+    } catch (err) {
+      notify(err.message, "error");
+    }
+  };
+
+  const cancel = async (x) => {
     const ok = await confirm({
-      title: "Delete expense",
-      message: `Delete expense "${x.title}"?`,
-      confirmLabel: "Delete",
+      title: "Cancel expense",
+      message: `Cancel "${x.title}"? It won't be sent for approval.`,
+      confirmLabel: "Cancel expense",
     });
     if (!ok) return;
     try {
-      await financeAPI.expenses.delete(x._id);
-      notify("Expense deleted", "success");
+      await financeAPI.expenses.cancel(x._id);
+      notify(`Cancelled "${x.title}"`, "success");
       await load();
     } catch (err) {
       notify(err.message, "error");
@@ -175,14 +189,14 @@ export default function Expenses() {
       value: (x) => x.category,
       render: (x) => <Chip size="small" label={titleCase(x.category)} />,
     },
-    {
-      key: "spentBy",
-      label: "Paid from",
-      value: (x) => (x.spentBy ? (isSuper ? x.spentBy.username : "My wallet") : "Company"),
-    },
     { key: "createdBy", label: "Added by", value: (x) => x.createdBy?.username || "—" },
+    {
+      key: "status",
+      label: "Status",
+      value: (x) => x.status || "approved",
+      render: (x) => <StatusBadge status={x.status || "approved"} />,
+    },
     { key: "vendor", label: "Vendor", value: (x) => x.vendor || "" , render: (x) => x.vendor || "—" },
-    { key: "method", label: "Method", value: (x) => methodLabel(x.method) },
     {
       key: "amount",
       label: "Amount",
@@ -251,7 +265,7 @@ export default function Expenses() {
       <DataTable
         columns={columns}
         rows={expenses}
-        minWidth={1000}
+        minWidth={900}
         pageSize={50}
         empty={{ icon: <Receipt />, title: "No expenses", text: "No expenses match these filters." }}
         toolbar={
@@ -288,26 +302,49 @@ export default function Expenses() {
                 ))}
               </TextField>
             )}
+            <TextField
+              select
+              label="Status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              sx={{ minWidth: 160, width: { md: "auto" } }}
+            >
+              <MenuItem value="all">All statuses</MenuItem>
+              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="approved">Approved</MenuItem>
+              <MenuItem value="rejected">Rejected</MenuItem>
+              <MenuItem value="cancelled">Cancelled</MenuItem>
+            </TextField>
           </TableToolbar>
         }
-        actions={(x) => (
-          <>
-            <Tooltip title="Edit">
-              <IconButton size="small" color="primary" aria-label="Edit" onClick={() => setEditing({ ...x, spentAt: toInputDate(x.spentAt) })}>
-                <Pencil />
+        // Pending expenses only: the super admin approves or rejects, the owner can cancel
+        actions={(x) =>
+          x.status === "pending" &&
+          (isSuper ? (
+            <>
+              <Tooltip title="Approve">
+                <IconButton size="small" color="success" aria-label={`Approve ${x.title}`} onClick={() => review(x, true)}>
+                  <Check />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Reject">
+                <IconButton size="small" color="error" aria-label={`Reject ${x.title}`} onClick={() => review(x, false)}>
+                  <X />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : (
+            <Tooltip title="Cancel expense">
+              <IconButton size="small" color="warning" aria-label={`Cancel ${x.title}`} onClick={() => cancel(x)}>
+                <X />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Delete expense">
-              <IconButton size="small" color="error" aria-label={`Delete ${x.title}`} onClick={() => remove(x)}>
-                <Trash2 />
-              </IconButton>
-            </Tooltip>
-          </>
-        )}
+          ))
+        }
       />
 
       {editing && (
-        <Modal title={editing._id ? "Edit expense" : "Add expense"} onClose={() => setEditing(null)}>
+        <Modal title="Add expense" onClose={() => setEditing(null)}>
           <Box component="form" onSubmit={save}>
             <Grid container spacing={2} sx={{ pt: 1 }}>
               <Grid size={12}>
@@ -350,7 +387,7 @@ export default function Expenses() {
                   ))}
                 </TextField>
               </Grid>
-              {!isSuper && !editing._id && (
+              {!isSuper && (
                 <Grid size={12}>
                   <TextField select label="Paid from" value={editing.paidFrom} onChange={set("paidFrom")}>
                     <MenuItem value="mine">My expense wallet</MenuItem>

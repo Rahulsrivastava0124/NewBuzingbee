@@ -680,6 +680,11 @@ export const financeAPI = {
     update: (id, body) =>
       financeRequest(`/expenses/${id}`, { method: "PUT", body }),
     delete: (id) => financeRequest(`/expenses/${id}`, { method: "DELETE" }),
+    // Super admin only; approving takes the expense out of its wallet
+    approve: (id) => financeRequest(`/expenses/${id}/approve`, { method: "POST" }),
+    reject: (id) => financeRequest(`/expenses/${id}/reject`, { method: "POST" }),
+    // Owner withdraws a pending expense
+    cancel: (id) => financeRequest(`/expenses/${id}/cancel`, { method: "POST" }),
   },
 
   // Per-person expense wallets (list + pay are super admin only)

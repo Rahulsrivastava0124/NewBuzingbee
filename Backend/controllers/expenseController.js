@@ -36,10 +36,12 @@ const ledgerFor = (expense) => ({
   date: expense.spentAt,
 });
 
-// Only company expenses hit the company wallet; a person's own expense comes out
-// of their expense wallet, and the company wallet pays when the super admin pays them
+// Only approved company expenses hit the company wallet; a person's own expense comes
+// out of their expense wallet, and the company wallet pays when the super admin pays them
+const hitsCompanyWallet = (expense) => !expense.spentBy && expense.status === "approved";
+
 const syncLedger = (expense) =>
-  expense.spentBy
+  !hitsCompanyWallet(expense)
     ? LedgerEntry.deleteMany({ refType: "expense", refId: expense._id })
     : LedgerEntry.findOneAndUpdate({ refType: "expense", refId: expense._id }, ledgerFor(expense), {
         upsert: true,
@@ -51,6 +53,9 @@ const getExpenses = async (req, res) => {
     // $and keeps the scope's $or and the search's $or apart
     const query = { $and: [listScope(req)] };
     if (category && category !== "all") query.category = category;
+    if (["pending", "approved", "rejected", "cancelled"].includes(req.query.status)) {
+      query.$and.push(req.query.status === "approved" ? Expense.APPROVED : { status: req.query.status });
+    }
     if (search) {
       const rx = new RegExp(escapeRegex(String(search)), "i");
       query.$and.push({ $or: [{ title: rx }, { vendor: rx }] });
@@ -70,8 +75,9 @@ const getExpenses = async (req, res) => {
         .populate("spentBy", "username")
         .populate("createdBy", "username"),
       Expense.countDocuments(query),
+      // Totals only include approved spending
       Expense.aggregate([
-        { $match: query },
+        { $match: { $and: [query, Expense.APPROVED] } },
         { $group: { _id: "$category", amount: { $sum: "$amount" } } },
         { $sort: { amount: -1 } },
       ]),
@@ -112,6 +118,7 @@ const createExpense = async (req, res) => {
       // Admin/team default to their own wallet but may log a company expense
       spentBy: isSuper(req) || paidFrom === "company" ? null : req.admin.id,
       createdBy: req.admin.id,
+      status: isSuper(req) ? "approved" : "pending",
     });
     await syncLedger(expense);
     return res.status(201).json({ success: true, expense });
@@ -139,6 +146,12 @@ const updateExpense = async (req, res) => {
       }
       expense.amount = Number(req.body.amount);
     }
+    // Any change by admin/team needs approving again
+    if (!isSuper(req)) {
+      expense.status = "pending";
+      expense.reviewedBy = null;
+      expense.reviewedAt = null;
+    }
     await expense.save();
 
     await syncLedger(expense);
@@ -163,4 +176,53 @@ const deleteExpense = async (req, res) => {
   }
 };
 
-module.exports = { getExpenses, createExpense, updateExpense, deleteExpense, ledgerFor };
+// POST /expenses/:id/approve | /reject (super) — approving takes it out of its wallet
+const reviewExpense = (status) => async (req, res) => {
+  try {
+    const expense = await Expense.findById(req.params.id);
+    if (!expense) {
+      return res.status(404).json({ success: false, message: "Expense not found" });
+    }
+    expense.status = status;
+    expense.reviewedBy = req.admin.id;
+    expense.reviewedAt = new Date();
+    await expense.save();
+    await syncLedger(expense);
+    return res.json({ success: true, expense });
+  } catch (error) {
+    return fail(res, `Failed to ${status === "approved" ? "approve" : "reject"} expense`, error);
+  }
+};
+
+// POST /expenses/:id/cancel — whoever owns it can withdraw it before it's reviewed
+const cancelExpense = async (req, res) => {
+  try {
+    const expense = await Expense.findOne({ _id: req.params.id, ...ownScope(req) });
+    if (!expense) {
+      return res.status(404).json({ success: false, message: "Expense not found" });
+    }
+    if (expense.status !== "pending") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Only pending expenses can be cancelled" });
+    }
+    expense.status = "cancelled";
+    await expense.save();
+    await syncLedger(expense);
+    return res.json({ success: true, expense });
+  } catch (error) {
+    return fail(res, "Failed to cancel expense", error);
+  }
+};
+
+module.exports = {
+  getExpenses,
+  cancelExpense,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  approveExpense: reviewExpense("approved"),
+  rejectExpense: reviewExpense("rejected"),
+  ledgerFor,
+  hitsCompanyWallet,
+};

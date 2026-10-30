@@ -4,6 +4,7 @@ import "@/styles/globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
+import PageViewTracker from "@/components/PageViewTracker";
 import { SITE_CONFIG } from "@/lib/constants";
  
 
@@ -250,6 +251,7 @@ export default function RootLayout({
         <main className="min-h-screen">{children}</main>
         <Footer />
         <ChatWidget />
+        <PageViewTracker />
       </body>
     </html>
   );

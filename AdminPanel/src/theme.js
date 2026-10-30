@@ -69,7 +69,19 @@ const theme = createTheme({
     },
     MuiIconButton: {
       styleOverrides: {
-        root: { borderRadius: 999, color: "#4b5563" },
+        // Plain icon buttons stay grey; coloured ones (view, edit, delete...) get a soft tint
+        root: ({ ownerState }) => {
+          const c = ownerState.color;
+          if (!SOFT_CHIP_COLORS.includes(c)) return { borderRadius: 999, color: "#4b5563" };
+          const main = `var(--mui-palette-${c}-main)`;
+          return {
+            borderRadius: 999,
+            color: c === "primary" ? honeyDeep : main,
+            backgroundColor: `color-mix(in srgb, ${main} 12%, transparent)`,
+            "&:hover": { backgroundColor: `color-mix(in srgb, ${main} 22%, transparent)` },
+            "&.Mui-disabled": { backgroundColor: "transparent" },
+          };
+        },
         sizeSmall: { padding: 6, "& svg": { width: 18, height: 18 } },
       },
     },

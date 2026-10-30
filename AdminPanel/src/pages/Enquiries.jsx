@@ -271,7 +271,7 @@ export default function Enquiries() {
         actions={(enq) => (
           <>
             <Tooltip title="View">
-              <IconButton size="small" color="primary" aria-label="View" onClick={() => handleOpen(enq)}>
+              <IconButton size="small" color="info" aria-label="View" onClick={() => handleOpen(enq)}>
                 <Eye />
               </IconButton>
             </Tooltip>

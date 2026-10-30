@@ -61,6 +61,9 @@ export const STATUS_COLOR = {
   debit: "error",
   draft: "default",
   cancelled: "default",
+  pending: "warning",
+  approved: "success",
+  rejected: "error",
 };
 
 // "Due today", "Due in 3 days", "5 days overdue" for a due date.

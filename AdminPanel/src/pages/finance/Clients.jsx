@@ -192,7 +192,7 @@ export default function Clients() {
         actions={(c) => (
           <>
             <Tooltip title="View">
-              <IconButton size="small" color="primary" aria-label="View" onClick={() => view(c)}>
+              <IconButton size="small" color="info" aria-label="View" onClick={() => view(c)}>
                 <Eye />
               </IconButton>
             </Tooltip>

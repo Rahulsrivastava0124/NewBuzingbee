@@ -301,7 +301,7 @@ export default function Loans() {
         actions={(l) => (
           <>
             <Tooltip title="View">
-              <IconButton size="small" color="primary" aria-label="View" onClick={() => setViewing(l)}>
+              <IconButton size="small" color="info" aria-label="View" onClick={() => setViewing(l)}>
                 <Eye />
               </IconButton>
             </Tooltip>

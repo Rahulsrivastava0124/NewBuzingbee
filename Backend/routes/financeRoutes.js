@@ -38,6 +38,9 @@ router.get("/expenses", expense.getExpenses);
 router.post("/expenses", expense.createExpense);
 router.put("/expenses/:id", expense.updateExpense);
 router.delete("/expenses/:id", expense.deleteExpense);
+router.post("/expenses/:id/approve", requireSuper, expense.approveExpense);
+router.post("/expenses/:id/reject", requireSuper, expense.rejectExpense);
+router.post("/expenses/:id/cancel", expense.cancelExpense);
 
 // Per-person expense wallets: super admin pays people, everyone sees their own
 router.get("/expense-wallets", requireSuper, expenseWallet.getExpenseWallets);

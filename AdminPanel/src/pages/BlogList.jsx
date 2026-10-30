@@ -402,7 +402,7 @@ export default function BlogList() {
                   </CardContent>
                   <CardActions sx={{ px: 2, pb: 2, pt: 0, gap: 1 }}>
                     <Tooltip title="View">
-                      <IconButton size="small" color="primary" aria-label="View" onClick={() => navigate(`/dashboard/blog/${id}`)}>
+                      <IconButton size="small" color="info" aria-label="View" onClick={() => navigate(`/dashboard/blog/${id}`)}>
                         <Eye />
                       </IconButton>
                     </Tooltip>
