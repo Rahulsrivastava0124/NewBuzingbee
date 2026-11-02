@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 
 const enquirySchema = new mongoose.Schema(
   {
+    // Which website the enquiry came from
+    site: {
+      type: String,
+      enum: ["buzingbee", "hustlershive"],
+      default: "buzingbee",
+      index: true,
+    },
     name: {
       type: String,
       required: true,

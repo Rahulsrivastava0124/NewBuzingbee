@@ -15,7 +15,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { blogAPI } from "../services/api";
+import { BLOG_SITES, blogAPI, getBlogSite } from "../services/api";
 import { LoadingState } from "../components/common";
 import RichTextField from "../components/RichTextField";
 import { ArrowLeft, ImagePlus, Save } from "lucide-react";
@@ -228,6 +228,13 @@ export default function BlogForm() {
         </Button>
       </Stack>
 
+      {!isEditing && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          This post will be added to the{" "}
+          <strong>{BLOG_SITES.find((site) => site.value === getBlogSite())?.label}</strong>{" "}
+          blog. Switch websites from the sidebar.
+        </Alert>
+      )}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}

@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 
 const blogSchema = new mongoose.Schema(
   {
+    // Which website the post belongs to; keeps each site's blog separate
+    site: {
+      type: String,
+      enum: ["buzingbee", "hustlershive"],
+      default: "buzingbee",
+      index: true,
+    },
     title: {
       type: String,
       required: true,

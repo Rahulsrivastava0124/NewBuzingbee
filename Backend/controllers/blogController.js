@@ -5,6 +5,7 @@ const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 const { sanitizeRichText } = require("../utils/sanitize");
 const { escapeRegex } = require("../utils/validate");
 const BlogViewDay = require("../models/BlogViewDay");
+const { resolveSite, siteFilter } = require("../utils/site");
 
 const dayKey = (d = new Date()) => d.toISOString().slice(0, 10);
 
@@ -27,7 +28,11 @@ const getBlogViewsDaily = async (req, res) => {
       d.setUTCDate(d.getUTCDate() - i);
       keys.push(dayKey(d));
     }
-    const rows = await BlogViewDay.find({ day: { $gte: keys[0] } }, "blog day views").lean();
+    const siteBlogIds = await Blog.find(siteFilter(req.query.site), "_id").lean();
+    const rows = await BlogViewDay.find(
+      { day: { $gte: keys[0] }, blog: { $in: siteBlogIds.map((b) => b._id) } },
+      "blog day views",
+    ).lean();
     const index = new Map(keys.map((k, i) => [k, i]));
     const series = {};
     const totals = keys.map(() => 0);
@@ -162,6 +167,7 @@ const addBlog = async (req, res) => {
     }
 
     const newBlog = new Blog({
+      site: resolveSite(req.body.site),
       title,
       content: sanitizeRichText(content),
       author: author || req.admin?.username || "Admin",
@@ -204,8 +210,8 @@ const addBlog = async (req, res) => {
 const getAllBlogs = async (req, res) => {
   try {
     const { status, search, category } = req.query;
-    const query = {};
     const text = (v) => (typeof v === "string" ? v : "");
+    const query = { $and: [siteFilter(req.query.site)] };
 
     // Only a signed-in admin may see drafts, reviews or scheduled posts
     if (!req.admin) query.status = "published";
@@ -344,6 +350,7 @@ const getBlogBySlug = async (req, res) => {
       },
       // Unpublished content is not public
       ...(req.admin ? {} : { status: "published" }),
+      $and: [siteFilter(req.query.site)],
     };
 
     if (shouldTrackView) {
@@ -562,14 +569,15 @@ const deleteBlog = async (req, res) => {
   }
 };
 
-const getBlogStats = async (_req, res) => {
+const getBlogStats = async (req, res) => {
   try {
+    const scope = siteFilter(req.query.site);
     const [total, drafts, published, review, scheduled] = await Promise.all([
-      Blog.countDocuments(),
-      Blog.countDocuments({ status: "draft" }),
-      Blog.countDocuments({ status: "published" }),
-      Blog.countDocuments({ status: "review" }),
-      Blog.countDocuments({ status: "scheduled" }),
+      Blog.countDocuments(scope),
+      Blog.countDocuments({ ...scope, status: "draft" }),
+      Blog.countDocuments({ ...scope, status: "published" }),
+      Blog.countDocuments({ ...scope, status: "review" }),
+      Blog.countDocuments({ ...scope, status: "scheduled" }),
     ]);
 
     return res.status(200).json({
