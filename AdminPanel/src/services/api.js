@@ -270,11 +270,35 @@ export const adminAPI = {
   },
 };
 
+// Each website keeps its own blog; the admin works on one at a time
+export const BLOG_SITES = [
+  { value: "buzingbee", label: "BuzingBee" },
+  { value: "hustlershive", label: "The Hustlers Hive" },
+];
+const BLOG_SITE_KEY = "adminBlogSite";
+
+export const getBlogSite = () => {
+  try {
+    const saved = localStorage.getItem(BLOG_SITE_KEY);
+    return BLOG_SITES.some((s) => s.value === saved) ? saved : BLOG_SITES[0].value;
+  } catch {
+    return BLOG_SITES[0].value;
+  }
+};
+
+export const setBlogSite = (site) => {
+  try {
+    localStorage.setItem(BLOG_SITE_KEY, site);
+  } catch {
+    /* storage unavailable: selection just won't persist */
+  }
+};
+
 // Blog API
 export const blogAPI = {
   // Get all blogs
   getAll: async (filters = {}) => {
-    const params = new URLSearchParams(filters);
+    const params = new URLSearchParams({ site: getBlogSite(), ...filters });
     const query = params.toString();
 
     // Drafts and scheduled posts are only returned when the admin token is sent
@@ -309,7 +333,8 @@ export const blogAPI = {
   },
 
   // Create new blog
-  create: async (blogData) => {
+  create: async (rawData) => {
+    const blogData = { ...rawData, site: getBlogSite() };
     const hasImageFile = blogData?.imageFile instanceof File;
     const response = await fetch(`${API_BASE_URL}/blog`, {
       method: "POST",
@@ -351,7 +376,7 @@ export const blogAPI = {
 
   // Get blog statistics
   getStats: async () => {
-    const response = await fetch(`${API_BASE_URL}/blog/stats`, {
+    const response = await fetch(`${API_BASE_URL}/blog/stats?site=${getBlogSite()}`, {
       headers: {
         Authorization: `Bearer ${getAuthToken()}`,
       },
@@ -361,7 +386,7 @@ export const blogAPI = {
 
   // Daily views per post (last N days) for the blog graphs
   getViewsDaily: async (days = 14) => {
-    const response = await fetch(`${API_BASE_URL}/blog/views/daily?days=${days}`, {
+    const response = await fetch(`${API_BASE_URL}/blog/views/daily?days=${days}&site=${getBlogSite()}`, {
       headers: { Authorization: `Bearer ${getAuthToken()}` },
     });
     return handleResponse(response);
@@ -468,7 +493,7 @@ export const analyticsAPI = {
 export const enquiryAPI = {
   // Get all enquiries
   getAll: async (filters = {}) => {
-    const params = new URLSearchParams(filters);
+    const params = new URLSearchParams({ site: getBlogSite(), ...filters });
     const query = params.toString();
     const response = await fetch(
       `${API_BASE_URL}/enquiries${query ? `?${query}` : ""}`,
@@ -512,7 +537,7 @@ export const enquiryAPI = {
 
   // Stats
   getStats: async () => {
-    const response = await fetch(`${API_BASE_URL}/enquiries/stats`, {
+    const response = await fetch(`${API_BASE_URL}/enquiries/stats?site=${getBlogSite()}`, {
       headers: { Authorization: `Bearer ${getAuthToken()}` },
     });
     return handleResponse(response);

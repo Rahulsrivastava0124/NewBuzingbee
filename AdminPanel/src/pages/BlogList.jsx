@@ -19,7 +19,7 @@ import Paper from "@mui/material/Paper";
 import { useTheme } from "@mui/material/styles";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from "recharts";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { blogAPI } from "../services/api";
+import { BLOG_SITES, blogAPI, getBlogSite } from "../services/api";
 import { useFeedback } from "../components/Feedback";
 import { EmptyState, LoadingState, PageHeader, SearchField, TableToolbar } from "../components/common";
 import { Eye, FileText, Pencil, Plus, Trash2 } from "lucide-react";
@@ -73,6 +73,8 @@ export default function BlogList() {
   const { confirm, notify } = useFeedback();
   const [searchParams, setSearchParams] = useSearchParams();
   const filterStatus = searchParams.get("status") || "all";
+  // The sidebar switcher remounts this page when the website changes
+  const [site] = useState(getBlogSite);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +120,7 @@ export default function BlogList() {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [filterStatus]);
+  }, [filterStatus, site]);
 
   // Views per day for the chosen range, refreshed every minute
   useEffect(() => {
@@ -134,7 +136,7 @@ export default function BlogList() {
       alive = false;
       window.clearInterval(t);
     };
-  }, [range]);
+  }, [range, site]);
 
   const changeRange = (_, value) => {
     if (!value) return;
@@ -216,7 +218,7 @@ export default function BlogList() {
   return (
     <Box>
       <PageHeader
-        title="All Blogs"
+        title={`${BLOG_SITES.find((s) => s.value === site)?.label} Blogs`}
         subtitle={`${filteredBlogs.length} posts · ${allTimeViews.toLocaleString()} views all time`}
         actions={
           <Button

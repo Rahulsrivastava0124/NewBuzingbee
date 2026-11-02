@@ -2,6 +2,7 @@ const { errorDetail } = require("../utils/errors");
 const Enquiry = require("../models/Enquiry");
 const { escapeRegex, readText, EMAIL_RE } = require("../utils/validate");
 const { verifyTurnstile } = require("../utils/turnstile");
+const { resolveSite, siteFilter } = require("../utils/site");
 
 const getClientIP = (req) => {
   return (
@@ -55,6 +56,7 @@ const submitEnquiry = async (req, res) => {
     }
 
     const enquiry = new Enquiry({
+      site: resolveSite(body.site),
       name: fields.name.value,
       email: fields.email.value.toLowerCase(),
       phone: fields.phone.value,
@@ -84,7 +86,7 @@ const submitEnquiry = async (req, res) => {
 const getAllEnquiries = async (req, res) => {
   try {
     const { status, search, page = 1, limit = 50 } = req.query;
-    const query = {};
+    const query = { $and: [siteFilter(req.query.site)] };
 
     if (typeof status === "string" && status !== "all") query.status = status;
     if (typeof search === "string" && search) {
@@ -198,12 +200,13 @@ const deleteEnquiry = async (req, res) => {
 // ADMIN: Stats (counts per status)
 const getEnquiryStats = async (req, res) => {
   try {
+    const scope = siteFilter(req.query.site);
     const [total, newCount, read, replied, archived] = await Promise.all([
-      Enquiry.countDocuments(),
-      Enquiry.countDocuments({ status: "new" }),
-      Enquiry.countDocuments({ status: "read" }),
-      Enquiry.countDocuments({ status: "replied" }),
-      Enquiry.countDocuments({ status: "archived" }),
+      Enquiry.countDocuments(scope),
+      Enquiry.countDocuments({ ...scope, status: "new" }),
+      Enquiry.countDocuments({ ...scope, status: "read" }),
+      Enquiry.countDocuments({ ...scope, status: "replied" }),
+      Enquiry.countDocuments({ ...scope, status: "archived" }),
     ]);
 
     return res

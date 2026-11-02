@@ -36,6 +36,8 @@ import {
 } from "../services/api";
 import { BookOpen, HandCoins, Wallet, ChevronDown, Briefcase, Clock, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, PenLine, ReceiptText, Search, Settings, ShieldCheck, TrendingUp, UserRound } from "lucide-react";
 import BrandMark from "../components/Brand";
+import SiteSwitcher from "../components/SiteSwitcher";
+import { getBlogSite, setBlogSite } from "../services/api";
 import { useFeedback } from "../components/Feedback";
 import NotificationBell from "../components/NotificationBell";
 
@@ -68,6 +70,13 @@ function Dashboard() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [site, setSite] = useState(getBlogSite);
+
+  // Persist the choice, then remount the page content so it reloads that site's data
+  const switchSite = (next) => {
+    setBlogSite(next);
+    setSite(next);
+  };
   const [counts, setCounts] = useState({ total: 0, drafts: 0, scheduled: 0 });
   const [csCount, setCsCount] = useState(0);
   const [newEnqCount, setNewEnqCount] = useState(0);
@@ -113,7 +122,7 @@ function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [path]);
+  }, [path, site]);
 
   useEffect(() => {
     adminAPI
@@ -347,6 +356,10 @@ function Dashboard() {
           <BrandMark size={58} />
         </ButtonBase>
       </Stack>
+
+      <Box sx={{ px: 1.5, pb: 1 }}>
+        <SiteSwitcher site={site} onChange={switchSite} />
+      </Box>
 
       <Box component="nav" aria-label="Main" sx={{ flex: 1, overflowY: "auto", px: 1.5, pb: 2 }}>
         {sections.map((section) => {
@@ -647,7 +660,7 @@ function Dashboard() {
             bgcolor: "background.default",
           }}
         >
-          <Outlet context={{ admin, canSeeBills }} />
+          <Outlet key={site} context={{ admin, canSeeBills, site }} />
         </Box>
       </Box>
     </Box>
