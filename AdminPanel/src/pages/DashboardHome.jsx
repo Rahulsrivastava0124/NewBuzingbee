@@ -29,7 +29,7 @@ import {
   Tooltip as RTooltip,
   ResponsiveContainer,
 } from "recharts";
-import { blogAPI, analyticsAPI, enquiryAPI } from "../services/api";
+import { blogAPI, analyticsAPI, enquiryAPI, getBlogSite } from "../services/api";
 import { StatCard } from "../components/common";
 import FinanceOverview from "./finance/FinanceOverview";
 import { ChevronRight, FileText, Inbox, PenLine, Plus, ReceiptText, Settings, TrendingUp, ArrowRight } from "lucide-react";
@@ -93,7 +93,7 @@ function DashboardHome() {
     topPages: [],
     devices: [],
   });
-  const website = "buzingbee";
+  const website = getBlogSite();
 
   const selectedRange =
     RANGE_OPTIONS.find((o) => o.value === selectedRangeValue) || RANGE_OPTIONS[1];
@@ -155,7 +155,7 @@ function DashboardHome() {
     return () => {
       cancelled = true;
     };
-  }, [isHourlyRange, selectedRange.days, selectedRange.hours]);
+  }, [website, isHourlyRange, selectedRange.days, selectedRange.hours]);
 
   const chartData = useMemo(
     () =>

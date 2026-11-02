@@ -124,6 +124,16 @@ function Dashboard() {
     };
   }, [path, site]);
 
+  // Leave BuzingBee-only pages when switching to another website
+  useEffect(() => {
+    if (
+      site === "hustlershive" &&
+      /^\/dashboard\/(finance|case-stud|create-case|edit-case|settings)/.test(path)
+    ) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [site, path, navigate]);
+
   useEffect(() => {
     adminAPI
       .getProfile()
@@ -342,6 +352,13 @@ function Dashboard() {
 
   const [crumbMain, crumbSub] = getBreadcrumb();
 
+  // Finance, case studies and company settings only hold BuzingBee data
+  const hiddenForSite = { hustlershive: ["Finance", "Case Studies", "Settings"] }[site] || [];
+  const visibleSections = sections
+    .filter((s) => !hiddenForSite.includes(s.label))
+    .map((s) => ({ ...s, items: s.items.filter((i) => !hiddenForSite.includes(i.label)) }))
+    .filter((s) => s.items.length);
+
   const drawerContent = (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", bgcolor: SIDEBAR_BG }}>
       <Stack
@@ -353,7 +370,7 @@ function Dashboard() {
           aria-label="Go to dashboard"
           sx={{ borderRadius: 1.5, p: 0.25, "&.Mui-focusVisible": { boxShadow: "0 0 0 3px rgba(161,161,170,.5)" } }}
         >
-          <BrandMark size={58} />
+          <BrandMark size={58} site={site} />
         </ButtonBase>
       </Stack>
 
@@ -362,7 +379,7 @@ function Dashboard() {
       </Box>
 
       <Box component="nav" aria-label="Main" sx={{ flex: 1, overflowY: "auto", px: 1.5, pb: 2 }}>
-        {sections.map((section) => {
+        {visibleSections.map((section) => {
           const single = section.items.length === 1;
           // Groups never toggled before (e.g. newly added ones) start open
           const isOpen = single || openSections[section.label] !== false;

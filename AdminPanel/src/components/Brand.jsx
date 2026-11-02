@@ -13,8 +13,12 @@ const loadLogoUrl = () => {
 };
 
 // Company logo uploaded in Settings → Company.
-export default function BrandMark({ size = 44 }) {
+// Other websites managed here show their own logo instead of the company one
+const SITE_LOGOS = { hustlershive: "/hustlershive-logo.webp" };
+
+export default function BrandMark({ size = 44, site = "buzingbee" }) {
   const [logoUrl, setLogoUrl] = useState("");
+  const siteLogo = SITE_LOGOS[site];
 
   useEffect(() => {
     let alive = true;
@@ -23,6 +27,17 @@ export default function BrandMark({ size = 44 }) {
       alive = false;
     };
   }, []);
+
+  if (siteLogo) {
+    return (
+      <Box
+        component="img"
+        src={siteLogo}
+        alt="The Hustlers Hive logo"
+        sx={{ height: size, width: size, objectFit: "contain", borderRadius: "50%", display: "block", flexShrink: 0 }}
+      />
+    );
+  }
 
   if (logoUrl) {
     return (

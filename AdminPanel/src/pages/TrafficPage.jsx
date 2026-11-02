@@ -19,7 +19,7 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { analyticsAPI } from "../services/api";
+import { analyticsAPI, getBlogSite } from "../services/api";
 import { EmptyState, LoadingState, PageHeader } from "../components/common";
 import { Download, Monitor, RefreshCw, Smartphone, Tablet, TrendingUp, X } from "lucide-react";
 
@@ -35,7 +35,7 @@ function TrafficPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState({
-    website: "buzingbee",
+    website: getBlogSite(),
     page: "",
     device: "",
     days: 7,
