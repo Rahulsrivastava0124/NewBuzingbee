@@ -16,6 +16,12 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { BLOG_SITES, blogAPI, getBlogSite } from "../services/api";
+
+// Public address of each website's blog, shown in front of the slug
+const BLOG_URL_PREFIX = {
+  buzingbee: "buzingbee.com/blog/",
+  hustlershive: "thehustlershive.com/blog/",
+};
 import { LoadingState } from "../components/common";
 import RichTextField from "../components/RichTextField";
 import { ArrowLeft, ImagePlus, Save } from "lucide-react";
@@ -56,6 +62,8 @@ export default function BlogForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
+  // The website this post belongs to: the chosen one for new posts, its own when editing
+  const [postSite, setPostSite] = useState(getBlogSite);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -85,6 +93,7 @@ export default function BlogForm() {
         setLoading(true);
         const blog = await blogAPI.getById(id);
         if (blog) {
+          setPostSite(blog.site || "buzingbee");
           setFormData({
             title: blog.title || "",
             slug: blog.slug || "",
@@ -119,7 +128,7 @@ export default function BlogForm() {
     }
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "slug" ? value.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/-{2,}/g, "-") : value,
       // Auto-generate the slug only for new posts so edits never change a live URL
       ...(name === "title" && !isEditing ? { slug: slugify(value) } : {}),
       ...(name === "status" && value !== "scheduled" ? { scheduledAt: "" } : {}),
@@ -269,7 +278,7 @@ export default function BlogForm() {
                 slotProps={{
                   input: {
                     startAdornment: (
-                      <InputAdornment position="start">buzingbee.com/blog/</InputAdornment>
+                      <InputAdornment position="start">{BLOG_URL_PREFIX[postSite] || BLOG_URL_PREFIX.buzingbee}</InputAdornment>
                     ),
                   },
                 }}

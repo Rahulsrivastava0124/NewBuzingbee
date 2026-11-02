@@ -16,4 +16,13 @@ const siteFilter = (value) => {
     : { site };
 };
 
-module.exports = { SITES, DEFAULT_SITE, resolveSite, siteFilter };
+// URL-safe slug: lowercase letters, digits and single hyphens
+const slugify = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100)
+    .replace(/-+$/g, "");
+
+module.exports = { SITES, DEFAULT_SITE, resolveSite, siteFilter, slugify };

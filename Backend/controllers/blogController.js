@@ -5,7 +5,24 @@ const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 const { sanitizeRichText } = require("../utils/sanitize");
 const { escapeRegex } = require("../utils/validate");
 const BlogViewDay = require("../models/BlogViewDay");
-const { resolveSite, siteFilter } = require("../utils/site");
+const { DEFAULT_SITE, resolveSite, siteFilter, slugify } = require("../utils/site");
+
+// Clean slug that is unique within one website's blog (-2, -3 ... on clashes).
+// BuzingBee keeps its blank slugs; other sites always get one from the title.
+const buildSlug = async (site, requested, title, excludeId) => {
+  const base = slugify(requested) || (site === DEFAULT_SITE ? "" : slugify(title));
+  if (!base) return "";
+  let slug = base;
+  for (let n = 2; ; n += 1) {
+    const clash = await Blog.exists({
+      ...siteFilter(site),
+      slug,
+      ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+    });
+    if (!clash) return slug;
+    slug = `${base.slice(0, 95)}-${n}`;
+  }
+};
 
 const dayKey = (d = new Date()) => d.toISOString().slice(0, 10);
 
@@ -166,8 +183,9 @@ const addBlog = async (req, res) => {
       });
     }
 
+    const site = resolveSite(req.body.site);
     const newBlog = new Blog({
-      site: resolveSite(req.body.site),
+      site,
       title,
       content: sanitizeRichText(content),
       author: author || req.admin?.username || "Admin",
@@ -180,7 +198,7 @@ const addBlog = async (req, res) => {
       views: 0,
       createdBy: req.admin?.id,
       excerpt: excerpt || "",
-      slug: slug || "",
+      slug: await buildSlug(site, slug, title),
       seo: {
         title: seoTitle || "",
         description: seoDescription || "",
@@ -508,7 +526,11 @@ const updateBlog = async (req, res) => {
       blog.publishedAt = null;
     }
     blog.excerpt = excerpt ?? blog.excerpt;
-    blog.slug = slug ?? blog.slug;
+    if (slug !== undefined) {
+      blog.slug = await buildSlug(resolveSite(blog.site), slug, blog.title, blog._id);
+    } else if (!blog.slug && resolveSite(blog.site) !== DEFAULT_SITE) {
+      blog.slug = await buildSlug(resolveSite(blog.site), "", blog.title, blog._id);
+    }
     blog.seo = {
       title: seoTitle ?? blog.seo?.title ?? "",
       description: seoDescription ?? blog.seo?.description ?? "",
