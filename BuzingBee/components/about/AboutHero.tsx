@@ -12,7 +12,7 @@ export default function AboutHero() {
             <Sparkles className="w-4 h-4" />
             Built for modern growth
           </div>
-          <h1 className="mt-6 text-3xl md:text-5xl lg:text-6xl font-bold text-textHeading font-heading leading-tight">
+          <h1 className="heading-page mt-6">
             We build brands, products, and growth systems that move faster.
           </h1>
           <p className="mt-5 max-w-2xl mx-auto text-base md:text-lg leading-relaxed text-textBody">

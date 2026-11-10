@@ -13,7 +13,7 @@ export default function AboutCTA() {
               <div className="inline-flex items-center rounded-full border border-accent/20 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent">
                 Let&apos;s build your next growth stage
               </div>
-              <h2 className="mt-5 text-3xl md:text-4xl lg:text-5xl font-bold text-textHeading font-heading leading-tight">
+              <h2 className="heading-section mt-5">
                 Need a team that can think, create, ship, and scale with you?
               </h2>
               <p className="mt-4 max-w-2xl text-textBody text-base md:text-lg leading-relaxed">
@@ -30,7 +30,7 @@ export default function AboutCTA() {
               </div>
             </div>
             <div className="relative mx-auto w-full max-w-[320px]">
-              <div className="relative aspect-[4/4.5] overflow-hidden rounded-[28px] border border-border bg-white shadow-xl">
+              <div className="relative aspect-[4/4.5] overflow-hidden rounded-[28px] border border-border bg-card shadow-xl">
                 <Image
                   src="/assets/image/services2.jpg"
                   alt="Client strategy session"

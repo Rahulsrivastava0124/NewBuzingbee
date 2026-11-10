@@ -30,8 +30,8 @@ export default function PricingPage() {
       <section className="pt-32 pb-16 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden">
         <div className="absolute top-20 left-0 w-72 h-72 bg-accent/10 rounded-full blur-[120px]" />
         <div className="container-max relative z-10">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-textHeading font-heading">
-            Pricing <span className="text-accent">Plans</span>
+          <h1 className="heading-page">
+            Pricing <span className="rounded-lg bg-honey/30 px-2 [box-decoration-break:clone]">Plans</span>
           </h1>
           <p className="mt-4 text-textBody max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
             Explore all pricing in one place — subscription plans with
@@ -45,7 +45,7 @@ export default function PricingPage() {
                 onClick={() => setPricingMode("subscription")}
                 className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                   pricingMode === "subscription"
-                    ? "bg-accent text-white"
+                    ? "bg-accent text-textHeading"
                     : "text-textMuted hover:text-textHeading"
                 }`}
               >
@@ -55,7 +55,7 @@ export default function PricingPage() {
                 onClick={() => setPricingMode("project")}
                 className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                   pricingMode === "project"
-                    ? "bg-accent text-white"
+                    ? "bg-accent text-textHeading"
                     : "text-textMuted hover:text-textHeading"
                 }`}
               >
@@ -139,7 +139,7 @@ export default function PricingPage() {
                     className={`px-5 py-2 rounded-full text-sm md:text-base font-semibold border transition-all
                       ${
                         activeServicePlanTab === cat.id
-                          ? "bg-accent text-white border-accent"
+                          ? "bg-accent text-textHeading border-accent"
                           : "bg-card text-textHeading border-border hover:border-accent/40 hover:text-accent"
                       }`}
                   >
@@ -192,12 +192,9 @@ export default function PricingPage() {
 
                       <Link
                         href={`/contact?service=${activeServicePlanCategory.id}&plan=${encodeURIComponent(plan.name)}`}
-                        className={`mt-6 inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-all
-                          ${
-                            idx === 1
-                              ? "bg-accent text-white hover:bg-accentHover"
-                              : "border border-border text-textHeading hover:border-accent/40 hover:text-accent"
-                          }`}
+                        className={`mt-6 w-full ${
+                          idx === 1 ? "btn-honey" : "btn-light"
+                        }`}
                       >
                         Enquiry Now
                       </Link>
@@ -229,7 +226,7 @@ export default function PricingPage() {
                 <div className="text-xs font-semibold uppercase tracking-[0.2em] text-accent mb-2">
                   Plan Details
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold text-textHeading font-heading">
+                <h2 className="heading-sub">
                   {selectedPlan.name}
                 </h2>
                 <p className="mt-2 text-sm text-textMuted max-w-xl">
@@ -265,7 +262,7 @@ export default function PricingPage() {
                     ? "/contact?plan=basic"
                     : `/contact?plan=${selectedPlan.id}&intent=enquiry`
                 }
-                className="inline-flex min-h-[46px] items-center justify-center rounded-[12px] bg-accent px-6 py-2.5 text-sm font-semibold leading-none text-[#1f1b12] transition-all duration-300 hover:bg-accentHover hover:shadow-[0_0_24px_rgba(250,204,21,0.35)] sm:self-auto self-start"
+                className="btn-primary sm:self-auto self-start"
               >
                 {selectedPlan.id === "basic" ? "Get Started" : "Enquiry Now"}
               </Link>

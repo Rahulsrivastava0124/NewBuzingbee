@@ -32,9 +32,9 @@ export default function StartupPlanPage() {
               🚀 Startup Plans
             </div>
 
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-textHeading font-heading">
+            <h1 className="heading-page">
               Minimal Cost Plans for{" "}
-              <span className="text-accent">Startups</span>
+              <span className="rounded-lg bg-honey/30 px-2 [box-decoration-break:clone]">Startups</span>
             </h1>
 
             <p className="mt-4 text-textBody max-w-3xl mx-auto text-base md:text-lg leading-relaxed">
@@ -53,7 +53,7 @@ export default function StartupPlanPage() {
               </Link>
               <Link
                 href="/contact"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-accent text-white font-semibold hover:bg-accentHover transition-all"
+                className="btn-primary"
               >
                 Get Customized Quote
                 <ArrowRight className="ml-2 w-4 h-4" />
@@ -73,7 +73,7 @@ export default function StartupPlanPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-textHeading font-heading">
+            <h2 className="heading-section">
               Starter Plans for All Services
             </h2>
             <p className="mt-3 text-textMuted max-w-2xl mx-auto">
@@ -94,7 +94,7 @@ export default function StartupPlanPage() {
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-accent/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity blur-xl" />
 
-                <div className="relative bg-white rounded-2xl border border-border p-6 sm:p-8 hover:border-accent/30 transition-colors">
+                <div className="relative bg-card rounded-2xl border border-border p-6 sm:p-8 hover:border-accent/30 transition-colors">
                   {/* Category Label */}
                   <div className="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold mb-4">
                     {item.category}
@@ -138,7 +138,7 @@ export default function StartupPlanPage() {
 
                   {/* CTA Button */}
                   <button
-                    className="w-full py-3 rounded-lg bg-accent text-white font-semibold hover:bg-accentHover transition-colors"
+                    className="btn-primary w-full"
                     onClick={() => {
                       const url = new URL("/contact", window.location.origin);
                       url.searchParams.set("service", item.category);
@@ -167,7 +167,7 @@ export default function StartupPlanPage() {
             viewport={{ once: true }}
             className="bg-bgSection rounded-2xl border border-border p-8 sm:p-12"
           >
-            <h2 className="text-3xl font-bold text-textHeading font-heading mb-8">
+            <h2 className="heading-section mb-8">
               What's Included in Startup Plans?
             </h2>
 
@@ -244,7 +244,7 @@ export default function StartupPlanPage() {
             viewport={{ once: true }}
             className="bg-gradient-to-br from-accent/5 to-accent/10 rounded-2xl border border-accent/20 p-8 sm:p-12 text-center"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-textHeading font-heading mb-4">
+            <h2 className="heading-section mb-4">
               Ready to Get Started?
             </h2>
             <p className="text-textMuted max-w-2xl mx-auto mb-8">
@@ -254,7 +254,7 @@ export default function StartupPlanPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/contact"
-                className="inline-flex items-center justify-center px-8 py-3 rounded-lg bg-accent text-white font-semibold hover:bg-accentHover transition-all"
+                className="btn-primary"
               >
                 Start Your Journey
                 <ArrowRight className="ml-2 w-4 h-4" />

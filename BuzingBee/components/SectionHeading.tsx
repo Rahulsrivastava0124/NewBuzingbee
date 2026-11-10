@@ -21,7 +21,7 @@ export default function SectionHeading({
       transition={{ duration: 0.6 }}
       className={`mb-12 md:mb-16 ${align === "center" ? "text-center" : "text-left"}`}
     >
-      <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-textHeading font-heading">
+      <h2 className="heading-section">
         {title}
       </h2>
       {subtitle && (

@@ -24,12 +24,12 @@ export default function MissionVision() {
           return (
             <div
               key={card.title}
-              className="rounded-[28px] border border-border bg-white p-8 md:p-10 shadow-[0_20px_50px_rgba(31,27,18,0.04)]"
+              className="rounded-[28px] border border-border bg-card p-8 md:p-10 shadow-[0_20px_50px_rgba(31,27,18,0.04)]"
             >
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent">
                 <Icon className="w-7 h-7" />
               </div>
-              <h2 className="mt-6 text-3xl font-bold text-textHeading font-heading">
+              <h2 className="heading-section mt-6">
                 {card.title}
               </h2>
               <p className="mt-4 text-textBody leading-relaxed">

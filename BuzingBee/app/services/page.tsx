@@ -11,13 +11,24 @@ export default function ServicesPage() {
 
   const activeCategory = serviceCategories.find((cat) => cat.id === activeTab);
 
+  // navbar Services dropdown links to /services#<category-id>
+  React.useEffect(() => {
+    const syncTab = () => {
+      const id = window.location.hash.slice(1);
+      if (serviceCategories.some((cat) => cat.id === id)) setActiveTab(id);
+    };
+    syncTab();
+    window.addEventListener("hashchange", syncTab);
+    return () => window.removeEventListener("hashchange", syncTab);
+  }, []);
+
   return (
     <>
       <section className="pt-32 pb-16 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden">
         <div className="absolute top-20 right-0 w-72 h-72 bg-accent/10 rounded-full blur-[120px]" />
         <div className="container-max relative z-10">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-textHeading font-heading">
-            Our <span className="text-accent">Services</span>
+          <h1 className="heading-page">
+            Our <span className="rounded-lg bg-honey/30 px-2 [box-decoration-break:clone]">Services</span>
           </h1>
           <p className="mt-4 text-textBody max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
             Comprehensive digital solutions tailored to accelerate your business
@@ -34,7 +45,7 @@ export default function ServicesPage() {
                 key={cat.id}
                 className={`px-4 md:px-5 py-2 rounded-full font-semibold border transition-colors text-sm md:text-base whitespace-nowrap ${
                   activeTab === cat.id
-                    ? "bg-accent text-white border-accent"
+                    ? "bg-accent text-textHeading border-accent"
                     : "bg-bgSection text-textHeading border-border hover:bg-accent/10"
                 }`}
                 onClick={() => setActiveTab(cat.id)}
@@ -46,7 +57,7 @@ export default function ServicesPage() {
 
           {activeCategory && (
             <div className="mb-8 text-center">
-              <h2 className="text-2xl md:text-3xl font-bold text-textHeading font-heading mb-2">
+              <h2 className="heading-sub mb-2">
                 {activeCategory.label}
               </h2>
               <p className="text-textBody max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
@@ -116,9 +127,9 @@ export default function ServicesPage() {
         <div className="container-max">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-textHeading font-heading mb-6">
+              <h2 className="heading-section mb-6">
                 Ready to Transform Your{" "}
-                <span className="text-accent">Vision</span> Into Reality?
+                <span className="rounded-lg bg-honey/30 px-2 [box-decoration-break:clone]">Vision</span> Into Reality?
               </h2>
               <p className="text-textBody text-base md:text-lg leading-relaxed mb-6">
                 Our team of experts is here to help you navigate the digital
@@ -163,7 +174,7 @@ export default function ServicesPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <a
                   href="tel:+91 95079 81942"
-                  className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-accent text-white font-semibold hover:bg-accentHover transition-all"
+                  className="btn-primary"
                 >
                   Call Now
                 </a>

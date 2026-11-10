@@ -107,8 +107,8 @@ export default function ContactPage() {
           <span className="inline-block bg-accent/10 text-accent text-sm font-semibold px-4 py-1.5 rounded-full mb-4 border border-accent/20">
             Let&apos;s Talk
           </span>
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-textHeading font-heading">
-            Contact <span className="text-accent">Us</span>
+          <h1 className="heading-page">
+            Contact <span className="rounded-lg bg-honey/30 px-2 [box-decoration-break:clone]">Us</span>
           </h1>
           <p className="mt-4 text-textBody max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
             Have a project in mind? Let&apos;s discuss how we can help your
@@ -128,7 +128,7 @@ export default function ContactPage() {
             transition={{ duration: 0.6 }}
             className="lg:col-span-3 bg-card border border-border rounded-[14px] p-6 md:p-10"
           >
-            <h2 className="text-2xl font-bold text-textHeading font-heading mb-6">
+            <h2 className="heading-sub mb-6">
               Send Us a Message
             </h2>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

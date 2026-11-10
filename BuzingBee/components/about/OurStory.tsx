@@ -14,7 +14,7 @@ export default function OurStory() {
               className="object-cover"
             />
           </div>
-          <div className="absolute -bottom-6 right-4 sm:right-6 rounded-2xl border border-border bg-white px-5 py-4 shadow-xl">
+          <div className="absolute -bottom-6 right-4 sm:right-6 rounded-2xl border border-border bg-card px-5 py-4 shadow-xl">
             <div className="text-xl font-bold text-textHeading font-heading">
               One partner
             </div>

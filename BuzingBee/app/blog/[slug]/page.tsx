@@ -107,7 +107,7 @@ export default async function BlogDetailPage({
             <span className="inline-block bg-accent/10 text-accent text-xs font-bold px-3 py-1 rounded-full mb-4 border border-accent/20">
               {category}
             </span>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-textHeading font-heading leading-tight">
+            <h1 className="heading-page">
               {title}
             </h1>
             <div className="mt-4 flex items-center gap-4 text-textMuted text-sm">
@@ -187,7 +187,7 @@ export default async function BlogDetailPage({
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">
                   Recommended Blogs
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-textHeading font-heading">
+                <h2 className="heading-sub mt-2">
                   More articles you may like
                 </h2>
               </div>

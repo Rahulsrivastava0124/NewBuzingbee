@@ -61,7 +61,7 @@ export default function WhyUs() {
             return (
               <div
                 key={reason.title}
-                className="rounded-[24px] border border-border bg-white p-6 md:p-7"
+                className="rounded-[24px] border border-border bg-card p-6 md:p-7"
               >
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
                   <Icon className="w-6 h-6" />

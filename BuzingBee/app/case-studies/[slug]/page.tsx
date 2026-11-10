@@ -124,7 +124,7 @@ export default async function CaseStudyDetailPage({
                 )}
               </div>
 
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-textHeading font-heading leading-tight mb-4">
+              <h1 className="heading-page mb-4">
                 {title}
               </h1>
 
@@ -185,7 +185,7 @@ export default async function CaseStudyDetailPage({
             {/* Challenge */}
             {cs?.challenge && (
               <div className="mb-10">
-                <h2 className="text-2xl font-bold text-textHeading font-heading mb-4 pb-2 border-b border-border">
+                <h2 className="heading-sub mb-4 pb-2 border-b border-border">
                   🎯 The Challenge
                 </h2>
                 <div
@@ -205,7 +205,7 @@ export default async function CaseStudyDetailPage({
             {/* Solution */}
             {cs?.solution && (
               <div className="mb-10">
-                <h2 className="text-2xl font-bold text-textHeading font-heading mb-4 pb-2 border-b border-border">
+                <h2 className="heading-sub mb-4 pb-2 border-b border-border">
                   💡 Our Solution
                 </h2>
                 <div
@@ -225,7 +225,7 @@ export default async function CaseStudyDetailPage({
             {/* Results */}
             {cs?.results && (
               <div className="mb-10">
-                <h2 className="text-2xl font-bold text-textHeading font-heading mb-4 pb-2 border-b border-border">
+                <h2 className="heading-sub mb-4 pb-2 border-b border-border">
                   🚀 Results & Outcomes
                 </h2>
                 <div
@@ -264,7 +264,7 @@ export default async function CaseStudyDetailPage({
               </p>
               <Link
                 href="/contact"
-                className="inline-flex items-center gap-2 bg-accent text-bgPrimary font-semibold px-6 py-3 rounded-full hover:bg-accent/90 transition-all"
+                className="btn-primary gap-2"
               >
                 Get a Free Consultation
               </Link>
@@ -273,7 +273,7 @@ export default async function CaseStudyDetailPage({
             {/* Related */}
             {related.length > 0 && (
               <div>
-                <h2 className="text-2xl font-bold text-textHeading font-heading mb-6">
+                <h2 className="heading-sub mb-6">
                   More Case Studies
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

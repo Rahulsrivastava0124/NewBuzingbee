@@ -4,106 +4,125 @@ import { FormEvent, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
-  ArrowRight,
   CheckCircle,
   XCircle,
-  TrendingUp,
   Bot,
-  MapPin,
-  Globe,
-  Megaphone,
   Search,
   Code2,
   Brain,
   Target,
   Star,
   Zap,
-  ChevronRight,
   Mail,
   Phone,
-  MessageSquare,
+  ArrowUpRight,
+  PlayCircle,
+  Layers,
+  BarChart3,
+  Headphones,
+  Check,
+  Share2,
+  FileText,
 } from "lucide-react";
-import AnimatedCounter from "@/components/AnimatedCounter";
-import SectionHeading from "@/components/SectionHeading";
-import TestimonialCard from "@/components/TestimonialCard";
-import GridBackground from "@/components/GridBackground";
+import HeroStories from "@/components/HeroStories";
+import ServiceRevealCard from "@/components/ServiceRevealCard";
+import ServicesGrid from "@/components/ServicesGrid";
+import { Highlighter } from "@/components/ui/highlighter";
+import dynamic from "next/dynamic";
+
+// decorative and computed with trig, whose last decimals differ between Node and browsers;
+// render it client-only so server and client HTML always match
+const HexagonPattern = dynamic(
+  () => import("@/components/ui/hexagon-pattern").then((m) => m.HexagonPattern),
+  { ssr: false },
+);
+import { RollingText } from "@/components/animate-ui/primitives/texts/rolling";
 import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 import {
-  stats,
-  serviceCategories,
   testimonials,
   processSteps,
   blogPosts,
 } from "@/lib/data";
-import { CiPhone } from "react-icons/ci";
+import { SITE_CONFIG } from "@/lib/constants";
 
-/* ── helpers ── */
-const fadeUp = {
-  hidden: { opacity: 0, y: 40 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, delay: i * 0.12 },
-  }),
-};
+/* ── shared styles for the sections below the hero ── */
+const WRAP = "max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12";
+const H2 =
+  "text-[32px] sm:text-[40px] font-semibold leading-[1.2] tracking-[-0.02em] text-ink";
+const LEAD = "text-[17px] leading-relaxed text-slate";
+const FOCUS =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2";
+const BTN_INK = "btn-dark";
+const BTN_HONEY = "btn-honey";
+const TEXT_LINK = `w-fit rounded text-[15px] font-semibold text-ink underline decoration-[#fdb905] decoration-2 underline-offset-[6px] hover:decoration-ink ${FOCUS}`;
+const LABEL = "mb-1.5 block text-sm font-medium text-ink";
+const FIELD =
+  "w-full rounded-xl border border-ink/15 bg-paper px-4 py-3 text-[15px] text-ink placeholder:text-ink/40 outline-none focus:border-ink focus:ring-2 focus:ring-[#fdb905]/60 transition";
 
-const TRUST_LOGOS = [
-  "Google Partner",
-  "Meta Business",
-  "Shopify Expert",
-  "HubSpot Agency",
-  "AWS Partner",
-  "Semrush Agency",
-  "Clutch Top Agency",
-  "GoodFirms",
+// logos from svglogos.dev (CC0) unless noted; heights tuned so the marks read at a similar size.
+// invertDark: black wordmarks; in dark mode invert + hue-rotate(180) flips light/dark but keeps hues
+const BRANDS = [
+  { name: "Google", src: "/brands/google.svg", h: "h-7" },
+  { name: "Meta", src: "/brands/meta.svg", h: "h-6", invertDark: true },
+  { name: "Instagram", src: "/brands/instagram.svg", h: "h-7", invertDark: true },
+  { name: "YouTube", src: "/brands/youtube.svg", h: "h-6", invertDark: true },
+  { name: "LinkedIn", src: "/brands/linkedin.svg", h: "h-6" },
+  { name: "Shopify", src: "/brands/shopify.svg", h: "h-7", label: true },
+  // Hostinger + PhonePe: Simple Icons (CC0); Cashfree: Wikimedia Commons (public domain)
+  { name: "Hostinger", src: "/brands/hostinger.svg", h: "h-6", label: true },
+  { name: "Cashfree", src: "/brands/cashfree.svg", h: "h-5", invertDark: true },
+  { name: "PhonePe", src: "/brands/phonepe.svg", h: "h-6", label: true },
 ];
 
-const PROBLEMS = [
+const SERVICE_OVERVIEW = [
   {
-    icon: "📉",
-    pain: "Burning ad budget with no clear ROI or attribution",
-    fix: "Data-driven PPC with automated bidding — every rupee tracked, no waste.",
-    tag: "Advertising",
+    icon: Search,
+    title: "Search Engine Optimization (SEO)",
+    desc: "Rank higher, get found, and bring in organic traffic.",
+    href: "/services#digital-marketing",
   },
   {
-    icon: "🐌",
-    pain: "Dev agency took months, cost a fortune, and missed the brief",
-    fix: "Agile builds delivered in weeks at 40–60% lower cost — fixed scope, no surprises.",
-    tag: "Development",
+    icon: BarChart3,
+    title: "Google Ads",
+    desc: "Target the right audience and get instant results.",
+    href: "/services#advertising",
   },
   {
-    icon: "🔍",
-    pain: "Invisible on Google despite publishing content regularly",
-    fix: "AI-powered SEO + GEO that targets real buyer intent and AI overview rankings.",
-    tag: "SEO / GEO",
+    icon: Share2,
+    title: "Social Media Marketing",
+    desc: "Build your brand and engage your audience.",
+    href: "/services#digital-marketing",
   },
   {
-    icon: "💸",
-    pain: "Paying multiple agencies for siloed work that doesn't compound",
-    fix: "One integrated team for ads, SEO, dev & AI — strategy that stacks and scales.",
-    tag: "Cost Efficiency",
+    icon: FileText,
+    title: "Content Marketing",
+    desc: "Valuable content that builds trust and drives sales.",
+    href: "/services#digital-marketing",
   },
   {
-    icon: "🤖",
-    pain: "Losing leads at 2 AM because there's no one to respond",
-    fix: "Conversational AI chatbots that qualify, nurture and book calls 24/7 automatically.",
-    tag: "AI Automation",
+    icon: Code2,
+    title: "Website Design & Development",
+    desc: "Modern websites that convert visitors into customers.",
+    href: "/services#web-app-development",
   },
   {
-    icon: "📱",
-    pain: "App or website that's slow, outdated, and kills conversions",
-    fix: "Performance-first web & app builds — fast, beautiful, and built to convert.",
-    tag: "Development",
+    icon: Mail,
+    title: "Email Marketing",
+    desc: "Nurture leads and boost customer loyalty.",
+    href: "/services#digital-marketing",
   },
 ];
 
-const PILLAR_ICONS: Record<string, React.ElementType> = {
-  "digital-marketing": Megaphone,
-  "web-app-development": Code2,
-  advertising: Target,
-  "ai-services": Brain,
-  "geo-services": MapPin,
-};
+// grid dividers: stacked on mobile, 2 columns on sm, 3 columns on lg
+function overviewBorders(i: number) {
+  return [
+    i > 0 ? "border-t" : "",
+    i < 2 ? "sm:border-t-0" : "sm:border-t",
+    i % 2 === 1 ? "sm:border-l" : "sm:border-l-0",
+    i < 3 ? "lg:border-t-0" : "lg:border-t",
+    i % 3 === 0 ? "lg:border-l-0" : "lg:border-l",
+  ].join(" ");
+}
 
 const RESULTS = [
   {
@@ -134,26 +153,118 @@ const RESULTS = [
 
 const AI_EDGE = [
   {
-    icon: <Brain className="w-7 h-7 text-accent" />,
+    icon: Brain,
     title: "Predictive Analytics",
     desc: "We forecast campaign performance before you spend a single rupee, using ML models trained on your niche.",
   },
   {
-    icon: <Search className="w-7 h-7 text-accent" />,
+    icon: Search,
     title: "AI-Powered SEO & GEO",
     desc: "Rank in Google's AI Overviews and LLM recommendations, not just the blue links.",
   },
   {
-    icon: <Bot className="w-7 h-7 text-accent" />,
+    icon: Bot,
     title: "Conversational AI",
     desc: "24/7 AI chatbots that qualify leads, book calls, and personalise the buyer journey automatically.",
   },
   {
-    icon: <Zap className="w-7 h-7 text-accent" />,
+    icon: Zap,
     title: "Automated Bidding",
     desc: "Real-time bid adjustments across Google & Meta Ads for maximum ROI with zero manual overhead.",
   },
 ];
+
+// honey-filled cells in the hero honeycomb, as [column, row]
+const HERO_HEXAGONS: [number, number][] = [
+  [9, 2], [13, 1], [15, 4], [18, 2], [20, 6], [22, 3], [17, 8], [24, 5], [12, 7], [6, 5],
+];
+
+// agency services cycled in the hero headline ("Performance <service>")
+const HERO_SERVICES = [
+  "Marketing",
+  "SEO",
+  "Google Ads",
+  "Meta Ads",
+  "Social Media",
+  "Websites",
+  "Mobile Apps",
+  "E-commerce",
+  "AI Chatbots",
+  "AI Automation",
+  "GEO & AEO",
+  "Local SEO",
+];
+
+// hero word gradient: violet → purple → pink
+const WORD_GRADIENT = ["#6d3df2", "#9b3ff0", "#e0349a"];
+
+function gradientAt(t: number) {
+  const seg = Math.min(Math.floor(t * (WORD_GRADIENT.length - 1)), WORD_GRADIENT.length - 2);
+  const local = t * (WORD_GRADIENT.length - 1) - seg;
+  const [a, b] = [WORD_GRADIENT[seg], WORD_GRADIENT[seg + 1]].map((hex) =>
+    [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)),
+  );
+  return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * local)).join(",")})`;
+}
+
+// a gradient can't clip across 3D-flipping letters, so each letter gets its own slice
+const letterGradient = (i: number, total: number): React.CSSProperties => ({
+  backgroundImage: `linear-gradient(90deg, ${gradientAt(i / total)}, ${gradientAt((i + 1) / total)})`,
+  WebkitBackgroundClip: "text",
+  backgroundClip: "text",
+  color: "transparent",
+});
+
+// rolls each service in (Animate UI Rolling Text), holds, then moves to the next
+function RollingWord({ words }: { words: string[] }) {
+  const [index, setIndex] = useState(0);
+  const word = words[index];
+  // reserve the longest word's width so the line never reflows between words
+  const longest = words.reduce((a, b) => (b.length > a.length ? b : a));
+
+  useEffect(() => {
+    // roll-in takes ~0.1s per letter + 0.8s, then hold for 2s
+    const id = setTimeout(
+      () => setIndex((i) => (i + 1) % words.length),
+      word.length * 100 + 800 + 2000,
+    );
+    return () => clearTimeout(id);
+  }, [word, words.length]);
+
+  return (
+    <span className="relative inline-block">
+      <span className="sr-only">{words.join(", ")}</span>
+      <span aria-hidden="true" className="invisible">
+        {longest}
+      </span>
+      <span aria-hidden="true" className="absolute left-0 top-0 whitespace-nowrap">
+        <RollingText key={index} text={word} charStyle={letterGradient} />
+      </span>
+      {/* squiggle sized to the current word, redrawn for each new one */}
+      <span aria-hidden="true" className="absolute left-0 top-0 whitespace-nowrap">
+        <span className="invisible">{word}</span>
+        <motion.svg
+          key={index}
+          viewBox="0 0 260 24"
+          preserveAspectRatio="none"
+          className="absolute left-0 -bottom-5 h-[0.4em] w-full"
+          fill="none"
+          initial={{ clipPath: "inset(0 100% 0 0)" }}
+          animate={{ clipPath: "inset(0 0% 0 0)" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <path
+            d="M4 18 C 50 6, 90 4, 120 10 C 140 14, 110 22, 135 16 C 170 8, 220 6, 256 12"
+            stroke="#fdb905"
+            strokeWidth="4"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </motion.svg>
+      </span>
+    </span>
+  );
+}
 
 type HomeBlogPost = {
   id: string | number;
@@ -267,820 +378,492 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════
           1. HERO SECTION
       ══════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-24 pb-16">
-        {/* ── Background layer z-0 — all purely decorative ── */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <GridBackground />
-          {/* Persistent non-circular background glow */}
-          <div className="absolute inset-x-0 top-0 h-[68%] bg-gradient-to-b from-accent/[0.16] via-accent/[0.08] to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-accent/[0.08] to-transparent" />
-          <div className="absolute left-[-20%] top-[12%] w-[60%] h-[52%] bg-gradient-to-r from-accent/[0.10] to-transparent blur-[80px]" />
-          <div className="absolute right-[-20%] bottom-[10%] w-[55%] h-[48%] bg-gradient-to-l from-accent/[0.08] to-transparent blur-[80px]" />
+      <section className="relative overflow-hidden bg-paper font-jakarta lg:min-h-screen">
+        {/* honeycomb (Magic UI Hexagon Pattern): faint lines, a few honey cells, faded at the edges */}
+        <HexagonPattern
+          radius={34}
+          gap={3}
+          hexagons={HERO_HEXAGONS}
+          className="fill-[#fdb905]/20 stroke-ink/[0.07] [mask-image:radial-gradient(ellipse_80%_75%_at_65%_40%,black_25%,transparent_80%)]"
+        />
+        {/* yellow swooshes */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 1440 900"
+          preserveAspectRatio="none"
+          className="absolute inset-0 h-full w-full pointer-events-none"
+        >
+          <defs>
+            <linearGradient id="hero-swoosh" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#fdb905" stopOpacity="0" />
+              <stop offset="45%" stopColor="#fdb905" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#fdb905" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="hero-wave" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#ffe9a8" stopOpacity="0" />
+              <stop offset="55%" stopColor="#ffd23f" />
+              <stop offset="100%" stopColor="#fdb905" />
+            </linearGradient>
+            <radialGradient id="hero-glow" cx="0" cy="1" r="1">
+              <stop offset="0%" stopColor="#ffd23f" stopOpacity="0.55" />
+              <stop offset="100%" stopColor="#fff4cc" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <path className="hidden lg:block" d="M 690 320 Q 860 120 1120 62 Q 880 140 690 320 Z" fill="url(#hero-swoosh)" />
+          <path d="M 0 560 Q 160 760 420 900 L 0 900 Z" fill="url(#hero-glow)" />
+          <path className="dark:opacity-10" d="M 700 900 Q 1160 880 1440 610 L 1440 900 Z" fill="#fff1c2" opacity="0.7" />
+          <path d="M 860 900 Q 1240 860 1440 680 L 1440 900 Z" fill="url(#hero-wave)" />
+        </svg>
+        {/* fade the waves into white so the hero blends into the brands strip below */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent via-paper/70 to-paper"
+        />
 
-          {/* Slow moving highlight strip */}
-          <motion.div
-            animate={{ x: ["-8%", "8%", "-8%"], opacity: [0.2, 0.35, 0.2] }}
-            transition={{ repeat: Infinity, duration: 16, ease: "easeInOut" }}
-            className="absolute left-0 right-0 top-[36%] mx-auto h-24 w-[78%] bg-gradient-to-r from-transparent via-accent/[0.20] to-transparent blur-2xl"
-          />
-          {/* Floating dots */}
-          {[
-            { top: "15%", left: "8%", size: 5, dur: 5.5, delay: 0 },
-            { top: "72%", left: "6%", size: 3, dur: 7, delay: 1 },
-            { top: "22%", left: "88%", size: 4, dur: 6.5, delay: 0.5 },
-            { top: "65%", left: "85%", size: 5, dur: 8, delay: 2 },
-            { top: "45%", left: "4%", size: 3, dur: 6, delay: 1.5 },
-            { top: "80%", left: "50%", size: 3, dur: 9, delay: 0.8 },
-            { top: "10%", left: "55%", size: 4, dur: 7.5, delay: 2.5 },
-            { top: "55%", left: "78%", size: 3, dur: 5, delay: 0.3 },
-          ].map((p, i) => (
-            <motion.div
-              key={i}
-              animate={{ y: [0, -14, 0], opacity: [0.12, 0.35, 0.12] }}
-              transition={{
-                repeat: Infinity,
-                duration: p.dur,
-                ease: "easeInOut",
-                delay: p.delay,
-              }}
-              className="absolute rounded-full bg-accent"
-              style={{
-                top: p.top,
-                left: p.left,
-                width: p.size,
-                height: p.size,
-              }}
-            />
-          ))}
-          {/* Dot grid */}
-          <div
-            className="absolute inset-0 opacity-[0.025]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle, currentColor 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
-            }}
-          />
-        </div>
-
-        {/* ── Content — always above bg ── */}
-        <div className="container-max relative z-20 px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center max-w-4xl mx-auto">
-          {/* ── Animated badge ── */}
-          <motion.div
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-7"
-          >
-            <span className="inline-flex items-center gap-2 bg-[#1f1b12]/40 text-white text-sm font-semibold px-5 py-2 rounded-full border border-[#FACC15]/35 shadow-sm">
-              <Zap className="w-4 h-4" />
-              AI-First Development Agency
-            </span>
-          </motion.div>
-
-          {/* ── Headline ── */}
-          <motion.h1
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.1 }}
-            className="text-4xl sm:text-6xl md:text-7xl font-bold font-heading text-textHeading leading-[1.08] tracking-tight"
-          >
-            Build Faster with{" "}
-            <span className="relative inline-block">
-              <span className="text-[#FACC15]">AI-Powered</span>
-              <svg
-                className="absolute -bottom-2 left-0 w-full"
-                viewBox="0 0 300 12"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <path
-                  d="M2 9 Q75 2 150 7 Q225 12 298 5"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  className="text-[#FACC15]"
-                />
-              </svg>
-            </span>{" "}
-            Development
-          </motion.h1>
-
-          {/* ── Sub-headline ── */}
-          <motion.p
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.22 }}
-            className="mt-8 text-base md:text-lg text-textBody max-w-2xl leading-relaxed"
-          >
-            BuzingBee delivers AI-powered web and app development that is
-            cost-effective, faster to launch, and built for real business growth
-            — without agency delays or inflated budgets.
-          </motion.p>
-
-          {/* ── Trust signals row ── */}
-          <motion.div
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.34 }}
-            className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm"
-          >
-            {/* Star rating */}
-            <div className="flex items-center gap-1.5 bg-card border border-border rounded-full px-4 py-1.5 shadow-sm font-numeric">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className="w-3.5 h-3.5 fill-[#C28A00] text-[#C28A00]"
-                />
-              ))}
-              <span className="ml-1 font-semibold text-textHeading">5.0</span>
-              <span className="text-textMuted">· 200+ reviews</span>
-            </div>
-            <div className="h-5 w-px bg-border hidden sm:block" />
-            {/* Avatar stack + clients count */}
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
-                {["#E08A2A", "#3B82F6", "#10B981", "#F59E0B"].map(
-                  (color, i) => (
-                    <div
-                      key={i}
-                      className="w-7 h-7 rounded-full border-2 border-bg flex items-center justify-center text-[10px] font-bold text-white"
-                      style={{ backgroundColor: color }}
-                    >
-                      {["R", "S", "A", "P"][i]}
-                    </div>
-                  ),
-                )}
-              </div>
-              <span className="text-textBody text-sm font-numeric">
-                <span className="font-semibold text-textHeading">500+</span>{" "}
-                happy clients
-              </span>
-            </div>
-            <div className="h-5 w-px bg-border hidden sm:block" />
-            {/* Certified */}
-            <div className="flex items-center gap-1.5 text-textMuted">
-              <CheckCircle className="w-4 h-4 text-[#B07D00]" />
-              <span>Google & Meta Certified</span>
-            </div>
-          </motion.div>
-
-          {/* ── CTAs ── */}
-          <motion.div
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.46 }}
-            className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
-            <Link
-              href="/contact"
-              className="btn-primary gap-2 px-8 py-3.5 text-base shadow-lg shadow-accent/20 hover:shadow-accent/40 transition-shadow"
-            >
-              <Phone className="w-5 h-5" /> Get a Free Call
-            </Link>
-            <Link
-              href="/services"
-              className="btn-outline gap-2 px-8 py-3.5 text-base text-[#8A6500] border-[#D7B340] hover:bg-[#F8EDC6] hover:text-[#8A6500] transition-colors"
-            >
-              See Our Services
-            </Link>
-          </motion.div>
-
-          <motion.div
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.52 }}
-            className="mt-6 w-full max-w-3xl"
-          >
-            <p className="text-xs uppercase tracking-[0.2em] text-textMuted mb-3">
-              Explore Popular Pages
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-              {[
-                { label: "Services", href: "/services" },
-                { label: "Pricing", href: "/pricing" },
-                { label: "Startup Plans", href: "/startup" },
-                { label: "Portfolio", href: "/portfolio" },
-              ].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-xl border border-border bg-card/80 px-3 py-2.5 text-sm font-semibold text-textHeading hover:border-accent/45 hover:text-accent transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* ── Stats strip ── */}
-          <motion.div
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.58 }}
-            className="mt-16 w-full grid grid-cols-2 md:grid-cols-4 gap-0 border border-border rounded-2xl overflow-hidden bg-card"
-          >
-            {stats.map((s, i) => (
-              <div
-                key={s.label}
-                className={`flex flex-col items-center justify-center py-6 px-4 ${
-                  i < stats.length - 1 ? "border-r border-border" : ""
-                }`}
-              >
-                <AnimatedCounter
-                  value={s.value}
-                  suffix={s.suffix}
-                  label={s.label}
-                />
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          2. TRUST BAR
-      ══════════════════════════════════════════ */}
-      <section className="relative py-10 border-y border-border overflow-hidden bg-bgSection">
-        {/* Fade edges */}
-        <div className="pointer-events-none absolute left-0 top-0 h-full w-24 z-10 bg-gradient-to-r from-bgSection to-transparent" />
-        <div className="pointer-events-none absolute right-0 top-0 h-full w-24 z-10 bg-gradient-to-l from-bgSection to-transparent" />
-
-        <p className="text-center text-xs font-bold uppercase tracking-[0.25em] text-textMuted mb-6">
-          Trusted by ambitious businesses worldwide &nbsp;·&nbsp; Certified
-          partners
-        </p>
-
-        <div className="relative flex overflow-hidden">
-          <motion.div
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ repeat: Infinity, duration: 26, ease: "linear" }}
-            className="flex items-center gap-5 shrink-0 whitespace-nowrap pr-5"
-          >
-            {[...TRUST_LOGOS, ...TRUST_LOGOS].map((name, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-2.5 bg-card border border-border
-                           text-textHeading text-sm font-semibold px-5 py-2.5 rounded-full
-                           shadow-sm hover:border-accent/50 hover:text-accent
-                           hover:shadow-[0_0_18px_rgba(224,138,42,0.18)]
-                           transition-all duration-300 cursor-default select-none"
-              >
-                {/* Icon dot */}
-                <span className="w-2 h-2 rounded-full bg-accent inline-block shrink-0" />
-                {name}
-              </span>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          3. PROBLEM & SOLUTION
-      ══════════════════════════════════════════ */}
-      <section className="section-padding relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-bgSection/40 to-transparent pointer-events-none" />
-        <div className="container-max relative z-10">
-          {/* Heading */}
-          <div className="text-center mb-14">
-            <motion.span
-              initial={{ opacity: 0, y: -10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4 }}
-              className="inline-flex items-center gap-2 bg-red-500/10 text-red-500 text-xs font-bold px-4 py-1.5 rounded-full border border-red-500/20 mb-4"
-            >
-              <XCircle className="w-3.5 h-3.5" /> Common Growth Blockers
-            </motion.span>
-            <motion.h2
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-3xl md:text-4xl lg:text-5xl font-bold font-heading text-textHeading leading-tight"
-            >
-              Ready to Scale Smarter ?
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-3 text-textMuted text-base max-w-2xl mx-auto leading-relaxed"
-            >
-              Whether it's wasted ad spend, costly dev projects, or invisible
-              rankings — we've solved it before and we'll solve it for you.
-            </motion.p>
-          </div>
-
-          {/* Split table layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* LEFT — Problems column */}
-            <motion.div
-              initial={{ opacity: 0, x: -24 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="rounded-2xl border border-red-500/20 bg-red-500/[0.03] overflow-hidden"
-            >
-              {/* Column header */}
-              <div className="flex items-center gap-3 px-6 py-4 border-b border-red-500/15 bg-red-500/5">
-                <div className="w-7 h-7 rounded-full bg-red-500/15 flex items-center justify-center">
-                  <XCircle className="w-4 h-4 text-red-500" />
-                </div>
-                <span className="text-sm font-bold text-red-500 uppercase tracking-widest">
-                  Without BuzingBee
-                </span>
-              </div>
-              <ul className="divide-y divide-red-500/10">
-                {PROBLEMS.map((p, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, x: -12 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: i * 0.07 }}
-                    className="flex items-start gap-4 px-6 py-4 group"
-                  >
-                    <span className="text-xl shrink-0 mt-0.5">{p.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/60 mb-0.5 block">
-                        {p.tag}
-                      </span>
-                      <p className="text-textHeading text-sm font-medium leading-relaxed">
-                        {p.pain}
-                      </p>
-                    </div>
-                    <XCircle className="w-4 h-4 text-red-400/40 shrink-0 mt-1" />
-                  </motion.li>
-                ))}
-              </ul>
-            </motion.div>
-
-            {/* RIGHT — Solutions column */}
-            <motion.div
-              initial={{ opacity: 0, x: 24 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="rounded-2xl border border-accent/25 bg-accent/[0.03] overflow-hidden"
-            >
-              {/* Column header */}
-              <div className="flex items-center gap-3 px-6 py-4 border-b border-accent/15 bg-accent/5">
-                <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-accent" />
-                </div>
-                <span className="text-sm font-bold text-accent uppercase tracking-widest">
-                  With BuzingBee
-                </span>
-              </div>
-              <ul className="divide-y divide-accent/10">
-                {PROBLEMS.map((p, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, x: 12 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: i * 0.07 + 0.1 }}
-                    className="flex items-start gap-4 px-6 py-4"
-                  >
-                    <CheckCircle className="w-4 h-4 text-accent shrink-0 mt-1" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-accent/60 mb-0.5 block">
-                        {p.tag}
-                      </span>
-                      <p className="text-textBody text-sm leading-relaxed">
-                        {p.fix}
-                      </p>
-                    </div>
-                  </motion.li>
-                ))}
-              </ul>
-            </motion.div>
-          </div>
-
-          {/* Bottom CTA strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.35 }}
-            className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-card border border-border rounded-2xl px-6 py-5"
-          >
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-accent shrink-0" />
-              <span className="text-textBody text-sm">
-                <span className="font-bold text-textHeading">
-                  500+ businesses
+        <div className="relative z-10 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pt-28 md:pt-36 lg:pt-40 pb-16 lg:pb-20 grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-6 items-center">
+          <div>
+            <h1 className="font-jakarta text-[30px] sm:text-[40px] xl:text-[46px] leading-[1.15] tracking-[-0.02em] text-ink">
+              <span className="block font-medium">Grow Your Business with</span>
+              <span className="relative mt-4 block font-extrabold">
+                {/* hand-drawn honey marker (Magic UI Highlighter); text stays dark on yellow */}
+                <span className="mr-1 text-[#12141c]">
+                  <Highlighter action="highlight" color="#fdb905" padding={6} animationDuration={900}>
+                    Performance
+                  </Highlighter>
                 </span>{" "}
-                already made the switch — all seeing measurable ROI within 90
-                days.
+                <RollingWord words={HERO_SERVICES} />
               </span>
-            </div>
-            <Link
-              href="/contact"
-              className="btn-primary gap-2 shrink-0 text-sm px-6 py-2.5"
-            >
-              Fix My Growth <ArrowRight className="w-4 h-4" />
-            </Link>
-          </motion.div>
-        </div>
-      </section>
+            </h1>
 
-      {/* ══════════════════════════════════════════
-          4. SERVICE PILLARS
-      ══════════════════════════════════════════ */}
-      <section className="section-padding bg-bgSection">
-        <div className="container-max">
-          <SectionHeading
-            title="Our Service"
-            subtitle="Five powerful pillars — each designed to compound results when combined."
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-            {serviceCategories.map((cat, i) => {
-              const Icon = PILLAR_ICONS[cat.id] || Globe;
-              return (
-                <motion.div
-                  key={cat.id}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={fadeUp}
-                  custom={i}
-                  className="group bg-card border border-border rounded-2xl p-6 flex flex-col gap-3
-                             hover:border-accent/50 hover:shadow-[0_0_30px_rgba(224,138,42,0.12)]
-                             transition-all duration-300 cursor-default"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-1 group-hover:bg-accent/20 transition-colors">
-                    <Icon className="w-6 h-6 text-accent" />
-                  </div>
-                  <h3 className="text-base font-bold text-textHeading font-heading leading-snug">
-                    {cat.label}
-                  </h3>
-                  <p className="text-textMuted text-xs leading-relaxed line-clamp-2">
-                    {cat.description}
-                  </p>
-                  <div className="mt-auto flex items-center justify-between gap-3 pt-1">
-                    <Link
-                      href="/services"
-                      className="flex items-center gap-1 text-accent text-xs font-semibold"
-                    >
-                      Learn more <ChevronRight className="w-3.5 h-3.5" />
-                    </Link>
-                    <Link
-                      href={{
-                        pathname: "/contact",
-                        query: {
-                          source: "home-service-card",
-                          service: cat.label,
-                        },
-                      }}
-                      className="inline-flex items-center rounded-md bg-accent px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-accentHover transition-colors"
-                    >
-                      Start
-                    </Link>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+            <p className="mt-12 max-w-[620px] text-lg xl:text-[20px] leading-relaxed text-ink/75">
+              We help brands build a strong digital presence, generate quality
+              leads, and accelerate growth with smart marketing strategies,
+              creative content, and AI-driven solutions.
+            </p>
 
-      {/* ══════════════════════════════════════════
-          5. ALPHA RESULTS — CASE STUDIES
-      ══════════════════════════════════════════ */}
-      <section className="section-padding">
-        <div className="container-max">
-          <SectionHeading
-            title="Case Studies"
-            subtitle="Real numbers from real campaigns. No fluff, just proven performance."
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {RESULTS.map((r, i) => (
-              <motion.div
-                key={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                custom={i}
-                className="relative rounded-2xl overflow-hidden border border-border group"
+            <div className="mt-10 flex flex-wrap items-center gap-4 sm:gap-6">
+              <Link
+                href="/contact"
+                className={BTN_HONEY}
               >
-                <img
-                  src={r.img}
-                  alt={r.label}
-                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-5">
-                  <p className="text-3xl font-bold text-accent font-heading leading-none">
-                    {r.metric}
-                  </p>
-                  <p className="text-white font-semibold text-base mt-1">
-                    {r.label}
-                  </p>
-                  <p className="text-white/60 text-xs mt-0.5">{r.sub}</p>
-                </div>
-                <div className="absolute top-3 right-3">
-                  <TrendingUp className="w-5 h-5 text-accent" />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-          <div className="text-center mt-10">
-            <Link href="/portfolio" className="btn-outline gap-2">
-              View All Case Studies <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          6. SOCIAL PROOF — TESTIMONIALS
-      ══════════════════════════════════════════ */}
-      {testimonials.length > 0 && (
-        <section className="section-padding bg-bgSection">
-          <div className="container-max">
-            <SectionHeading
-              title="What Our Clients Say"
-              subtitle="Authentic results from businesses that trusted BuzingBee to scale their growth."
-            />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-              {testimonials.map((t, i) => (
-                <TestimonialCard
-                  key={t.id}
-                  name={t.name}
-                  company={t.company}
-                  avatar={t.avatar}
-                  rating={t.rating}
-                  text={t.text}
-                  index={i}
-                />
-              ))}
-            </div>
-            {/* Visual rating strip */}
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="w-6 h-6 text-accent fill-accent" />
-              ))}
-              <span className="text-textHeading font-bold text-lg ml-2">
-                5.0
-              </span>
-              <span className="text-textMuted text-sm">
-                · 200+ verified reviews
-              </span>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════
-          7. SECRET SAUCE — AI / GEO EDGE
-      ══════════════════════════════════════════ */}
-      <section className="section-padding relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent" />
-        <div className="container-max relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <span className="inline-flex items-center gap-2 bg-accent/10 text-accent text-xs font-semibold px-4 py-1.5 rounded-full mb-4 border border-accent/20">
-                <Zap className="w-3.5 h-3.5" /> Our Competitive Edge
-              </span>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-textHeading font-heading leading-tight mb-6">
-                The AI & GEO Advantage Nobody Else Offers
-              </h2>
-              <p className="text-textBody text-base leading-relaxed mb-8">
-                While other agencies chase yesterday's playbook, BuzingBee
-                integrates Generative Engine Optimisation and predictive AI to
-                keep your brand visible in the era of AI-driven search.
-              </p>
-              <Link href="/services" className="btn-primary gap-2">
-                See How It Works <ArrowRight className="w-5 h-5" />
+                Let&apos;s Grow Together
+                <ArrowUpRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/portfolio"
+                className="btn-light"
+              >
+                <PlayCircle className="w-5 h-5" />
+                See Our Work
               </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {AI_EDGE.map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={fadeUp}
-                  custom={i}
-                  className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3
-                             hover:border-accent/40 transition-colors"
-                >
-                  <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center">
-                    {item.icon}
-                  </div>
-                  <h4 className="font-bold text-textHeading font-heading text-sm">
-                    {item.title}
-                  </h4>
-                  <p className="text-textMuted text-xs leading-relaxed">
-                    {item.desc}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ══════════════════════════════════════════
-          8. HOW WE WORK — PROCESS
-      ══════════════════════════════════════════ */}
-      <section className="section-padding bg-bgSection">
-        <div className="container-max">
-          <SectionHeading
-            title="Our Proven Process"
-            subtitle="A battle-tested four-step approach that delivers consistent, compounding results."
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {processSteps.map((step, i) => (
-              <motion.div
-                key={step.step}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                custom={i}
-                className="relative text-center"
-              >
-                <div className="w-16 h-16 mx-auto rounded-full bg-accent/10 border-2 border-accent flex items-center justify-center mb-5">
-                  <span className="text-2xl font-bold text-accent font-heading">
-                    {step.step}
+            <div className="mt-14 grid grid-cols-2 sm:flex sm:flex-nowrap gap-y-6">
+              {[
+                { icon: Target, line1: "Strategy", line2: "That Works" },
+                { icon: Layers, line1: "Creative", line2: "That Connects" },
+                { icon: BarChart3, line1: "AI-Powered", line2: "Growth" },
+                { icon: Headphones, line1: "Dedicated", line2: "Support" },
+              ].map(({ icon: Icon, line1, line2 }, i) => (
+                <div
+                  key={line1}
+                  className={`flex items-center gap-2.5 pr-4 2xl:pr-7 ${
+                    i > 0 ? "sm:border-l sm:border-ink/15 sm:pl-4 2xl:pl-7" : ""
+                  }`}
+                >
+                  <Icon className="w-6 h-6 2xl:w-7 2xl:h-7 shrink-0 text-[#fdb905]" strokeWidth={2} />
+                  <span className="text-[14px] 2xl:text-[16px] font-medium leading-snug whitespace-nowrap text-ink/85">
+                    {line1}
+                    <br />
+                    {line2}
                   </span>
                 </div>
-                {i < processSteps.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-[calc(50%+40px)] w-[calc(100%-80px)] h-px bg-border" />
-                )}
-                <h3 className="text-xl font-bold text-textHeading font-heading mb-2">
-                  {step.title}
-                </h3>
-                <p className="text-textMuted text-sm leading-relaxed">
-                  {step.description}
-                </p>
-              </motion.div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          <HeroStories />
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          2. BRANDS + SERVICES OVERVIEW
+      ══════════════════════════════════════════ */}
+      <section className="bg-paper">
+        {/* full-bleed top/bottom lines; content stays on the page grid */}
+        <div className="border-y border-ink/10">
+          <div className={`${WRAP} flex flex-col lg:flex-row lg:items-stretch`}>
+            <p className="flex shrink-0 items-center pt-6 text-[15px] text-slate lg:py-8 lg:pr-10">
+              Worked with Global Brands &amp; Startups
+            </p>
+            {/* marquee: list rendered twice and slid -50% so the loop is seamless */}
+            <div className="min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]">
+              <div className="marquee flex h-full w-max">
+                {[0, 1].map((copy) => (
+                  <ul key={copy} className="flex" aria-hidden={copy === 1}>
+                    {BRANDS.map((brand) => (
+                      <li
+                        key={brand.name}
+                        className="flex shrink-0 items-center gap-2 border-l border-ink/10 px-8 py-6 lg:py-8 xl:px-10"
+                      >
+                        <img
+                          src={brand.src}
+                          alt={brand.label ? "" : brand.name}
+                          className={`${brand.h} w-auto ${
+                            "invertDark" in brand ? "dark:invert dark:hue-rotate-180" : ""
+                          }`}
+                        />
+                        {brand.label && (
+                          <span className="text-lg font-semibold text-ink">{brand.name}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={WRAP}>
+          {/* section label, centred across the whole block */}
+          <p className="flex items-center justify-center gap-4 pt-20 text-[15px] font-semibold uppercase tracking-[0.08em] text-ink lg:pt-24">
+            <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
+            Our Services
+            <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
+          </p>
+          <div className="grid gap-12 pb-20 pt-10 lg:pb-24 min-[1400px]:grid-cols-[0.85fr_2fr] min-[1400px]:gap-8">
+            <div>
+              <h2 className={`${H2} !leading-[1.3]`}>
+                End-to-End{" "}
+                <span className="rounded-lg bg-[#fdb905]/30 px-2 [box-decoration-break:clone]">Digital</span>{" "}
+                <span className="rounded-lg bg-[#6d3df2]/10 px-2 [box-decoration-break:clone]">
+                  <span className="bg-gradient-to-r from-[#6d3df2] via-[#9b3ff0] to-[#e0349a] bg-clip-text text-transparent">
+                    Marketing
+                  </span>
+                </span>{" "}
+                Solutions
+              </h2>
+              <p className={`mt-6 max-w-[34ch] ${LEAD} sm:text-[19px]`}>
+                From strategy to performance, we handle everything you need to
+                grow online.
+              </p>
+              <Link
+                href="/services"
+                className={`mt-8 ${BTN_HONEY}`}
+              >
+                View All Services
+                <ArrowUpRight className="h-5 w-5" />
+              </Link>
+            </div>
+
+            <ul className="grid auto-rows-fr sm:grid-cols-2 lg:grid-cols-3">
+              {SERVICE_OVERVIEW.map((svc, i) => (
+                <li
+                  key={svc.title}
+                  className={`border-ink/10 ${overviewBorders(i)}`}
+                >
+                  <ServiceRevealCard {...svc} />
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════
-          9. BLOG / EXPERT RESOURCES
+          3. PROBLEM → FIX
       ══════════════════════════════════════════ */}
-      {blogSectionPosts.length > 0 && (
-        <section className="section-padding">
-          <div className="container-max">
-            <SectionHeading
-              title="Blogs"
-              subtitle="Thought leadership, growth tactics, and industry trends from the BuzingBee team."
-            />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-              {blogSectionPosts.slice(0, 3).map((post, i) => (
-                <motion.div
-                  key={post.id}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={fadeUp}
-                  custom={i}
-                  className="group bg-card border border-border rounded-2xl overflow-hidden
-                             hover:border-borderHover hover:shadow-[0_0_30px_rgba(224,138,42,0.1)]
-                             transition-all duration-300"
-                >
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src={post.image || "/assets/image/services1.png"}
-                      alt={post.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "/assets/image/services1.png";
-                      }}
-                    />
-                    <span className="absolute top-3 left-3 bg-accent text-white text-xs font-semibold px-3 py-1 rounded-full">
-                      {post.category}
-                    </span>
-                  </div>
-                  <div className="p-5">
-                    <p className="text-textMuted text-xs mb-2">{post.date}</p>
-                    <h3 className="text-base font-bold text-textHeading font-heading leading-snug mb-2 line-clamp-2">
-                      {post.title}
-                    </h3>
-                    <p className="text-textMuted text-xs leading-relaxed line-clamp-2 mb-4">
-                      {post.excerpt}
-                    </p>
-                    <Link
-                      href={`/blog/${post.slug}`}
-                      className="text-accent text-xs font-semibold flex items-center gap-1 hover:gap-2 transition-all"
-                    >
-                      Read More <ChevronRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </motion.div>
-              ))}
+      <section className="bg-paper py-20 lg:py-28">
+        <div className={WRAP}>
+          {/* heading on top: title left, intro + CTA right */}
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end lg:gap-20">
+            <h2 className={`${H2} max-w-[18ch]`}>
+              Where growth usually stalls, and what we do about it
+            </h2>
+            <div>
+              <p className={`max-w-[46ch] ${LEAD}`}>
+                Wasted ad spend, slow builds, invisible rankings. We&apos;ve fixed
+                each of these before, and a free audit shows you how we&apos;d fix
+                yours.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+                <Link href="/contact" className={BTN_INK}>
+                  Book a free audit
+                </Link>
+                <span className="text-sm text-slate">500+ businesses have made the switch.</span>
+              </div>
             </div>
-            <div className="text-center mt-10">
-              <Link href="/blog" className="btn-outline gap-2">
-                View All Articles <ArrowRight className="w-4 h-4" />
-              </Link>
+          </div>
+
+          <div className="mt-14">
+            <ServicesGrid />
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          5. RESULTS
+      ══════════════════════════════════════════ */}
+      <section className="bg-[#12141c] py-20 lg:py-28 dark:bg-surface">
+        <div className={`${WRAP} grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20`}>
+          <div>
+            <h2 className={`${H2} !text-white`}>Results from recent work</h2>
+            <p className="mt-5 max-w-[42ch] text-[17px] leading-relaxed text-white/60">
+              A few numbers from campaigns and builds we&apos;ve shipped. Ask us
+              for the full story behind any of them.
+            </p>
+            <Link
+              href="/portfolio"
+              className="mt-8 inline-block text-[15px] font-semibold text-white underline decoration-[#fdb905] decoration-2 underline-offset-[6px] hover:decoration-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fdb905] rounded"
+            >
+              See our work
+            </Link>
+          </div>
+          <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
+            {RESULTS.map((r) => (
+              <div key={r.label} className="border-t border-white/15 pt-6">
+                <dt className="text-[52px] sm:text-[60px] font-semibold leading-none tracking-[-0.03em] text-[#fdb905]">
+                  {r.metric}
+                </dt>
+                <dd className="mt-4">
+                  <span className="block text-lg font-medium text-white">{r.label}</span>
+                  <span className="mt-1 block text-[15px] text-white/55">{r.sub}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          6. TESTIMONIALS
+      ══════════════════════════════════════════ */}
+      {testimonials.length > 0 && (
+        <section className="bg-paper py-20 lg:py-28">
+          <div className={WRAP}>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className={H2}>What clients say</h2>
+              <p className="flex items-center gap-2 text-[15px] text-slate">
+                <span className="flex" aria-hidden="true">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-[#fdb905] text-[#fdb905]" />
+                  ))}
+                </span>
+                <span>
+                  <span className="font-semibold text-ink">5.0</span> from 200+
+                  verified reviews
+                </span>
+              </p>
+            </div>
+            <div className="mt-12 grid gap-12 md:grid-cols-3 md:gap-0 md:divide-x md:divide-ink/10">
+              {testimonials.map((t) => (
+                <figure key={t.id} className="md:px-10 md:first:pl-0 md:last:pr-0">
+                  <blockquote className="text-lg leading-relaxed text-ink">
+                    &ldquo;{t.text}&rdquo;
+                  </blockquote>
+                  <figcaption className="mt-6 flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fdb905] text-sm font-semibold text-[#12141c]">
+                      {t.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </span>
+                    <span>
+                      <span className="block text-[15px] font-semibold text-ink">{t.name}</span>
+                      <span className="block text-sm text-slate">{t.company}</span>
+                    </span>
+                  </figcaption>
+                </figure>
+              ))}
             </div>
           </div>
         </section>
       )}
 
       {/* ══════════════════════════════════════════
-          10. FINAL CTA + CONTACT FORM
+          7. AI / GEO EDGE
       ══════════════════════════════════════════ */}
-      <section
-        className="section-padding relative overflow-hidden"
-        id="contact"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-accent/10 via-accent/5 to-transparent" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-accent/5 rounded-full blur-[120px]" />
-        <div className="container-max relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left copy */}
-            <div>
-              <span className="inline-flex items-center gap-2 bg-accent/10 text-accent text-xs font-semibold px-4 py-1.5 rounded-full mb-5 border border-accent/20">
-                <MessageSquare className="w-3.5 h-3.5" /> Free Strategy Call
-              </span>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-textHeading font-heading leading-tight mb-5">
-                Ready to Grow?
-                <br />
-                <span className="text-accent">Let's Talk.</span>
-              </h2>
-              <p className="text-textBody text-base leading-relaxed mb-8 max-w-md">
-                Book a free 30-minute audit and discover exactly how BuzingBee
-                can scale your brand with AI-driven marketing and development.
-              </p>
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3 text-textBody text-sm">
-                  <Mail className="w-5 h-5 text-accent shrink-0" />
-                  <span>hello@buzingbee.com</span>
+      <section className="border-t border-ink/10 bg-paper py-20 lg:py-28">
+        <div className={`${WRAP} grid gap-12 lg:grid-cols-2 lg:gap-20`}>
+          <div className="lg:sticky lg:top-28 lg:self-start">
+            <h2 className={H2}>Built for AI search, not just Google&apos;s blue links</h2>
+            <p className={`mt-5 max-w-[46ch] ${LEAD}`}>
+              People now ask ChatGPT, Gemini and Google&apos;s AI Overviews before
+              they search. We make sure your brand is the answer they get, and use
+              the same AI to run your campaigns.
+            </p>
+            <Link href="/services#ai-services" className={`mt-8 ${BTN_HONEY}`}>
+              See our AI services
+            </Link>
+          </div>
+          <ul className="divide-y divide-ink/10 border-y border-ink/10">
+            {AI_EDGE.map((item) => (
+              <li key={item.title} className="flex gap-5 py-7">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#6d3df2]/10">
+                  <item.icon className="h-5 w-5 text-[#6d3df2]" />
+                </span>
+                <div>
+                  <h3 className="text-lg font-semibold text-ink">{item.title}</h3>
+                  <p className="mt-1.5 text-base leading-relaxed text-slate">{item.desc}</p>
                 </div>
-                <div className="flex items-center gap-3 text-textBody text-sm">
-                  <Phone className="w-5 h-5 text-accent shrink-0" />
-                  <span>+91 98765 43210</span>
-                </div>
-              </div>
-            </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
-            {/* Right form */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="bg-card border border-border rounded-2xl p-8 shadow-xl"
-            >
-              <h3 className="text-xl font-bold text-textHeading font-heading mb-6">
-                Get Your Free Audit
-              </h3>
-              <form onSubmit={handleLeadSubmit} className="flex flex-col gap-4">
-                <div className="grid sm:grid-cols-2 gap-4">
+      {/* ══════════════════════════════════════════
+          8. PROCESS
+      ══════════════════════════════════════════ */}
+      <section className="bg-comb py-20 lg:py-28">
+        <div className={WRAP}>
+          <h2 className={H2}>How a project runs</h2>
+          <p className={`mt-4 max-w-[52ch] ${LEAD}`}>
+            The same four stages on every project, so you always know what happens
+            next.
+          </p>
+          <ol className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0">
+            {processSteps.map((step, i) => (
+              <li key={step.step} className="lg:pr-8">
+                <div className="flex items-center">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#12141c] font-semibold text-white dark:bg-honey dark:text-[#12141c]">
+                    {step.step}
+                  </span>
+                  {i < processSteps.length - 1 && (
+                    <span aria-hidden="true" className="ml-3 hidden h-[2px] flex-1 bg-[#fdb905] lg:block" />
+                  )}
+                </div>
+                <h3 className="mt-6 text-xl font-semibold text-ink">{step.title}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-slate">{step.description}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          9. INSIGHTS
+      ══════════════════════════════════════════ */}
+      {blogSectionPosts.length > 0 && (
+        <section className="bg-paper py-20 lg:py-28">
+          <div className={WRAP}>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className={H2}>Latest insights</h2>
+              <Link href="/blog" className={TEXT_LINK}>
+                Read all articles
+              </Link>
+            </div>
+            <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
+              {blogSectionPosts.slice(0, 3).map((post) => (
+                <article key={post.id}>
+                  <Link
+                    href={`/blog/${post.slug}`}
+                    className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-4"
+                  >
+                    <img
+                      src={post.image || "/assets/image/services1.png"}
+                      alt=""
+                      className="aspect-[16/10] w-full rounded-2xl bg-comb object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/assets/image/services1.png";
+                      }}
+                    />
+                    <p className="mt-5 flex gap-3 text-sm">
+                      <span className="font-medium text-[#a36f00] dark:text-honey">{post.category}</span>
+                      <span className="text-slate">{post.date}</span>
+                    </p>
+                    <h3 className="mt-2 text-lg font-semibold leading-snug text-ink line-clamp-2 group-hover:underline group-hover:decoration-[#fdb905] group-hover:decoration-2 group-hover:underline-offset-4">
+                      {post.title}
+                    </h3>
+                    <p className="mt-2 text-[15px] leading-relaxed text-slate line-clamp-2">
+                      {post.excerpt}
+                    </p>
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ══════════════════════════════════════════
+          10. CONTACT
+      ══════════════════════════════════════════ */}
+      <section className="bg-comb py-20 lg:py-28" id="contact">
+        <div className={`${WRAP} grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20`}>
+          <div>
+            <h2 className={H2}>Tell us what you want to grow</h2>
+            <p className={`mt-5 max-w-[44ch] ${LEAD}`}>
+              Book a free 30-minute audit. We&apos;ll review your website, ads and
+              search presence, and send you a short plan you can use whether or
+              not you hire us.
+            </p>
+            <ul className="mt-10 space-y-4 text-base">
+              <li>
+                <a href={`mailto:${SITE_CONFIG.email}`} className="inline-flex items-center gap-3 text-ink hover:underline">
+                  <Mail className="h-5 w-5 text-[#d98a00]" />
+                  {SITE_CONFIG.email}
+                </a>
+              </li>
+              <li>
+                <a href={`tel:${SITE_CONFIG.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-3 text-ink hover:underline">
+                  <Phone className="h-5 w-5 text-[#d98a00]" />
+                  {SITE_CONFIG.phone}
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div className="rounded-3xl border border-ink/10 bg-surface p-6 sm:p-8">
+            <h3 className="text-xl font-semibold text-ink">Get your free audit</h3>
+            <form onSubmit={handleLeadSubmit} className="mt-6 flex flex-col gap-5">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <label className="block">
+                  <span className={LABEL}>Name</span>
                   <input
                     type="text"
-                    placeholder="Your Name *"
+                    autoComplete="name"
                     value={form.name}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, name: e.target.value }))
-                    }
+                    onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                     required
-                    className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors"
+                    className={FIELD}
                   />
+                </label>
+                <label className="block">
+                  <span className={LABEL}>Email</span>
                   <input
                     type="email"
-                    placeholder="Your Email *"
+                    autoComplete="email"
                     value={form.email}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, email: e.target.value }))
-                    }
+                    onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                     required
-                    className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors"
+                    className={FIELD}
                   />
-                </div>
+                </label>
+              </div>
 
-                <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <label className="block">
+                  <span className={LABEL}>
+                    Phone <span className="font-normal text-slate">(optional)</span>
+                  </span>
                   <input
                     type="tel"
-                    placeholder="Phone Number"
+                    autoComplete="tel"
                     value={form.phone}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, phone: e.target.value }))
-                    }
-                    className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors"
+                    onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    className={FIELD}
                   />
+                </label>
+                <label className="block">
+                  <span className={LABEL}>Service</span>
                   <select
                     value={form.service}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, service: e.target.value }))
-                    }
-                    className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm outline-none focus:border-accent transition-colors"
+                    onChange={(e) => setForm((prev) => ({ ...prev, service: e.target.value }))}
+                    className={FIELD}
                   >
-                    <option value="">Select Service</option>
+                    <option value="">Not sure yet</option>
                     <option value="web-development">Web Development</option>
                     <option value="mobile-app">Mobile App Development</option>
                     <option value="ai-ml">AI & ML Development</option>
@@ -1092,66 +875,61 @@ export default function HomePage() {
                     <option value="ecommerce">E-Commerce Solutions</option>
                     <option value="other">Other</option>
                   </select>
-                </div>
+                </label>
+              </div>
 
+              <label className="block">
+                <span className={LABEL}>Monthly budget</span>
                 <select
                   value={form.budget}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, budget: e.target.value }))
-                  }
-                  className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm outline-none focus:border-accent transition-colors"
+                  onChange={(e) => setForm((prev) => ({ ...prev, budget: e.target.value }))}
+                  className={FIELD}
                 >
-                  <option value="">Select Budget Range</option>
+                  <option value="">Prefer not to say</option>
                   <option value="below-5k">Below ₹5,000</option>
-                  <option value="5k-10k">₹5,000 — ₹10,000</option>
-                  <option value="10k-25k">₹10,000 — ₹25,000</option>
-                  <option value="25k-50k">₹25,000 — ₹50,000</option>
-                  <option value="50k-1l">₹50,000 — ₹1,00,000</option>
+                  <option value="5k-10k">₹5,000 to ₹10,000</option>
+                  <option value="10k-25k">₹10,000 to ₹25,000</option>
+                  <option value="25k-50k">₹25,000 to ₹50,000</option>
+                  <option value="50k-1l">₹50,000 to ₹1,00,000</option>
                   <option value="above-1l">Above ₹1,00,000</option>
                 </select>
+              </label>
 
+              <label className="block">
+                <span className={LABEL}>What do you want to grow?</span>
                 <textarea
-                  placeholder="Tell us about your project *"
                   value={form.message}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, message: e.target.value }))
-                  }
+                  onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))}
                   rows={4}
                   required
-                  className="w-full bg-bgSection border border-border rounded-xl px-4 py-3 text-textHeading text-sm placeholder:text-textMuted outline-none focus:border-accent transition-colors resize-none"
+                  placeholder="e.g. More leads from Google for our clinic"
+                  className={`${FIELD} resize-none`}
                 />
+              </label>
 
-                <TurnstileWidget
-                  onToken={setCaptchaToken}
-                  resetSignal={captchaReset}
-                />
+              <TurnstileWidget onToken={setCaptchaToken} resetSignal={captchaReset} />
 
-                <button
-                  type="submit"
-                  disabled={leadSubmitState === "submitting"}
-                  className="btn-primary w-full gap-2 justify-center disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {leadSubmitState === "submitting"
-                    ? "Submitting..."
-                    : "Start Your Project"}{" "}
-                  <ArrowRight className="w-5 h-5" />
-                </button>
+              <button
+                type="submit"
+                disabled={leadSubmitState === "submitting"}
+                className={`${BTN_HONEY} w-full disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                {leadSubmitState === "submitting" ? "Sending…" : "Request my free audit"}
+              </button>
 
-                {leadSubmitState === "success" && (
-                  <div className="flex items-start gap-2 rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3 text-sm text-green-700">
-                    <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span>{leadSubmitMessage}</span>
-                  </div>
-                )}
-
-                {leadSubmitState === "error" && (
-                  <div className="flex items-start gap-2 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-600">
-                    <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span>{leadSubmitMessage}</span>
-                  </div>
-                )}
-              </form>
-            </motion.div>
+              {leadSubmitState === "success" && (
+                <p role="status" className="flex items-start gap-2 rounded-xl bg-green-500/10 px-4 py-3 text-sm text-green-800">
+                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {leadSubmitMessage}
+                </p>
+              )}
+              {leadSubmitState === "error" && (
+                <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-700">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {leadSubmitMessage}
+                </p>
+              )}
+            </form>
           </div>
         </div>
       </section>

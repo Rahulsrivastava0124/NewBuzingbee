@@ -20,8 +20,8 @@ export default function PortfolioPage() {
       <section className="pt-32 pb-16 px-4 sm:px-6 lg:px-8 text-center relative overflow-hidden">
         <div className="absolute bottom-0 left-20 w-72 h-72 bg-accent/10 rounded-full blur-[120px]" />
         <div className="container-max relative z-10">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-textHeading font-heading">
-            Our <span className="text-accent">Portfolio</span>
+          <h1 className="heading-page">
+            Our <span className="rounded-lg bg-honey/30 px-2 [box-decoration-break:clone]">Portfolio</span>
           </h1>
           <p className="mt-4 text-textBody max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
             A showcase of projects we&apos;re proud of — websites, apps, brands,

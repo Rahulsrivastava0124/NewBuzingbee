@@ -16,7 +16,7 @@ export default function CTABanner() {
         transition={{ duration: 0.6 }}
         className="container-max relative z-10 text-center"
       >
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-textHeading font-heading mb-4">
+        <h2 className="heading-section mb-4">
           Ready to Grow Your Business?
         </h2>
         <p className="text-textBody text-base md:text-lg max-w-xl mx-auto mb-8 leading-relaxed">

@@ -114,11 +114,8 @@ export default function PricingCard({
 
       <Link
         href={href}
-        className={`inline-flex w-full min-h-[44px] items-center justify-center text-center px-5 py-2.5 rounded-[12px] text-sm font-semibold transition-all duration-300 leading-none
-                    ${
-                      featured
-                        ? "bg-accent text-bgPrimary hover:bg-accentHover hover:shadow-[0_0_24px_rgba(224,138,42,0.3)]"
-                        : "bg-transparent border border-accent text-accent hover:bg-accent hover:text-bgPrimary"
+        className={`w-full ${
+                      featured ? "btn-honey" : "btn-light"
                     }`}
       >
         {ctaLabel}

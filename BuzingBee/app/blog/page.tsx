@@ -93,8 +93,8 @@ export default async function BlogPage() {
           <span className="inline-block bg-accent/10 text-accent text-sm font-semibold px-4 py-1.5 rounded-full mb-4 border border-accent/20">
             Insights & Articles
           </span>
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-textHeading font-heading">
-            Our <span className="text-accent">Blog</span>
+          <h1 className="heading-page">
+            Our <span className="rounded-lg bg-honey/30 px-2 [box-decoration-break:clone]">Blog</span>
           </h1>
           <p className="mt-4 text-textBody max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
             Stay ahead of the curve with expert insights on digital marketing,
