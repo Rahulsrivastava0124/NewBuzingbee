@@ -237,11 +237,11 @@ function RollingWord({ words }: { words: string[] }) {
       <span aria-hidden="true" className="invisible">
         {longest}
       </span>
-      <span aria-hidden="true" className="absolute left-0 top-0 whitespace-nowrap">
+      <span aria-hidden="true" className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap lg:left-0 lg:translate-x-0">
         <RollingText key={index} text={word} charStyle={letterGradient} />
       </span>
       {/* squiggle sized to the current word, redrawn for each new one */}
-      <span aria-hidden="true" className="absolute left-0 top-0 whitespace-nowrap">
+      <span aria-hidden="true" className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap lg:left-0 lg:translate-x-0">
         <span className="invisible">{word}</span>
         <motion.svg
           key={index}
@@ -421,7 +421,8 @@ export default function HomePage() {
         />
 
         <div className="relative z-10 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pt-28 md:pt-36 lg:pt-40 pb-16 lg:pb-20 grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-6 items-center">
-          <div>
+          {/* centred on phones/tablets, left-aligned beside the animation on desktop */}
+          <div className="text-center lg:text-left">
             <h1 className="font-jakarta text-[30px] sm:text-[40px] xl:text-[46px] leading-[1.15] tracking-[-0.02em] text-ink">
               <span className="block font-medium">Grow Your Business with</span>
               <span className="relative mt-4 block font-extrabold">
@@ -441,7 +442,7 @@ export default function HomePage() {
               creative content, and AI-driven solutions.
             </p>
 
-            <div className="mt-10 flex flex-wrap items-center gap-4 sm:gap-6">
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:justify-start">
               <Link
                 href="/contact"
                 className={BTN_HONEY}
@@ -451,14 +452,14 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/portfolio"
-                className="btn-light"
+                className="btn-light hidden sm:inline-flex"
               >
                 <PlayCircle className="w-5 h-5" />
                 See Our Work
               </Link>
             </div>
 
-            <div className="mt-14 grid grid-cols-2 sm:flex sm:flex-nowrap gap-y-6">
+            <div className="mt-14 grid grid-cols-2 justify-items-center gap-y-6 text-left sm:flex sm:flex-nowrap sm:justify-center lg:justify-start">
               {[
                 { icon: Target, line1: "Strategy", line2: "That Works" },
                 { icon: Layers, line1: "Creative", line2: "That Connects" },
