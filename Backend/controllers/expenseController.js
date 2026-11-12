@@ -127,6 +127,10 @@ const createExpense = async (req, res) => {
   }
 };
 
+// Once reviewed or cancelled, only the super admin may edit or delete an expense
+const canChange = (isSuperAdmin, expense) => isSuperAdmin || expense.status === "pending";
+const LOCKED = "Only pending expenses can be changed";
+
 const updateExpense = async (req, res) => {
   try {
     const expense = await Expense.findOne({ _id: req.params.id, ...ownScope(req) });
@@ -134,6 +138,9 @@ const updateExpense = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Expense not found" });
+    }
+    if (!canChange(isSuper(req), expense)) {
+      return res.status(400).json({ success: false, message: LOCKED });
     }
     ["title", "category", "vendor", "method", "spentAt", "note"].forEach((k) => {
       if (req.body[k] !== undefined) expense[k] = req.body[k];
@@ -163,12 +170,16 @@ const updateExpense = async (req, res) => {
 
 const deleteExpense = async (req, res) => {
   try {
-    const expense = await Expense.findOneAndDelete({ _id: req.params.id, ...ownScope(req) });
+    const expense = await Expense.findOne({ _id: req.params.id, ...ownScope(req) });
     if (!expense) {
       return res
         .status(404)
         .json({ success: false, message: "Expense not found" });
     }
+    if (!canChange(isSuper(req), expense)) {
+      return res.status(400).json({ success: false, message: LOCKED });
+    }
+    await expense.deleteOne();
     await LedgerEntry.deleteMany({ refType: "expense", refId: expense._id });
     return res.json({ success: true, message: "Expense deleted" });
   } catch (error) {
@@ -182,6 +193,11 @@ const reviewExpense = (status) => async (req, res) => {
     const expense = await Expense.findById(req.params.id);
     if (!expense) {
       return res.status(404).json({ success: false, message: "Expense not found" });
+    }
+    if (expense.status !== "pending") {
+      return res
+        .status(400)
+        .json({ success: false, message: `This expense is already ${expense.status}` });
     }
     expense.status = status;
     expense.reviewedBy = req.admin.id;
@@ -225,4 +241,5 @@ module.exports = {
   rejectExpense: reviewExpense("rejected"),
   ledgerFor,
   hitsCompanyWallet,
+  canChange,
 };

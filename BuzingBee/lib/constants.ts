@@ -36,14 +36,12 @@ export const COLORS = {
   },
 };
 
+// single-page site: menu items jump to homepage sections (plus the external restaurant site)
 export const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "About", href: "/about" },
-  { label: "Services", href: "/services" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Startups", href: "/startup" },
-  { label: "Portfolio", href: "/portfolio" },
-  { label: "Blog", href: "/blog" },
+  { label: "About", href: "/#about" },
+  { label: "Services", href: "/#all-services" },
+  { label: "Our Work", href: "/#work" },
+  { label: "Insights", href: "/#insights" },
   { label: "Restaurant", href: "https://restro.buzingbee.com" },
-  { label: "Contact", href: "/contact" },
 ];

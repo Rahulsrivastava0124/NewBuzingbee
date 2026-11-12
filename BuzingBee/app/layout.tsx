@@ -1,10 +1,24 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import "@/styles/globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
 import PageViewTracker from "@/components/PageViewTracker";
 import { SITE_CONFIG } from "@/lib/constants";
+
+// General Sans, self-hosted from app/fonts (the regular weights the site uses)
+const generalSans = localFont({
+  src: [
+    { path: "./fonts/GeneralSans-Light.otf", weight: "300", style: "normal" },
+    { path: "./fonts/GeneralSans-Regular.otf", weight: "400", style: "normal" },
+    { path: "./fonts/GeneralSans-Medium.otf", weight: "500", style: "normal" },
+    { path: "./fonts/GeneralSans-Semibold.otf", weight: "600", style: "normal" },
+    { path: "./fonts/GeneralSans-Bold.otf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-general-sans",
+  display: "swap",
+});
  
 
 export const metadata: Metadata = {
@@ -135,12 +149,6 @@ const structuredData = {
       name: SITE_CONFIG.name,
       url: SITE_CONFIG.url,
       publisher: { "@id": `${SITE_CONFIG.url}/#organization` },
-      significantLink: [
-        `${SITE_CONFIG.url}/services`,
-        `${SITE_CONFIG.url}/pricing`,
-        `${SITE_CONFIG.url}/startup`,
-        `${SITE_CONFIG.url}/portfolio`,
-      ],
       potentialAction: {
         "@type": "SearchAction",
         target: {
@@ -157,55 +165,6 @@ const structuredData = {
           url: `${SITE_CONFIG.url}/`,
           isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
         },
-        {
-          "@type": ["WebPage", "SiteNavigationElement"],
-          "@id": `${SITE_CONFIG.url}/about#webpage`,
-          name: "About",
-          url: `${SITE_CONFIG.url}/about`,
-          isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
-        },
-        {
-          "@type": ["WebPage", "SiteNavigationElement"],
-          "@id": `${SITE_CONFIG.url}/services#webpage`,
-          name: "Services",
-          url: `${SITE_CONFIG.url}/services`,
-          isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
-        },
-        {
-          "@type": ["WebPage", "SiteNavigationElement"],
-          "@id": `${SITE_CONFIG.url}/pricing#webpage`,
-          name: "Pricing",
-          url: `${SITE_CONFIG.url}/pricing`,
-          isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
-        },
-        {
-          "@type": ["WebPage", "SiteNavigationElement"],
-          "@id": `${SITE_CONFIG.url}/startup#webpage`,
-          name: "Startup Plans",
-          url: `${SITE_CONFIG.url}/startup`,
-          isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
-        },
-        {
-          "@type": ["WebPage", "SiteNavigationElement"],
-          "@id": `${SITE_CONFIG.url}/portfolio#webpage`,
-          name: "Portfolio",
-          url: `${SITE_CONFIG.url}/portfolio`,
-          isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
-        },
-        {
-          "@type": ["WebPage", "SiteNavigationElement"],
-          "@id": `${SITE_CONFIG.url}/blog#webpage`,
-          name: "Blog",
-          url: `${SITE_CONFIG.url}/blog`,
-          isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
-        },
-        {
-          "@type": ["WebPage", "SiteNavigationElement"],
-          "@id": `${SITE_CONFIG.url}/contact#webpage`,
-          name: "Contact",
-          url: `${SITE_CONFIG.url}/contact`,
-          isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
-        },
       ],
     },
   ],
@@ -217,19 +176,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={generalSans.variable}>
       <head>
         {/* apply the saved (or system) theme before first paint, so dark mode never flashes light */}
         <script
           dangerouslySetInnerHTML={{
             __html: `try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}`,
           }}
-        />
-        {/* General Sans isn't on Google Fonts; Fontshare is its official free host */}
-        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://api.fontshare.com/v2/css?f[]=general-sans@300,400,500,600,700&display=swap"
         />
         <script
           type="application/ld+json"

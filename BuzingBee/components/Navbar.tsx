@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
@@ -12,41 +12,66 @@ import {
   MessageCircle,
   ArrowUpRight,
   ChevronDown,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { NAV_LINKS, SITE_CONFIG } from "@/lib/constants";
-import { serviceCategories } from "@/lib/data";
+import { AUDIT_POPUP_EVENT, openAuditPopup } from "@/lib/audit-popup";
+import { SERVICES } from "@/components/ServicesGrid";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 
-// desktop bar is a trimmed set; the full NAV_LINKS list stays in the mobile menu + footer
-const DESKTOP_LINKS = [
-  { label: "Home", href: "/" },
-  { label: "About", href: "/about" },
-  { label: "Services", href: "/services" },
-  { label: "Our Work", href: "/portfolio" },
-  { label: "Insights", href: "/blog" },
-];
+// desktop menu: the site's own links (the external Restaurant link stays in mobile menu + footer)
+const DESKTOP_LINKS = NAV_LINKS.filter((link) => link.href.startsWith("/"));
+
+// homepage sections the menu links to, in page order (used to underline the one in view)
+const SECTION_IDS = ["about", "work", "insights", "all-services"];
+
+const ENQUIRY_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+  ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/enquiries/submit`
+  : "https://api.buzingbee.com/api/enquiries/submit";
+
+const EMPTY_FORM = { name: "", email: "", phone: "", message: "" };
 
 export default function Navbar() {
-  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [enquiryForm, setEnquiryForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
-  });
+  const [enquiryForm, setEnquiryForm] = useState(EMPTY_FORM);
+  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
   const pathname = usePathname();
   const currentPath = pathname || "/";
+  const [activeSection, setActiveSection] = useState("");
+
+  // scroll-spy: the active section is the last one whose top has scrolled up to just
+  // under the navbar; above the first one, Home is active
+  useEffect(() => {
+    const update = () => {
+      let current = "";
+      for (const id of SECTION_IDS) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 140) current = id;
+      }
+      setActiveSection(current);
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [pathname]);
 
   const isActiveLink = (href: string) => {
-    if (href === "/") {
-      return currentPath === "/";
-    }
-
-    return currentPath === href || currentPath.startsWith(`${href}/`);
+    if (currentPath !== "/") return false;
+    if (href === "/") return activeSection === "";
+    const id = href.slice(2); // "/#about" → "about"
+    return activeSection === id;
   };
 
   useEffect(() => {
@@ -63,6 +88,26 @@ export default function Navbar() {
     setMounted(true);
   }, []);
 
+  // other parts of the page open the popup via openAuditPopup() (lib/audit-popup.ts)
+  useEffect(() => {
+    const open = (e: Event) => {
+      const service = (e as CustomEvent<{ service?: string }>).detail?.service;
+      if (service) {
+        setEnquiryForm((prev) => ({
+          ...prev,
+          message: prev.message || `I'm interested in ${service}.`,
+        }));
+      }
+      // clear the last result, but let a send that's still in flight report back here
+      setSubmitState((state) => (state === "submitting" ? state : "idle"));
+      setSubmitMessage("");
+      setMobileOpen(false);
+      setEnquiryOpen(true);
+    };
+    window.addEventListener(AUDIT_POPUP_EVENT, open);
+    return () => window.removeEventListener(AUDIT_POPUP_EVENT, open);
+  }, []);
+
   useEffect(() => {
     if (!enquiryOpen) return;
 
@@ -74,19 +119,39 @@ export default function Navbar() {
     };
   }, [enquiryOpen]);
 
-  const handleEnquirySubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  // sends the enquiry to the admin panel (same API the old contact form used)
+  const handleEnquirySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const params = new URLSearchParams({
-      source: "navbar",
-      name: enquiryForm.name,
-      email: enquiryForm.email,
-      phone: enquiryForm.phone,
-      message: enquiryForm.message,
-    });
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setSubmitState("error");
+      setSubmitMessage("Please complete the verification below.");
+      return;
+    }
 
-    setEnquiryOpen(false);
-    router.push(`/contact?${params.toString()}`);
+    setSubmitState("submitting");
+    setSubmitMessage("");
+
+    try {
+      const response = await fetch(ENQUIRY_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...enquiryForm, source: "audit-popup", captchaToken }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || "Failed to submit enquiry");
+
+      setSubmitState("success");
+      setSubmitMessage(payload?.message || "Thank you! We'll be in touch shortly with your audit.");
+      setEnquiryForm(EMPTY_FORM);
+    } catch (error) {
+      setSubmitState("error");
+      setSubmitMessage(
+        error instanceof Error ? error.message : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setCaptchaReset((n) => n + 1); // a token can only be used once
+    }
   };
 
   const enquiryModal = (
@@ -165,9 +230,28 @@ export default function Navbar() {
                 className="w-full rounded-xl border border-border bg-bgPrimary px-4 py-2.5 text-sm text-textHeading placeholder:text-textMuted outline-none focus:border-accent resize-none"
               />
 
-              <button type="submit" className="btn-primary w-full mt-1">
-                Request my free audit
+              <TurnstileWidget onToken={setCaptchaToken} resetSignal={captchaReset} />
+
+              <button
+                type="submit"
+                disabled={submitState === "submitting"}
+                className="btn-primary w-full mt-1 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitState === "submitting" ? "Sending…" : "Request my free audit"}
               </button>
+
+              {submitState === "success" && (
+                <p role="status" className="flex items-start gap-2 rounded-xl bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {submitMessage}
+                </p>
+              )}
+              {submitState === "error" && (
+                <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {submitMessage}
+                </p>
+              )}
             </form>
           </motion.div>
         </motion.div>
@@ -222,7 +306,7 @@ export default function Navbar() {
                   <span className="absolute left-0 -bottom-1.5 h-[3px] w-full rounded-full bg-[#fdb905]" />
                 );
 
-                if (link.href !== "/services") {
+                if (link.label !== "Services") {
                   return (
                     <Link key={link.href} href={link.href} className={linkClass}>
                       {link.label}
@@ -231,6 +315,8 @@ export default function Navbar() {
                   );
                 }
 
+                // Services: link to the grid, plus a dropdown of the 8 services
+                // (each opens the free-audit popup pre-filled with that service)
                 return (
                   <div key={link.href} className="relative group">
                     <Link href={link.href} className={linkClass}>
@@ -239,15 +325,16 @@ export default function Navbar() {
                       {underline}
                     </Link>
                     <div className="invisible opacity-0 translate-y-2 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:visible group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-200 absolute left-1/2 -translate-x-1/2 top-full pt-3">
-                      <div className="w-72 rounded-2xl border border-[#fdb905]/25 bg-paper p-2 shadow-[0_18px_40px_rgba(18,20,28,0.12)]">
-                        {serviceCategories.map((cat) => (
-                          <Link
-                            key={cat.id}
-                            href={`/services#${cat.id}`}
-                            className="block rounded-xl px-4 py-2.5 text-sm font-medium text-ink hover:bg-[#fdb905]/10"
+                      <div className="w-80 rounded-2xl border border-[#fdb905]/25 bg-surface p-2 shadow-[0_18px_40px_rgba(18,20,28,0.12)]">
+                        {SERVICES.map((svc) => (
+                          <button
+                            key={svc.title}
+                            type="button"
+                            onClick={() => openAuditPopup(svc.title)}
+                            className="block w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium text-ink hover:bg-[#fdb905]/10 focus-visible:bg-[#fdb905]/10 focus-visible:outline-none"
                           >
-                            {cat.label}
-                          </Link>
+                            {svc.title}
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -264,10 +351,7 @@ export default function Navbar() {
               />
               <button
                 type="button"
-                onClick={() => {
-                  setMobileOpen(false);
-                  setEnquiryOpen(true);
-                }}
+                onClick={() => openAuditPopup()}
                 className="btn-honey hidden xl:inline-flex"
               >
                 Get Free Audit
@@ -303,6 +387,7 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
+                    onClick={() => setMobileOpen(false)} // same-page section jumps don't change the route
                     className={`relative block text-base py-2 pl-3 rounded-md transition-colors duration-300 ${
                       isActiveLink(link.href)
                         ? "font-bold text-ink bg-[#fdb905]/15"
@@ -334,10 +419,7 @@ export default function Navbar() {
                   </a>
                   <button
                     type="button"
-                    onClick={() => {
-                      setMobileOpen(false);
-                      setEnquiryOpen(true);
-                    }}
+                    onClick={() => openAuditPopup()}
                     className="btn-honey flex-1"
                   >
                     Get Free Audit

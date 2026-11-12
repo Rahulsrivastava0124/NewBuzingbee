@@ -63,7 +63,7 @@ html {
 }
 
 :root {
-  --font-sans: "General Sans", system-ui, sans-serif;
+  --font-sans: var(--font-general-sans), "General Sans", system-ui, sans-serif;
 }
 
 body {

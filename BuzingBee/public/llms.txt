@@ -13,13 +13,7 @@
 
 ## Important URLs
 - Home: https://buzingbee.com/
-- Services: https://buzingbee.com/services
-- About: https://buzingbee.com/about
-- Pricing: https://buzingbee.com/pricing
-- Startup Plans: https://buzingbee.com/startup
-- Portfolio: https://buzingbee.com/portfolio
-- Blog: https://buzingbee.com/blog
-- Contact: https://buzingbee.com/contact
+- Services: https://buzingbee.com/#all-services
 
 ## Contact
 - Email: hello@buzingbee.com

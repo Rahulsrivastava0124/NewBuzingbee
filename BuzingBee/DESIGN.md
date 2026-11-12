@@ -79,7 +79,7 @@ Rules for new code:
 
 ## 2. Typography
 
-**Font:** General Sans everywhere (loaded from Fontshare in `app/layout.tsx`). Weights 300–700.
+**Font:** General Sans everywhere, self-hosted: the `.otf` files are in `app/fonts/` and loaded with `next/font/local` in `app/layout.tsx`. Weights 300–700 (regular style only; add the italic files from the font zip if you ever need italics).
 There is no 800; `font-extrabold` renders as 700.
 
 **Heading scale** (use the classes, not raw sizes):

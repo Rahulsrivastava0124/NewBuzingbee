@@ -1,32 +1,24 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import {
-  CheckCircle,
-  XCircle,
-  Bot,
   Search,
   Code2,
-  Brain,
   Target,
-  Star,
-  Zap,
   Mail,
-  Phone,
   ArrowUpRight,
   PlayCircle,
   Layers,
   BarChart3,
   Headphones,
-  Check,
   Share2,
   FileText,
 } from "lucide-react";
 import HeroStories from "@/components/HeroStories";
 import ServiceRevealCard from "@/components/ServiceRevealCard";
 import ServicesGrid from "@/components/ServicesGrid";
+import ProjectsMarquee from "@/components/ProjectsMarquee";
 import { Highlighter } from "@/components/ui/highlighter";
 import dynamic from "next/dynamic";
 
@@ -37,13 +29,7 @@ const HexagonPattern = dynamic(
   { ssr: false },
 );
 import { RollingText } from "@/components/animate-ui/primitives/texts/rolling";
-import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
-import {
-  testimonials,
-  processSteps,
-  blogPosts,
-} from "@/lib/data";
-import { SITE_CONFIG } from "@/lib/constants";
+import { openAuditPopup } from "@/lib/audit-popup";
 
 /* ── shared styles for the sections below the hero ── */
 const WRAP = "max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12";
@@ -55,9 +41,6 @@ const FOCUS =
 const BTN_INK = "btn-dark";
 const BTN_HONEY = "btn-honey";
 const TEXT_LINK = `w-fit rounded text-[15px] font-semibold text-ink underline decoration-[#fdb905] decoration-2 underline-offset-[6px] hover:decoration-ink ${FOCUS}`;
-const LABEL = "mb-1.5 block text-sm font-medium text-ink";
-const FIELD =
-  "w-full rounded-xl border border-ink/15 bg-paper px-4 py-3 text-[15px] text-ink placeholder:text-ink/40 outline-none focus:border-ink focus:ring-2 focus:ring-[#fdb905]/60 transition";
 
 // logos from svglogos.dev (CC0) unless noted; heights tuned so the marks read at a similar size.
 // invertDark: black wordmarks; in dark mode invert + hue-rotate(180) flips light/dark but keeps hues
@@ -79,37 +62,37 @@ const SERVICE_OVERVIEW = [
     icon: Search,
     title: "Search Engine Optimization (SEO)",
     desc: "Rank higher, get found, and bring in organic traffic.",
-    href: "/services#digital-marketing",
+    href: "#all-services",
   },
   {
     icon: BarChart3,
     title: "Google Ads",
     desc: "Target the right audience and get instant results.",
-    href: "/services#advertising",
+    href: "#all-services",
   },
   {
     icon: Share2,
     title: "Social Media Marketing",
     desc: "Build your brand and engage your audience.",
-    href: "/services#digital-marketing",
+    href: "#all-services",
   },
   {
     icon: FileText,
     title: "Content Marketing",
     desc: "Valuable content that builds trust and drives sales.",
-    href: "/services#digital-marketing",
+    href: "#all-services",
   },
   {
     icon: Code2,
     title: "Website Design & Development",
     desc: "Modern websites that convert visitors into customers.",
-    href: "/services#web-app-development",
+    href: "#all-services",
   },
   {
     icon: Mail,
     title: "Email Marketing",
     desc: "Nurture leads and boost customer loyalty.",
-    href: "/services#digital-marketing",
+    href: "#all-services",
   },
 ];
 
@@ -123,56 +106,6 @@ function overviewBorders(i: number) {
     i % 3 === 0 ? "lg:border-l-0" : "lg:border-l",
   ].join(" ");
 }
-
-const RESULTS = [
-  {
-    metric: "+300%",
-    label: "Lead Generation",
-    sub: "SaaS brand, 90 days",
-    img: "/assets/image/objective_pic_1.jpg",
-  },
-  {
-    metric: "+400%",
-    label: "Organic Traffic",
-    sub: "E-commerce store, 6 months",
-    img: "/assets/image/objective_pic_2.jpg",
-  },
-  {
-    metric: "3×",
-    label: "Revenue Growth",
-    sub: "D2C brand via Meta & Google Ads",
-    img: "/assets/image/portfolio_1.jpg",
-  },
-  {
-    metric: "−60%",
-    label: "Support Tickets",
-    sub: "AI chatbot deployment",
-    img: "/assets/image/portfolio_2.jpg",
-  },
-];
-
-const AI_EDGE = [
-  {
-    icon: Brain,
-    title: "Predictive Analytics",
-    desc: "We forecast campaign performance before you spend a single rupee, using ML models trained on your niche.",
-  },
-  {
-    icon: Search,
-    title: "AI-Powered SEO & GEO",
-    desc: "Rank in Google's AI Overviews and LLM recommendations, not just the blue links.",
-  },
-  {
-    icon: Bot,
-    title: "Conversational AI",
-    desc: "24/7 AI chatbots that qualify leads, book calls, and personalise the buyer journey automatically.",
-  },
-  {
-    icon: Zap,
-    title: "Automated Bidding",
-    desc: "Real-time bid adjustments across Google & Meta Ads for maximum ROI with zero manual overhead.",
-  },
-];
 
 // honey-filled cells in the hero honeycomb, as [column, row]
 const HERO_HEXAGONS: [number, number][] = [
@@ -266,113 +199,7 @@ function RollingWord({ words }: { words: string[] }) {
   );
 }
 
-type HomeBlogPost = {
-  id: string | number;
-  title: string;
-  excerpt: string;
-  category: string;
-  date: string;
-  image: string;
-  slug: string;
-};
-
-const ENQUIRY_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL
-  ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/enquiries/submit`
-  : "https://api.buzingbee.com/api/enquiries/submit";
-
 export default function HomePage() {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    service: "",
-    budget: "",
-    message: "",
-  });
-  const [leadSubmitState, setLeadSubmitState] = useState<
-    "idle" | "submitting" | "success" | "error"
-  >("idle");
-  const [leadSubmitMessage, setLeadSubmitMessage] = useState("");
-  const [captchaToken, setCaptchaToken] = useState("");
-  const [captchaReset, setCaptchaReset] = useState(0);
-  const [blogSectionPosts, setBlogSectionPosts] =
-    useState<HomeBlogPost[]>(blogPosts);
-
-  const handleLeadSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (TURNSTILE_SITE_KEY && !captchaToken) {
-      setLeadSubmitState("error");
-      setLeadSubmitMessage("Please complete the verification below.");
-      return;
-    }
-
-    setLeadSubmitState("submitting");
-    setLeadSubmitMessage("");
-
-    try {
-      const response = await fetch(ENQUIRY_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, source: "home-cta", captchaToken }),
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload?.message || "Failed to submit enquiry");
-      }
-
-      setLeadSubmitState("success");
-      setLeadSubmitMessage(
-        payload?.message || "Thank you! We will connect with you shortly.",
-      );
-      setForm({
-        name: "",
-        email: "",
-        phone: "",
-        service: "",
-        budget: "",
-        message: "",
-      });
-      setCaptchaReset((n) => n + 1); // a token can only be used once
-    } catch (error) {
-      setCaptchaReset((n) => n + 1);
-      setLeadSubmitState("error");
-      setLeadSubmitMessage(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong. Please try again.",
-      );
-    }
-  };
-
-  useEffect(() => {
-    let active = true;
-
-    const loadBlogs = async () => {
-      try {
-        const response = await fetch("/api/blog", { cache: "no-store" });
-        if (!response.ok) return;
-
-        const payload = (await response.json()) as { posts?: HomeBlogPost[] };
-        if (!active) return;
-
-        if (Array.isArray(payload.posts) && payload.posts.length > 0) {
-          setBlogSectionPosts(payload.posts);
-        }
-      } catch {
-        // keep fallback posts from local data
-      }
-    };
-
-    void loadBlogs();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
   return (
     <>
       {/* ══════════════════════════════════════════
@@ -443,20 +270,14 @@ export default function HomePage() {
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:justify-start">
-              <Link
-                href="/contact"
-                className={BTN_HONEY}
-              >
+              <button type="button" onClick={() => openAuditPopup()} className={BTN_HONEY}>
                 Let&apos;s Grow Together
                 <ArrowUpRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/portfolio"
-                className="btn-light hidden sm:inline-flex"
-              >
+              </button>
+              <a href="#all-services" className="btn-light hidden sm:inline-flex">
                 <PlayCircle className="w-5 h-5" />
-                See Our Work
-              </Link>
+                Explore Services
+              </a>
             </div>
 
             <div className="mt-14 grid grid-cols-2 justify-items-center gap-y-6 text-left sm:flex sm:flex-nowrap sm:justify-center lg:justify-start">
@@ -528,7 +349,7 @@ export default function HomePage() {
 
         <div className={WRAP}>
           {/* section label, centred across the whole block */}
-          <p className="flex items-center justify-center gap-4 pt-20 text-[15px] font-semibold uppercase tracking-[0.08em] text-ink lg:pt-24">
+          <p id="about" className="scroll-mt-4 flex items-center justify-center gap-4 pt-20 text-[15px] font-semibold uppercase tracking-[0.08em] text-ink lg:pt-24">
             <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
             Our Services
             <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
@@ -549,13 +370,10 @@ export default function HomePage() {
                 From strategy to performance, we handle everything you need to
                 grow online.
               </p>
-              <Link
-                href="/services"
-                className={`mt-8 ${BTN_HONEY}`}
-              >
+              <a href="#all-services" className={`mt-8 ${BTN_HONEY}`}>
                 View All Services
                 <ArrowUpRight className="h-5 w-5" />
-              </Link>
+              </a>
             </div>
 
             <ul className="grid auto-rows-fr sm:grid-cols-2 lg:grid-cols-3">
@@ -573,9 +391,29 @@ export default function HomePage() {
       </section>
 
       {/* ══════════════════════════════════════════
-          3. PROBLEM → FIX
+          3. RECENT PROJECTS (navbar "Our Work")
       ══════════════════════════════════════════ */}
-      <section className="bg-paper py-20 lg:py-28">
+      <section id="work" className="scroll-mt-4 bg-comb/50 py-20 lg:py-28">
+        <div className={WRAP}>
+          <p className="flex items-center justify-center gap-4 text-[15px] font-semibold uppercase tracking-[0.08em] text-ink">
+            <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
+            Our Work
+            <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
+          </p>
+          <h2 className={`${H2} mt-6 text-center`}>Recent projects</h2>
+          <p className={`mx-auto mt-4 max-w-[52ch] text-center ${LEAD}`}>
+            A few brands we&apos;ve helped grow, and the numbers that moved.
+          </p>
+        </div>
+        <div className="mt-12">
+          <ProjectsMarquee />
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          4. ALL SERVICES (where growth usually stalls)
+      ══════════════════════════════════════════ */}
+      <section id="insights" className="scroll-mt-4 bg-paper py-20 lg:py-28">
         <div className={WRAP}>
           {/* heading on top: title left, intro + CTA right */}
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end lg:gap-20">
@@ -589,351 +427,20 @@ export default function HomePage() {
                 yours.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-                <Link href="/contact" className={BTN_INK}>
+                <button type="button" onClick={() => openAuditPopup()} className={BTN_INK}>
                   Book a free audit
-                </Link>
+                </button>
                 <span className="text-sm text-slate">500+ businesses have made the switch.</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-14">
+          <div id="all-services" className="mt-14 scroll-mt-24">
             <ServicesGrid />
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════
-          5. RESULTS
-      ══════════════════════════════════════════ */}
-      <section className="bg-[#12141c] py-20 lg:py-28 dark:bg-surface">
-        <div className={`${WRAP} grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20`}>
-          <div>
-            <h2 className={`${H2} !text-white`}>Results from recent work</h2>
-            <p className="mt-5 max-w-[42ch] text-[17px] leading-relaxed text-white/60">
-              A few numbers from campaigns and builds we&apos;ve shipped. Ask us
-              for the full story behind any of them.
-            </p>
-            <Link
-              href="/portfolio"
-              className="mt-8 inline-block text-[15px] font-semibold text-white underline decoration-[#fdb905] decoration-2 underline-offset-[6px] hover:decoration-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fdb905] rounded"
-            >
-              See our work
-            </Link>
-          </div>
-          <dl className="grid gap-x-12 gap-y-10 sm:grid-cols-2">
-            {RESULTS.map((r) => (
-              <div key={r.label} className="border-t border-white/15 pt-6">
-                <dt className="text-[52px] sm:text-[60px] font-semibold leading-none tracking-[-0.03em] text-[#fdb905]">
-                  {r.metric}
-                </dt>
-                <dd className="mt-4">
-                  <span className="block text-lg font-medium text-white">{r.label}</span>
-                  <span className="mt-1 block text-[15px] text-white/55">{r.sub}</span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          6. TESTIMONIALS
-      ══════════════════════════════════════════ */}
-      {testimonials.length > 0 && (
-        <section className="bg-paper py-20 lg:py-28">
-          <div className={WRAP}>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <h2 className={H2}>What clients say</h2>
-              <p className="flex items-center gap-2 text-[15px] text-slate">
-                <span className="flex" aria-hidden="true">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-[#fdb905] text-[#fdb905]" />
-                  ))}
-                </span>
-                <span>
-                  <span className="font-semibold text-ink">5.0</span> from 200+
-                  verified reviews
-                </span>
-              </p>
-            </div>
-            <div className="mt-12 grid gap-12 md:grid-cols-3 md:gap-0 md:divide-x md:divide-ink/10">
-              {testimonials.map((t) => (
-                <figure key={t.id} className="md:px-10 md:first:pl-0 md:last:pr-0">
-                  <blockquote className="text-lg leading-relaxed text-ink">
-                    &ldquo;{t.text}&rdquo;
-                  </blockquote>
-                  <figcaption className="mt-6 flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fdb905] text-sm font-semibold text-[#12141c]">
-                      {t.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </span>
-                    <span>
-                      <span className="block text-[15px] font-semibold text-ink">{t.name}</span>
-                      <span className="block text-sm text-slate">{t.company}</span>
-                    </span>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════
-          7. AI / GEO EDGE
-      ══════════════════════════════════════════ */}
-      <section className="border-t border-ink/10 bg-paper py-20 lg:py-28">
-        <div className={`${WRAP} grid gap-12 lg:grid-cols-2 lg:gap-20`}>
-          <div className="lg:sticky lg:top-28 lg:self-start">
-            <h2 className={H2}>Built for AI search, not just Google&apos;s blue links</h2>
-            <p className={`mt-5 max-w-[46ch] ${LEAD}`}>
-              People now ask ChatGPT, Gemini and Google&apos;s AI Overviews before
-              they search. We make sure your brand is the answer they get, and use
-              the same AI to run your campaigns.
-            </p>
-            <Link href="/services#ai-services" className={`mt-8 ${BTN_HONEY}`}>
-              See our AI services
-            </Link>
-          </div>
-          <ul className="divide-y divide-ink/10 border-y border-ink/10">
-            {AI_EDGE.map((item) => (
-              <li key={item.title} className="flex gap-5 py-7">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#6d3df2]/10">
-                  <item.icon className="h-5 w-5 text-[#6d3df2]" />
-                </span>
-                <div>
-                  <h3 className="text-lg font-semibold text-ink">{item.title}</h3>
-                  <p className="mt-1.5 text-base leading-relaxed text-slate">{item.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          8. PROCESS
-      ══════════════════════════════════════════ */}
-      <section className="bg-comb py-20 lg:py-28">
-        <div className={WRAP}>
-          <h2 className={H2}>How a project runs</h2>
-          <p className={`mt-4 max-w-[52ch] ${LEAD}`}>
-            The same four stages on every project, so you always know what happens
-            next.
-          </p>
-          <ol className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0">
-            {processSteps.map((step, i) => (
-              <li key={step.step} className="lg:pr-8">
-                <div className="flex items-center">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#12141c] font-semibold text-white dark:bg-honey dark:text-[#12141c]">
-                    {step.step}
-                  </span>
-                  {i < processSteps.length - 1 && (
-                    <span aria-hidden="true" className="ml-3 hidden h-[2px] flex-1 bg-[#fdb905] lg:block" />
-                  )}
-                </div>
-                <h3 className="mt-6 text-xl font-semibold text-ink">{step.title}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-slate">{step.description}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          9. INSIGHTS
-      ══════════════════════════════════════════ */}
-      {blogSectionPosts.length > 0 && (
-        <section className="bg-paper py-20 lg:py-28">
-          <div className={WRAP}>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <h2 className={H2}>Latest insights</h2>
-              <Link href="/blog" className={TEXT_LINK}>
-                Read all articles
-              </Link>
-            </div>
-            <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
-              {blogSectionPosts.slice(0, 3).map((post) => (
-                <article key={post.id}>
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-4"
-                  >
-                    <img
-                      src={post.image || "/assets/image/services1.png"}
-                      alt=""
-                      className="aspect-[16/10] w-full rounded-2xl bg-comb object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/assets/image/services1.png";
-                      }}
-                    />
-                    <p className="mt-5 flex gap-3 text-sm">
-                      <span className="font-medium text-[#a36f00] dark:text-honey">{post.category}</span>
-                      <span className="text-slate">{post.date}</span>
-                    </p>
-                    <h3 className="mt-2 text-lg font-semibold leading-snug text-ink line-clamp-2 group-hover:underline group-hover:decoration-[#fdb905] group-hover:decoration-2 group-hover:underline-offset-4">
-                      {post.title}
-                    </h3>
-                    <p className="mt-2 text-[15px] leading-relaxed text-slate line-clamp-2">
-                      {post.excerpt}
-                    </p>
-                  </Link>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════
-          10. CONTACT
-      ══════════════════════════════════════════ */}
-      <section className="bg-comb py-20 lg:py-28" id="contact">
-        <div className={`${WRAP} grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20`}>
-          <div>
-            <h2 className={H2}>Tell us what you want to grow</h2>
-            <p className={`mt-5 max-w-[44ch] ${LEAD}`}>
-              Book a free 30-minute audit. We&apos;ll review your website, ads and
-              search presence, and send you a short plan you can use whether or
-              not you hire us.
-            </p>
-            <ul className="mt-10 space-y-4 text-base">
-              <li>
-                <a href={`mailto:${SITE_CONFIG.email}`} className="inline-flex items-center gap-3 text-ink hover:underline">
-                  <Mail className="h-5 w-5 text-[#d98a00]" />
-                  {SITE_CONFIG.email}
-                </a>
-              </li>
-              <li>
-                <a href={`tel:${SITE_CONFIG.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-3 text-ink hover:underline">
-                  <Phone className="h-5 w-5 text-[#d98a00]" />
-                  {SITE_CONFIG.phone}
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div className="rounded-3xl border border-ink/10 bg-surface p-6 sm:p-8">
-            <h3 className="text-xl font-semibold text-ink">Get your free audit</h3>
-            <form onSubmit={handleLeadSubmit} className="mt-6 flex flex-col gap-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <label className="block">
-                  <span className={LABEL}>Name</span>
-                  <input
-                    type="text"
-                    autoComplete="name"
-                    value={form.name}
-                    onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                    required
-                    className={FIELD}
-                  />
-                </label>
-                <label className="block">
-                  <span className={LABEL}>Email</span>
-                  <input
-                    type="email"
-                    autoComplete="email"
-                    value={form.email}
-                    onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-                    required
-                    className={FIELD}
-                  />
-                </label>
-              </div>
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <label className="block">
-                  <span className={LABEL}>
-                    Phone <span className="font-normal text-slate">(optional)</span>
-                  </span>
-                  <input
-                    type="tel"
-                    autoComplete="tel"
-                    value={form.phone}
-                    onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-                    className={FIELD}
-                  />
-                </label>
-                <label className="block">
-                  <span className={LABEL}>Service</span>
-                  <select
-                    value={form.service}
-                    onChange={(e) => setForm((prev) => ({ ...prev, service: e.target.value }))}
-                    className={FIELD}
-                  >
-                    <option value="">Not sure yet</option>
-                    <option value="web-development">Web Development</option>
-                    <option value="mobile-app">Mobile App Development</option>
-                    <option value="ai-ml">AI & ML Development</option>
-                    <option value="seo">SEO Optimization</option>
-                    <option value="social-media">Social Media Marketing</option>
-                    <option value="ppc">Google & Meta Ads</option>
-                    <option value="email-marketing">Email Marketing</option>
-                    <option value="branding">Brand Identity & Logo</option>
-                    <option value="ecommerce">E-Commerce Solutions</option>
-                    <option value="other">Other</option>
-                  </select>
-                </label>
-              </div>
-
-              <label className="block">
-                <span className={LABEL}>Monthly budget</span>
-                <select
-                  value={form.budget}
-                  onChange={(e) => setForm((prev) => ({ ...prev, budget: e.target.value }))}
-                  className={FIELD}
-                >
-                  <option value="">Prefer not to say</option>
-                  <option value="below-5k">Below ₹5,000</option>
-                  <option value="5k-10k">₹5,000 to ₹10,000</option>
-                  <option value="10k-25k">₹10,000 to ₹25,000</option>
-                  <option value="25k-50k">₹25,000 to ₹50,000</option>
-                  <option value="50k-1l">₹50,000 to ₹1,00,000</option>
-                  <option value="above-1l">Above ₹1,00,000</option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className={LABEL}>What do you want to grow?</span>
-                <textarea
-                  value={form.message}
-                  onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))}
-                  rows={4}
-                  required
-                  placeholder="e.g. More leads from Google for our clinic"
-                  className={`${FIELD} resize-none`}
-                />
-              </label>
-
-              <TurnstileWidget onToken={setCaptchaToken} resetSignal={captchaReset} />
-
-              <button
-                type="submit"
-                disabled={leadSubmitState === "submitting"}
-                className={`${BTN_HONEY} w-full disabled:cursor-not-allowed disabled:opacity-60`}
-              >
-                {leadSubmitState === "submitting" ? "Sending…" : "Request my free audit"}
-              </button>
-
-              {leadSubmitState === "success" && (
-                <p role="status" className="flex items-start gap-2 rounded-xl bg-green-500/10 px-4 py-3 text-sm text-green-800">
-                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  {leadSubmitMessage}
-                </p>
-              )}
-              {leadSubmitState === "error" && (
-                <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-700">
-                  <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  {leadSubmitMessage}
-                </p>
-              )}
-            </form>
-          </div>
-        </div>
-      </section>
     </>
   );
 }

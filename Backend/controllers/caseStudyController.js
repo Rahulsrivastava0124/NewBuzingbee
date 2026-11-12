@@ -273,8 +273,10 @@ const updateCaseStudy = async (req, res) => {
         ...(category !== undefined && { category }),
         ...(status !== undefined && { status }),
         image: uploadedImageUrl || image || existing.image,
-        publishedAt:
-          becomesPublished && !wasPublished ? new Date() : existing.publishedAt,
+        // keep the first publish date; clear it when unpublished
+        publishedAt: becomesPublished
+          ? wasPublished ? existing.publishedAt : new Date()
+          : null,
         seo: {
           title: seoTitle !== undefined ? seoTitle : existing.seo?.title || "",
           description:
@@ -293,7 +295,7 @@ const updateCaseStudy = async (req, res) => {
             ogImage !== undefined ? ogImage : existing.seo?.ogImage || "",
         },
       },
-      { new: true },
+      { new: true, runValidators: true },
     );
 
     return res
@@ -305,7 +307,7 @@ const updateCaseStudy = async (req, res) => {
       });
   } catch (error) {
     return res
-      .status(500)
+      .status(error.name === "ValidationError" ? 400 : 500)
       .json({
         success: false,
         message: "Failed to update case study",

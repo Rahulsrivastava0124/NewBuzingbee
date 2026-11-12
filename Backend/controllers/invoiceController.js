@@ -210,6 +210,10 @@ const updateInvoice = async (req, res) => {
       if (!["draft", "sent", "cancelled"].includes(req.body.status)) {
         return bad(res, "Status can only be set to draft, sent or cancelled");
       }
+      // draft and cancelled are sticky, so they'd hide money already received
+      if (req.body.status !== "sent" && invoice.amountPaid > 0) {
+        return bad(res, "An invoice with payments can't be moved to draft or cancelled");
+      }
       invoice.status = req.body.status;
     } else if (invoice.status === "paid" || invoice.status === "overdue") {
       // Totals may have changed; re-derive from "sent" baseline.
