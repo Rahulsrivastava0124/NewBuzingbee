@@ -2,17 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens as RGB channels so Tailwind opacity modifiers work (bg-ink/10).
+   .dark (toggled by the navbar theme button) swaps them; honey stays the same. */
 :root {
-  --bg-primary: #fffdf5;
-  --bg-card: #ffffff;
-  --bg-section: #fff7d6;
-  --accent: #ecad10;
-  --accent-hover: #a97300;
-  --text-heading: #1f1b12;
-  --text-body: #3f3a2d;
-  --text-muted: #7a725f;
-  --border: #f1e2a8;
-  --border-hover: #eab308;
+  --paper: 255 255 255; /* page background */
+  --surface: 255 255 255; /* cards, popups, inputs */
+  --ink: 18 20 28; /* headings, strong text, lines (with opacity) */
+  --body: 61 65 75; /* paragraph text on inner pages */
+  --slate: 91 95 107; /* secondary text */
+  --comb: 255 248 225; /* tinted section background */
+  --line: 235 230 217; /* default border */
+  --spot: 253 185 5; /* service card spotlight */
+
+  --bg-primary: rgb(var(--paper));
+  --bg-card: rgb(var(--surface));
+  --bg-section: rgb(var(--comb));
+  --accent: #fdb905;
+  --accent-hover: #f5ad00;
+  --text-heading: rgb(var(--ink));
+  --text-body: rgb(var(--body));
+  --text-muted: rgb(var(--slate));
+  --border: rgb(var(--line));
+  --border-hover: #fdb905;
+}
+
+.dark {
+  color-scheme: dark;
+  --paper: 13 14 19;
+  --surface: 24 26 34;
+  --ink: 241 239 233;
+  --body: 200 203 212;
+  --slate: 160 165 178;
+  --comb: 27 24 15;
+  --line: 46 48 58;
+  --spot: 109 61 242;
+}
+
+/* Animated theme toggler (components/ui/animated-theme-toggler.tsx): the reveal is drawn by
+   the component's clip-path animation, so turn off the browser's default cross-fade */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html[data-magicui-theme-vt="active"]::view-transition-new(root) {
+  clip-path: var(--magicui-theme-vt-clip-from);
+}
+html[data-magicui-theme-vt="active"]::view-transition-group(root) {
+  animation-duration: var(--magicui-theme-toggle-vt-duration);
 }
 
 * {
@@ -25,10 +62,14 @@ html {
   scroll-behavior: smooth;
 }
 
+:root {
+  --font-sans: var(--font-general-sans), "General Sans", system-ui, sans-serif;
+}
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-body);
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -39,7 +80,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-syne), system-ui, sans-serif;
+  font-family: var(--font-sans);
   color: var(--text-heading);
 }
 
@@ -71,7 +112,7 @@ h6 {
   }
 
   .font-numeric {
-    font-family: var(--font-roboto), var(--font-dm-sans), system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-variant-numeric: lining-nums tabular-nums;
   }
 }
@@ -85,22 +126,88 @@ h6 {
     @apply max-w-7xl mx-auto;
   }
 
+  /* heading scale shared with the homepage (hero h1 = 46px, section h2 = 40px) */
+  .heading-page {
+    @apply text-[32px] sm:text-[40px] xl:text-[46px] font-semibold leading-[1.15] tracking-[-0.02em] text-textHeading;
+  }
+
+  .heading-section {
+    @apply text-[32px] sm:text-[40px] font-semibold leading-[1.2] tracking-[-0.02em] text-textHeading;
+  }
+
+  .heading-sub {
+    @apply text-2xl md:text-[28px] font-semibold leading-snug tracking-[-0.01em] text-textHeading;
+  }
+
   .card-base {
     @apply bg-card border border-border rounded-[14px] p-6 md:p-8
            transition-all duration-300 hover:border-borderHover;
   }
 
+  /* filled, rounded buttons: soft gradient, crisp edge, top highlight, presses in on click */
+  /* one size for every button: 48px tall, 24px sides, 15px medium text */
+  .btn-honey,
+  .btn-dark,
+  .btn-light {
+    @apply inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-6
+           text-[15px] font-medium leading-none transition-[filter,transform,box-shadow] duration-150
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-textHeading focus-visible:ring-offset-2;
+  }
+  /* icon-only buttons: square 48 × 48 */
+  .btn-icon {
+    @apply w-12 px-0;
+  }
+  .btn-honey {
+    color: #12141c;
+    border-color: #e39e00;
+    background-image: linear-gradient(180deg, #ffd04a 0%, #fdb905 60%, #f4aa00 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 1px 2px rgba(18, 20, 28, 0.14),
+      0 6px 14px -6px rgba(245, 170, 0, 0.55);
+  }
+  .btn-dark {
+    @apply text-white;
+    border-color: #000;
+    background-image: linear-gradient(180deg, #2e313c 0%, #12141c 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 1px 2px rgba(18, 20, 28, 0.2),
+      0 6px 14px -6px rgba(18, 20, 28, 0.45);
+  }
+  .btn-light {
+    @apply text-textHeading;
+    border-color: rgba(18, 20, 28, 0.14);
+    background-image: linear-gradient(180deg, #ffffff 0%, #f2f2f4 100%);
+    box-shadow:
+      inset 0 1px 0 #ffffff,
+      0 1px 2px rgba(18, 20, 28, 0.08),
+      0 6px 14px -8px rgba(18, 20, 28, 0.25);
+  }
+  .dark .btn-dark,
+  .dark .btn-light {
+    border-color: rgba(255, 255, 255, 0.12);
+    background-image: linear-gradient(180deg, #2a2d38 0%, #1c1e27 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 6px 14px -8px rgba(0, 0, 0, 0.6);
+  }
+  :is(.btn-honey, .btn-dark, .btn-light):hover {
+    filter: brightness(1.04);
+  }
+  :is(.btn-honey, .btn-dark, .btn-light):active {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(18, 20, 28, 0.2);
+  }
+
+  /* older names kept for existing pages */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3
-           bg-accent text-white font-semibold rounded-[14px]
-           transition-all duration-300 hover:bg-accentHover
-           hover:shadow-[0_0_24px_rgba(250,204,21,0.35)];
+    @apply btn-honey;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center px-6 py-3
-           bg-transparent border border-accent text-accent font-semibold rounded-[14px]
-           transition-all duration-300 hover:bg-accent hover:text-white;
+    @apply btn-light;
   }
 
   .glow-amber {
@@ -127,7 +234,7 @@ h6 {
   }
 
   .blog-content h1 {
-    font-family: var(--font-syne), system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: 1.875rem;
     font-weight: 700;
     color: var(--text-heading);
@@ -137,7 +244,7 @@ h6 {
   }
 
   .blog-content h2 {
-    font-family: var(--font-syne), system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-heading);
@@ -149,7 +256,7 @@ h6 {
   }
 
   .blog-content h3 {
-    font-family: var(--font-syne), system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-heading);
@@ -161,7 +268,7 @@ h6 {
   .blog-content h4,
   .blog-content h5,
   .blog-content h6 {
-    font-family: var(--font-syne), system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: 1rem;
     font-weight: 600;
     color: var(--text-heading);
@@ -303,7 +410,7 @@ h6 {
   /* <p> whose only child is <strong> — treat as a section sub-heading */
   .blog-content p:has(> strong:only-child),
   .blog-content p:has(> b:only-child) {
-    font-family: var(--font-syne), system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: 1.15rem;
     font-weight: 700;
     color: var(--text-heading);
@@ -391,5 +498,23 @@ h6 {
 
   .blog-content tr:nth-child(even) td {
     background: rgba(241, 226, 168, 0.25);
+  }
+}
+
+/* brands strip on the homepage */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  animation: marquee 35s linear infinite;
+}
+.marquee:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    animation: none;
   }
 }

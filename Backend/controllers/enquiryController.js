@@ -153,12 +153,17 @@ const getEnquiryById = async (req, res) => {
 const updateEnquiry = async (req, res) => {
   try {
     const { status, adminNotes } = req.body;
+    if (status && !Enquiry.schema.path("status").enumValues.includes(status)) {
+      return res.status(400).json({ success: false, message: "Invalid status" });
+    }
     const update = {};
     if (status) update.status = status;
     if (adminNotes !== undefined) update.adminNotes = adminNotes;
 
+    // runValidators: reject statuses outside the model's enum
     const enquiry = await Enquiry.findByIdAndUpdate(req.params.id, update, {
       new: true,
+      runValidators: true,
     });
     if (!enquiry) {
       return res

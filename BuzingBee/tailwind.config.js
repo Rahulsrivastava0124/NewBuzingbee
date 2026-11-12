@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: "class",
   content: [
     "./pages/**/*.{js,jsx,ts,tsx}",
     "./src/**/*.{html,js,jsx,ts,tsx}",
@@ -9,20 +10,30 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        bgPrimary: "#fffdf5",
-        card: "#ffffff",
-        bgSection: "#fff7d6",
-        accent: "#ecad10",
-        accentHover: "#a97300",
-        textHeading: "#1f1b12",
-        textBody: "#3f3a2d",
-        textMuted: "#7a725f",
-        border: "#f1e2a8",
-        borderHover: "#eab308",
+        // site palette; theme-aware ones read the CSS variables in globals.css (light/dark)
+        honey: "#fdb905",
+        violet: "#6d3df2",
+        ink: "rgb(var(--ink) / <alpha-value>)",
+        slate: "rgb(var(--slate) / <alpha-value>)",
+        paper: "rgb(var(--paper) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
+        comb: "rgb(var(--comb) / <alpha-value>)",
+        // older names used across inner pages, pointed at the same tokens
+        bgPrimary: "rgb(var(--paper) / <alpha-value>)",
+        card: "rgb(var(--surface) / <alpha-value>)",
+        bgSection: "rgb(var(--comb) / <alpha-value>)",
+        accent: "#fdb905",
+        accentHover: "#f5ad00",
+        textHeading: "rgb(var(--ink) / <alpha-value>)",
+        textBody: "rgb(var(--body) / <alpha-value>)",
+        textMuted: "rgb(var(--slate) / <alpha-value>)",
+        border: "rgb(var(--line) / <alpha-value>)",
+        borderHover: "#fdb905",
       },
       fontFamily: {
-        heading: ["var(--font-syne)", "system-ui", "sans-serif"],
-        body: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
+        heading: ["var(--font-sans)"],
+        body: ["var(--font-sans)"],
+        jakarta: ["var(--font-sans)"],
       },
       borderRadius: {
         card: "14px",

@@ -3,7 +3,7 @@ const assert = require("assert");
 const ExpensePayout = require("../models/ExpensePayout");
 const Expense = require("../models/Expense");
 const { walletSummary, ledgerForPayout } = require("./expenseWalletController");
-const { hitsCompanyWallet } = require("./expenseController");
+const { hitsCompanyWallet, canChange } = require("./expenseController");
 
 // Balance = paid - spent: negative means the company owes the person
 assert.deepStrictEqual(walletSummary(1500.1, 0), { spent: 1500.1, paid: 0, balance: -1500.1 });
@@ -29,5 +29,12 @@ assert.strictEqual(hitsCompanyWallet(new Expense({ title: "x", amount: 1, spentB
 
 // Wallet totals skip anything not approved; older entries without a status still count
 assert.deepStrictEqual(Expense.APPROVED, { status: { $nin: ["pending", "rejected", "cancelled"] } });
+
+// Admin/team can only edit or delete while pending; the super admin always can
+assert.strictEqual(canChange(false, { status: "pending" }), true);
+for (const status of ["approved", "rejected", "cancelled"]) {
+  assert.strictEqual(canChange(false, { status }), false);
+  assert.strictEqual(canChange(true, { status }), true);
+}
 
 console.log("expenseWalletController checks passed");

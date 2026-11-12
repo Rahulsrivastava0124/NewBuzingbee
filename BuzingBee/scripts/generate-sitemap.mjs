@@ -23,17 +23,8 @@ const resolvedBlogApiUrl = () => {
   return raw.replace(/\?+$/, "");
 };
 
-const STATIC_ROUTES = [
-  { path: "/", changefreq: "weekly", priority: "1.0" },
-  { path: "/about", changefreq: "monthly", priority: "0.8" },
-  { path: "/services", changefreq: "monthly", priority: "0.9" },
-  { path: "/pricing", changefreq: "monthly", priority: "0.8" },
-  { path: "/startup", changefreq: "monthly", priority: "0.8" },
-  { path: "/portfolio", changefreq: "monthly", priority: "0.8" },
-  { path: "/blog", changefreq: "weekly", priority: "0.8" },
-  { path: "/case-studies", changefreq: "weekly", priority: "0.8" },
-  { path: "/contact", changefreq: "monthly", priority: "0.7" },
-];
+// the site is a single page (inner pages and blog were removed)
+const STATIC_ROUTES = [{ path: "/", changefreq: "weekly", priority: "1.0" }];
 
 const normalizeBlogPayload = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -107,12 +98,8 @@ const makeUrlTag = ({ path, changefreq, priority, lastmod }) => {
 };
 
 const run = async () => {
-  const blogRoutes = await fetchBlogRoutes();
-
-  const allRoutes = [
-    ...STATIC_ROUTES.map((route) => ({ ...route, lastmod: today() })),
-    ...blogRoutes,
-  ];
+  // blog article routes are no longer generated: the /blog pages were removed
+  const allRoutes = STATIC_ROUTES.map((route) => ({ ...route, lastmod: today() }));
 
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
