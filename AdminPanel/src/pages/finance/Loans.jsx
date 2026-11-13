@@ -347,7 +347,7 @@ export default function Loans() {
       />
 
       {editing && (
-        <Modal title={editing._id ? "Edit loan" : "Add loan"} onClose={() => setEditing(null)}>
+        <Modal title={editing._id ? "Edit loan" : "Add loan"} busy={saving} onClose={() => setEditing(null)}>
           <Box component="form" onSubmit={saveLoan}>
             <Grid container spacing={2} sx={{ pt: 1 }}>
               <Grid size={12}>
@@ -426,7 +426,7 @@ export default function Loans() {
               )}
             </Grid>
             <DialogActions sx={{ px: 0, pt: 3, pb: 0 }}>
-              <Button color="inherit" onClick={() => setEditing(null)}>
+              <Button color="inherit" disabled={saving} onClick={() => setEditing(null)}>
                 Cancel
               </Button>
               <Button type="submit" variant="contained" disabled={saving}>
@@ -440,6 +440,7 @@ export default function Loans() {
       {repaying && (
         <Modal
           title={`Repayment ${repaying.loan.direction === "taken" ? "to" : "from"} ${repaying.loan.party}`}
+          busy={saving}
           onClose={() => setRepaying(null)}
         >
           <Box component="form" onSubmit={saveRepayment}>
@@ -486,7 +487,7 @@ export default function Loans() {
               )}
             </Grid>
             <DialogActions sx={{ px: 0, pt: 3, pb: 0 }}>
-              <Button color="inherit" onClick={() => setRepaying(null)}>
+              <Button color="inherit" disabled={saving} onClick={() => setRepaying(null)}>
                 Cancel
               </Button>
               <Button type="submit" variant="contained" disabled={saving}>

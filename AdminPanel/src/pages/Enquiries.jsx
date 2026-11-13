@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -94,38 +94,46 @@ export default function Enquiries() {
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const latest = useRef(0); // only the newest request may update the list
+
   const fetchEnquiries = useCallback(
     async ({ showLoader = false } = {}) => {
+      const req = ++latest.current;
       try {
         if (showLoader) setLoading(true);
         const filters = {};
         if (filterStatus !== "all") filters.status = filterStatus;
         if (searchTerm.trim()) filters.search = searchTerm.trim();
         const data = await enquiryAPI.getAll(filters);
+        if (req !== latest.current) return;
         setEnquiries(data.enquiries || []);
         setTotal(data.total || 0);
         setError("");
       } catch (err) {
-        setError(err.message);
+        if (req === latest.current) setError(err.message);
       } finally {
-        if (showLoader) setLoading(false);
+        if (req === latest.current) setLoading(false);
       }
     },
     [filterStatus, searchTerm],
   );
 
+  // Loading starts true for the first fetch; later searches keep the table (and the
+  // search box's focus) on screen and wait for a pause in typing
   useEffect(() => {
-    fetchEnquiries({ showLoader: true });
+    const t = setTimeout(fetchEnquiries, 250);
+    return () => clearTimeout(t);
   }, [fetchEnquiries]);
 
   const handleOpen = async (enquiry) => {
     setSelected(enquiry);
     setNoteText(enquiry.adminNotes || "");
+    setDetailLoading(enquiry.status === "new");
     if (enquiry.status === "new") {
       try {
-        setDetailLoading(true);
         const updated = await enquiryAPI.getById(enquiry._id);
-        setSelected(updated);
+        // another enquiry may have been opened meanwhile
+        setSelected((cur) => (cur?._id === updated._id ? updated : cur));
         setEnquiries((prev) => prev.map((e) => (e._id === updated._id ? updated : e)));
       } catch {
         /* ignore */
