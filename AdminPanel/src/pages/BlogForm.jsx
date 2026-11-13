@@ -159,6 +159,7 @@ export default function BlogForm() {
 
   const submit = async (e) => {
     e?.preventDefault();
+    let saved = false;
     try {
       setLoading(true);
       setError("");
@@ -200,11 +201,12 @@ export default function BlogForm() {
         await blogAPI.create(payload);
         setMessage("Blog created successfully");
       }
+      saved = true; // keep Save disabled until the page moves on
       setTimeout(() => navigate("/dashboard/blogs"), 500);
     } catch (err) {
       setError(err.message || "Failed to save blog");
     } finally {
-      setLoading(false);
+      if (!saved) setLoading(false);
     }
   };
 

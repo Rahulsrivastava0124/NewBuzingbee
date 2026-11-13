@@ -17,14 +17,17 @@ export function StatusBadge({ status }) {
   );
 }
 
-export function Modal({ title, onClose, children, wide }) {
+// busy: a save is in flight, so the dialog can't be closed (its result would land
+// on whatever form is open next)
+export function Modal({ title, onClose, children, wide, busy }) {
   return (
-    <Dialog open onClose={onClose} maxWidth={wide ? "md" : "sm"} scroll="paper">
+    <Dialog open onClose={busy ? undefined : onClose} maxWidth={wide ? "md" : "sm"} scroll="paper">
       <DialogTitle sx={{ pr: 6 }}>
         {title}
         <IconButton
           aria-label="Close"
           onClick={onClose}
+          disabled={busy}
           sx={{ position: "absolute", right: 12, top: 12 }}
         >
           <X />

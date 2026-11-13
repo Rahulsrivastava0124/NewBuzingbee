@@ -152,6 +152,7 @@ export default function CaseStudyForm() {
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
+    let saved = false;
     try {
       setLoading(true);
       setError("");
@@ -194,11 +195,12 @@ export default function CaseStudyForm() {
         await caseStudyAPI.create(payload);
         setMessage("Case study created successfully");
       }
+      saved = true; // keep Save disabled until the page moves on
       setTimeout(() => navigate("/dashboard/case-studies"), 500);
     } catch (err) {
       setError(err.message || "Failed to save case study");
     } finally {
-      setLoading(false);
+      if (!saved) setLoading(false);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -40,15 +40,19 @@ export default function Invoices() {
     adminAPI.listUsers().then(setPeople).catch(() => {});
   }, [isSuper]);
 
+  const latest = useRef(0); // only the newest request may update the list
+
   const load = useCallback(async () => {
+    const req = ++latest.current;
     try {
       const data = await financeAPI.invoices.getAll({ status, search, billedBy });
+      if (req !== latest.current) return;
       setInvoices(data.invoices || []);
       setError("");
     } catch (e) {
-      setError(e.message);
+      if (req === latest.current) setError(e.message);
     } finally {
-      setLoading(false);
+      if (req === latest.current) setLoading(false);
     }
   }, [status, search, billedBy]);
 

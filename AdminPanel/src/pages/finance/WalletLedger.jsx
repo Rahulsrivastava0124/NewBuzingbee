@@ -125,7 +125,10 @@ export default function WalletLedger() {
               className="no-print"
               variant="contained"
               startIcon={<Plus />}
-              onClick={() => setEditing(blank())}
+              onClick={() => {
+                setFormError("");
+                setEditing(blank());
+              }}
             >
               Manual Entry
             </Button>
@@ -247,7 +250,7 @@ export default function WalletLedger() {
       />
 
       {editing && (
-        <Modal title="Manual ledger entry" onClose={() => setEditing(null)}>
+        <Modal title="Manual ledger entry" busy={saving} onClose={() => setEditing(null)}>
           <Box component="form" onSubmit={save}>
             <Grid container spacing={2} sx={{ pt: 1 }}>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -294,7 +297,7 @@ export default function WalletLedger() {
               )}
             </Grid>
             <DialogActions sx={{ px: 0, pt: 3, pb: 0 }}>
-              <Button color="inherit" onClick={() => setEditing(null)}>
+              <Button color="inherit" disabled={saving} onClick={() => setEditing(null)}>
                 Cancel
               </Button>
               <Button type="submit" variant="contained" disabled={saving}>

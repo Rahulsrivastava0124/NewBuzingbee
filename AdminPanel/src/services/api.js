@@ -277,9 +277,11 @@ export const BLOG_SITES = [
 ];
 const BLOG_SITE_KEY = "adminBlogSite";
 
+// The chosen website is per tab (sessionStorage), so switching it in one tab can't
+// silently retarget another tab's requests; localStorage only seeds new tabs.
 export const getBlogSite = () => {
   try {
-    const saved = localStorage.getItem(BLOG_SITE_KEY);
+    const saved = sessionStorage.getItem(BLOG_SITE_KEY) || localStorage.getItem(BLOG_SITE_KEY);
     return BLOG_SITES.some((s) => s.value === saved) ? saved : BLOG_SITES[0].value;
   } catch {
     return BLOG_SITES[0].value;
@@ -288,6 +290,7 @@ export const getBlogSite = () => {
 
 export const setBlogSite = (site) => {
   try {
+    sessionStorage.setItem(BLOG_SITE_KEY, site);
     localStorage.setItem(BLOG_SITE_KEY, site);
   } catch {
     /* storage unavailable: selection just won't persist */

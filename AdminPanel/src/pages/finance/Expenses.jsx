@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -83,7 +83,10 @@ export default function Expenses() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
+  const latest = useRef(0); // only the newest request may update the page
+
   const load = useCallback(async () => {
+    const req = ++latest.current;
     try {
       const [data, walletData] = await Promise.all([
         financeAPI.expenses.getAll({
@@ -94,6 +97,7 @@ export default function Expenses() {
         }),
         isSuper ? financeAPI.expenseWallets.getAll() : financeAPI.expenseWallets.mine(),
       ]);
+      if (req !== latest.current) return;
       if (isSuper) setWallets(walletData.wallets || []);
       else setWallet(walletData);
       setExpenses(data.expenses || []);
@@ -101,9 +105,9 @@ export default function Expenses() {
       setTotalAmount(data.totalAmount || 0);
       setError("");
     } catch (e) {
-      setError(e.message);
+      if (req === latest.current) setError(e.message);
     } finally {
-      setLoading(false);
+      if (req === latest.current) setLoading(false);
     }
   }, [search, category, spentBy, status, isSuper]);
 
@@ -229,7 +233,10 @@ export default function Expenses() {
               className="no-print"
               variant="contained"
               startIcon={<Plus />}
-              onClick={() => setEditing(blank())}
+              onClick={() => {
+                setFormError("");
+                setEditing(blank());
+              }}
             >
               Add Expense
             </Button>
@@ -344,7 +351,7 @@ export default function Expenses() {
       />
 
       {editing && (
-        <Modal title="Add expense" onClose={() => setEditing(null)}>
+        <Modal title="Add expense" busy={saving} onClose={() => setEditing(null)}>
           <Box component="form" onSubmit={save}>
             <Grid container spacing={2} sx={{ pt: 1 }}>
               <Grid size={12}>
@@ -408,7 +415,7 @@ export default function Expenses() {
               )}
             </Grid>
             <DialogActions sx={{ px: 0, pt: 3, pb: 0 }}>
-              <Button color="inherit" onClick={() => setEditing(null)}>
+              <Button color="inherit" disabled={saving} onClick={() => setEditing(null)}>
                 Cancel
               </Button>
               <Button type="submit" variant="contained" disabled={saving}>

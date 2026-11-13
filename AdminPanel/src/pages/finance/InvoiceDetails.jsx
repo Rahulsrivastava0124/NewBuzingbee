@@ -68,12 +68,16 @@ export default function InvoiceDetails() {
       setInvoice(data.invoice);
       setPayments(data.payments || []);
       setPayTo(data.payTo);
+      setError("");
     } catch (e) {
       setError(e.message);
     }
   }, [id]);
 
+  // A different invoice starts from a clean slate
   useEffect(() => {
+    setInvoice(null);
+    setError("");
     load();
   }, [load]);
 
@@ -197,8 +201,8 @@ export default function InvoiceDetails() {
     }
   };
 
-  if (error) return <Alert severity="error">{error}</Alert>;
-  if (!invoice) return <LoadingState text="Loading invoice..." />;
+  // A failed first load replaces the page; a failed refresh only shows a banner (below)
+  if (!invoice) return error ? <Alert severity="error">{error}</Alert> : <LoadingState text="Loading invoice..." />;
 
   const c = invoice.client || {};
 
@@ -289,6 +293,12 @@ export default function InvoiceDetails() {
           )}
         </Stack>
       </Stack>
+
+      {error && (
+        <Alert severity="error" className="no-print" sx={{ mb: 2 }}>
+          Couldn't refresh this invoice: {error}
+        </Alert>
+      )}
 
       <Paper sx={{ p: { xs: 2.5, sm: 5 }, "@media print": { border: 0, p: 0 } }}>
         <Stack

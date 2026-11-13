@@ -41,6 +41,8 @@ export default function EmailTab() {
   const [connection, setConnection] = useState(null);
   const [testTo, setTestTo] = useState("");
   const [testing, setTesting] = useState(false);
+  // unsaved edits: the connection result and the test email both use the saved settings
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     settingsAPI
@@ -62,15 +64,15 @@ export default function EmailTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  const edit = (changes) => {
+    setForm((prev) => ({ ...prev, ...changes }));
+    setDirty(true);
+    setConnection(null);
+  };
+  const set = (key) => (e) => edit({ [key]: e.target.value });
 
   const applyPreset = (preset) =>
-    setForm((prev) => ({
-      ...prev,
-      host: preset.host,
-      port: preset.port,
-      secure: preset.secure,
-    }));
+    edit({ host: preset.host, port: preset.port, secure: preset.secure });
 
   const save = async (e) => {
     e.preventDefault();
@@ -89,6 +91,7 @@ export default function EmailTab() {
       setPassSet(data.smtp.passSet);
       setConfigured(data.smtp.configured);
       setForm((prev) => ({ ...prev, pass: "" }));
+      setDirty(false);
       setConnection(data.connection);
       notify(
         data.connection.connected
@@ -169,7 +172,7 @@ export default function EmailTab() {
               control={
                 <Switch
                   checked={form.secure}
-                  onChange={(e) => setForm((p) => ({ ...p, secure: e.target.checked }))}
+                  onChange={(e) => edit({ secure: e.target.checked })}
                 />
               }
               label={
@@ -254,12 +257,17 @@ export default function EmailTab() {
             variant="outlined"
             startIcon={<Send />}
             onClick={sendTest}
-            disabled={testing || !testTo}
+            disabled={testing || !testTo || dirty}
             sx={{ flexShrink: 0, alignSelf: { sm: "flex-start" } }}
           >
             {testing ? "Sending..." : "Send test"}
           </Button>
         </Stack>
+        {dirty && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+            Save your changes first. The test uses the saved settings.
+          </Typography>
+        )}
       </Paper>
     </Stack>
   );
