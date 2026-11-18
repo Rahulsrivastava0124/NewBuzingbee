@@ -18,8 +18,10 @@ export default function Footer() {
           <div>
             <Link href="/" className="flex items-center gap-2 mb-4">
               <img
-                src="/bee1-removebg-preview.png"
-                alt={SITE_CONFIG.name}
+                src="/android-chrome-192x192.png"
+                alt=""
+                width={32}
+                height={32}
                 className="w-8 h-8"
               />
               <span className="text-xl font-bold text-textHeading font-heading">

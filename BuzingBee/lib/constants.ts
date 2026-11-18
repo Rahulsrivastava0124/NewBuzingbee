@@ -36,12 +36,13 @@ export const COLORS = {
   },
 };
 
-// single-page site: menu items jump to homepage sections (plus the external restaurant site)
+// Menu items point to real, crawlable pages so every indexed URL is reachable through internal links
 export const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "About", href: "/#about" },
-  { label: "Services", href: "/#all-services" },
-  { label: "Our Work", href: "/#work" },
-  { label: "Insights", href: "/#insights" },
+  { label: "About", href: "/about" },
+  { label: "Services", href: "/services" },
+  { label: "Our Work", href: "/portfolio" },
+  { label: "Insights", href: "/blog" },
   { label: "Restaurant", href: "https://restro.buzingbee.com" },
+  { label: "Contact", href: "/contact" },
 ];

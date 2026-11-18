@@ -1,3 +1,4 @@
+import { cache } from "react";
 export interface BlogApiItem {
   _id?: string;
   id?: string | number;
@@ -147,68 +148,66 @@ const normalizeImageUrl = (value?: string, apiOrigin?: string) => {
   return apiOrigin ? `${apiOrigin}/${trimmed.replace(/^\/+/, "")}` : trimmed;
 };
 
-export const fetchBlogBySlug = async (
+// Cached per request so generateMetadata and the page share one fetch (one view count).
+// Returns null only when the API answers and the slug is unknown; network/API errors throw.
+export const fetchBlogBySlug = cache(async (
   slug: string,
 ): Promise<BlogPostItem | null> => {
-  try {
-    const blogApiUrl = resolvedBlogApiUrl();
-    const blogApiOrigin = readBlogApiOrigin(blogApiUrl);
-    const encodedSlug = encodeURIComponent(String(slug || "").trim());
+  const blogApiUrl = resolvedBlogApiUrl();
+  const blogApiOrigin = readBlogApiOrigin(blogApiUrl);
+  const encodedSlug = encodeURIComponent(String(slug || "").trim());
 
-    const response = await fetch(
-      `${blogApiUrl}/slug/${encodedSlug}?trackView=true`,
-      {
-        cache: "no-store",
-      },
-    );
+  const response = await fetch(
+    `${blogApiUrl}/slug/${encodedSlug}?trackView=true`,
+    {
+      cache: "no-store",
+    },
+  );
 
-    if (response.ok) {
-      const payload = await response.json();
-      const raw = payload?.blog;
+  if (response.ok) {
+    const payload = await response.json();
+    const raw = payload?.blog;
 
-      if (raw && typeof raw === "object") {
-        const indexFallback = 0;
-        return {
-          id: String(raw._id || raw.id || indexFallback),
-          title: raw.title || "Untitled Blog",
-          excerpt:
-            raw.excerpt ||
-            raw.seo?.description ||
-            "Read full details in the article.",
-          category: raw.category || "Blog",
-          date: toReadableDate(raw.publishedAt || raw.createdAt),
-          image: normalizeImageUrl(
-            raw.image || raw.seo?.ogImage,
-            blogApiOrigin,
-          ),
-          slug: raw.slug || toSlug(raw.title || slug || "blog"),
-          views: Number.isFinite(Number(raw.views)) ? Number(raw.views) : 0,
-          content: raw.content || "",
-          seoTitle: raw.seo?.title || raw.title || "BuzingBee Blog",
-          seoDescription:
-            raw.seo?.description ||
-            raw.excerpt ||
-            "Read full details in the article.",
-          seoKeywords: normalizeKeywords(raw.seo?.keywords),
-          canonicalUrl: raw.seo?.canonicalUrl || "",
-        };
-      }
+    if (raw && typeof raw === "object") {
+      const indexFallback = 0;
+      return {
+        id: String(raw._id || raw.id || indexFallback),
+        title: raw.title || "Untitled Blog",
+        excerpt:
+          raw.excerpt ||
+          raw.seo?.description ||
+          "Read full details in the article.",
+        category: raw.category || "Blog",
+        date: toReadableDate(raw.publishedAt || raw.createdAt),
+        image: normalizeImageUrl(
+          raw.image || raw.seo?.ogImage,
+          blogApiOrigin,
+        ),
+        slug: raw.slug || toSlug(raw.title || slug || "blog"),
+        views: Number.isFinite(Number(raw.views)) ? Number(raw.views) : 0,
+        content: raw.content || "",
+        seoTitle: raw.seo?.title || raw.title || "BuzingBee Blog",
+        seoDescription:
+          raw.seo?.description ||
+          raw.excerpt ||
+          "Read full details in the article.",
+        seoKeywords: normalizeKeywords(raw.seo?.keywords),
+        canonicalUrl: raw.seo?.canonicalUrl || "",
+      };
     }
-
-    const all = await fetchBlogPosts();
-    const requested = String(slug || "")
-      .trim()
-      .toLowerCase();
-
-    return (
-      all.find((b) => b.slug.toLowerCase() === requested) ||
-      all.find((b) => toSlug(b.title).toLowerCase() === requested) ||
-      null
-    );
-  } catch {
-    return null;
   }
-};
+
+  const all = await fetchBlogPosts();
+  const requested = String(slug || "")
+    .trim()
+    .toLowerCase();
+
+  return (
+    all.find((b) => b.slug.toLowerCase() === requested) ||
+    all.find((b) => toSlug(b.title).toLowerCase() === requested) ||
+    null
+  );
+});
 
 const FALLBACK_BLOG_API_URL = "https://api.buzingbee.com/api/blog";
 

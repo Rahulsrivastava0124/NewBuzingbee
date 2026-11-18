@@ -31,42 +31,6 @@ export const metadata: Metadata = {
   },
   description:
     "BuzingBee is a leading digital marketing and AI services agency. We help businesses grow with web development, mobile apps, SEO, paid ads, and AI-powered automation.",
-  keywords: [
-    "digital marketing agency",
-    "dhanbad degital marketing agency",
-    "dhanbad digital marketing agency",
-    "digital marketing agency in dhanbad",
-    "best digital marketing agency in dhanbad",
-    "digital marketing company in dhanbad",
-    "seo agency in dhanbad",
-    "google ads agency",
-    "meta ads agency",
-    "social media marketing agency",
-    "AI services",
-    "AI SEO",
-    "LLM SEO",
-    "Generative Engine Optimization",
-    "Answer Engine Optimization",
-    "AEO services",
-    "LLM optimization",
-    "google ai overview optimization",
-    "AI automation services",
-    "AI chatbot development",
-    "GEO services",
-    "web development",
-    "website development services",
-    "web application development",
-    "app development services",
-    "website development company",
-    "mobile app development",
-    "mobile app development company",
-    "android app development",
-    "ios app development",
-    "SEO services",
-    "Google Ads",
-    "social media marketing",
-    "BuzingBee",
-  ],
   metadataBase: new URL(SITE_CONFIG.url),
   openGraph: {
     type: "website",
@@ -97,8 +61,11 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/bee1-removebg-preview.png",
-    apple: "/bee1-removebg-preview.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
 };
@@ -113,7 +80,9 @@ const structuredData = {
       url: SITE_CONFIG.url,
       logo: {
         "@type": "ImageObject",
-        url: `${SITE_CONFIG.url}/bee1-removebg-preview.png`,
+        url: `${SITE_CONFIG.url}/android-chrome-512x512.png`,
+        width: 512,
+        height: 512,
       },
       image: `${SITE_CONFIG.url}/og-image.png`,
       description:
@@ -149,14 +118,6 @@ const structuredData = {
       name: SITE_CONFIG.name,
       url: SITE_CONFIG.url,
       publisher: { "@id": `${SITE_CONFIG.url}/#organization` },
-      potentialAction: {
-        "@type": "SearchAction",
-        target: {
-          "@type": "EntryPoint",
-          urlTemplate: `${SITE_CONFIG.url}/?q={search_term_string}`,
-        },
-        "query-input": "required name=search_term_string",
-      },
       hasPart: [
         {
           "@type": ["WebPage", "SiteNavigationElement"],
