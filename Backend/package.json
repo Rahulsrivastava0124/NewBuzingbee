@@ -13,7 +13,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node controllers/expenseWalletController.check.js && node controllers/loanController.check.js && node utils/billingScope.check.js",
+    "lint": "eslint .",
+    "check": "node --check index.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",
@@ -30,6 +32,9 @@
     "sanitize-html": "^2.18.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^16.5.0",
     "nodemon": "^3.1.14"
   }
 }

@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: Backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: Backend/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+  admin-panel:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: AdminPanel } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: AdminPanel/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  site:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: BuzingBee } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: BuzingBee/package-lock.json }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  secrets-and-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block tracked secrets and node_modules
+        run: |
+          bad=$(git ls-files | grep -E '(^|/)node_modules/|(^|/)\.env$' || true)
+          if [ -n "$bad" ]; then echo "Tracked files that must not be committed:"; echo "$bad" | head; exit 1; fi

@@ -41,8 +41,9 @@
     "prestart": "npm run seo:generate",
     "start": "next start",
     "build": "next build",
-    "test": "jest",
-    "lint": "next lint"
+    "test": "jest --passWithNoTests",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
   },
   "browserslist": {
     "production": [

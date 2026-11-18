@@ -245,7 +245,7 @@ const getClientLedger = async (req, res) => {
     ].sort((a, b) => new Date(a.date) - new Date(b.date) || a.order - b.order);
 
     let balance = 0;
-    const entries = rows.map(({ order, ...row }) => {
+    const entries = rows.map(({ order: _order, ...row }) => {
       balance = round2(balance + row.debit - row.credit);
       return { ...row, balance };
     });

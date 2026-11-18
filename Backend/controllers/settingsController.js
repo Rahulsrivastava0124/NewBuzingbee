@@ -59,7 +59,7 @@ const loadSmtpIntoMailer = async () => {
   return doc;
 };
 
-const publicSmtp = (doc) => {
+const publicSmtp = (_doc) => {
   const effective = getConfig();
   return {
     host: effective.host,
