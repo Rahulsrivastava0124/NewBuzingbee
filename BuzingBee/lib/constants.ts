@@ -42,7 +42,7 @@ export const NAV_LINKS = [
   { label: "About", href: "/about" },
   { label: "Services", href: "/services" },
   { label: "Our Work", href: "/portfolio" },
-  { label: "Insights", href: "/blog" },
+  { label: "Blogs", href: "/blog" },
   { label: "Restaurant", href: "https://restro.buzingbee.com" },
   { label: "Contact", href: "/contact" },
 ];

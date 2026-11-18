@@ -228,6 +228,12 @@ h6 {
     max-width: 100%;
   }
 
+  /* sidebar links jump to headings; keep them clear of the fixed navbar */
+  .blog-content h2,
+  .blog-content h3 {
+    scroll-margin-top: 7rem;
+  }
+
   .blog-content * {
     max-width: 100%;
     box-sizing: border-box;

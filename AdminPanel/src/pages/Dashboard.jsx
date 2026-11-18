@@ -34,7 +34,7 @@ import {
   PORTAL_LABELS,
   portalHost,
 } from "../services/api";
-import { BookOpen, HandCoins, Wallet, ChevronDown, Briefcase, Clock, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, PenLine, ReceiptText, Search, Settings, ShieldCheck, TrendingUp, UserRound } from "lucide-react";
+import { BookOpen, HandCoins, Wallet, ChevronDown, Briefcase, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, ReceiptText, Search, Settings, ShieldCheck, TrendingUp, UserRound } from "lucide-react";
 import BrandMark from "../components/Brand";
 import SiteSwitcher from "../components/SiteSwitcher";
 import { getBlogSite, setBlogSite } from "../services/api";
@@ -77,7 +77,7 @@ function Dashboard() {
     setBlogSite(next);
     setSite(next);
   };
-  const [counts, setCounts] = useState({ total: 0, drafts: 0, scheduled: 0 });
+  const [counts, setCounts] = useState({ total: 0 });
   const [csCount, setCsCount] = useState(0);
   const [newEnqCount, setNewEnqCount] = useState(0);
   const [admin, setAdmin] = useState(null);
@@ -107,11 +107,7 @@ function Dashboard() {
           enquiryAPI.getStats().catch(() => ({ new: 0 })),
         ]);
         if (cancelled) return;
-        setCounts({
-          total: stats.total || 0,
-          drafts: stats.drafts || 0,
-          scheduled: stats.scheduled || 0,
-        });
+        setCounts({ total: stats.total || 0 });
         setCsCount(csStats.total || 0);
         setNewEnqCount(enqStats.new || 0);
       } catch {
@@ -209,22 +205,8 @@ function Dashboard() {
           label: "All Blogs",
           icon: <FileText />,
           badge: counts.total,
-          selected: path.startsWith("/dashboard/blogs") && !statusFromQuery,
-        },
-        {
-          to: "/dashboard/blogs?status=draft",
-          label: "Drafts",
-          icon: <PenLine />,
-          badge: counts.drafts,
-          selected: path.startsWith("/dashboard/blogs") && statusFromQuery === "draft",
-        },
-        {
-          to: "/dashboard/blogs?status=scheduled",
-          label: "Scheduled",
-          icon: <Clock />,
-          badge: counts.scheduled,
-          selected:
-            path.startsWith("/dashboard/blogs") && statusFromQuery === "scheduled",
+          // drafts and scheduled posts are filters on the blogs page itself
+          selected: path.startsWith("/dashboard/blogs"),
         },
         {
           to: "/dashboard/case-studies",

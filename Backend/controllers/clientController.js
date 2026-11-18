@@ -141,7 +141,7 @@ const createClient = async (req, res) => {
     if (managerError) {
       return res.status(400).json({ success: false, message: managerError });
     }
-    const created = await Client.create(data);
+    const created = await Client.create({ ...data, createdBy: req.admin.id });
     const client = await created.populate("managedBy", MANAGER_FIELDS);
     return res.status(201).json({ success: true, client });
   } catch (error) {

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ArticleSidebar, { type ArticleHeading } from "@/components/ArticleSidebar";
 import BlogCard from "@/components/BlogCard";
+import BlogShareButtons from "@/components/BlogShareButtons";
 import { fetchBlogBySlug } from "@/lib/blog";
 import { fetchBlogCards, type BlogCardItem } from "@/lib/blog";
 import { SITE_CONFIG } from "@/lib/constants";
@@ -23,6 +25,40 @@ const sanitizeBlogHtml = (html = "") =>
     // the page template already renders the article title as the only <h1>
     .replace(/<h1(\s[^>]*)?>/gi, "<h2$1>")
     .replace(/<\/h1>/gi, "</h2>");
+
+const stripTags = (html = "") =>
+  html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
+
+// Gives every h2/h3 an id (keeping one the editor set) and lists them for the sidebar
+const withHeadingIds = (html: string) => {
+  const headings: ArticleHeading[] = [];
+  const used = new Set<string>();
+  const out = html.replace(/<h([23])(\s[^>]*)?>([\s\S]*?)<\/h\1>/gi, (match, lvl, attrs = "", inner) => {
+    const text = stripTags(inner);
+    if (!text) return match;
+    const existing = /\sid=["']([^"']+)["']/i.exec(attrs)?.[1];
+    let id = existing || text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "section";
+    if (!existing) {
+      const base = id;
+      for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
+    }
+    used.add(id);
+    headings.push({ id, text, level: Number(lvl) as 2 | 3 });
+    return existing ? match : `<h${lvl} id="${id}"${attrs}>${inner}</h${lvl}>`;
+  });
+  return { html: out, headings };
+};
+
+// ~200 words a minute, at least 1
+const readingMinutes = (html: string) =>
+  Math.max(1, Math.round(stripTags(html).split(" ").filter(Boolean).length / 200));
 
 export async function generateMetadata({
   params,
@@ -78,9 +114,13 @@ export default async function BlogDetailPage({
   const image = post?.image || "";
   const category = post?.category || "Blog";
   const date = post?.date || "";
-  const contentHtml = sanitizeBlogHtml(post?.content || "");
+  const { html: contentHtml, headings: allHeadings } = withHeadingIds(sanitizeBlogHtml(post?.content || ""));
+  // posts often repeat their title as the first heading; the sidebar lists only the points
+  const sameText = (a: string) => a.trim().toLowerCase() === title.trim().toLowerCase();
+  const headings = allHeadings.filter((h) => !sameText(h.text));
+  const minutes = readingMinutes(contentHtml || post?.excerpt || "");
+  const reads = post?.views ?? 0;
   const articleUrl = canonicalForPath(`/blog/${slug}`);
-  const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(`${title} ${articleUrl}`)}`;
   const recommendedBlogs = blogCards
     .filter((blog) => blog.slug !== slug)
     .slice(0, 3);
@@ -88,7 +128,9 @@ export default async function BlogDetailPage({
   return (
     <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="container-max">
-        <div className="mx-auto max-w-3xl">
+        {/* article + sticky reading sidebar (sidebar only from lg up) */}
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 max-w-3xl">
           <div className="mb-8">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <Link
@@ -99,15 +141,7 @@ export default async function BlogDetailPage({
                 Back to Blog
               </Link>
 
-              <a
-                href={whatsappShareUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm font-medium text-green-400 transition-all duration-300 hover:bg-green-500 hover:text-white"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Share on WhatsApp
-              </a>
+              <BlogShareButtons title={title} url={articleUrl} />
             </div>
 
             <span className="inline-block bg-accent/10 text-accent text-xs font-bold px-3 py-1 rounded-full mb-4 border border-accent/20">
@@ -116,16 +150,21 @@ export default async function BlogDetailPage({
             <h1 className="heading-page">
               {title}
             </h1>
-            <div className="mt-4 flex items-center gap-4 text-textMuted text-sm">
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-textMuted text-sm">
               <span>BuzingBee Team</span>
               {date && (
                 <>
-                  <span>•</span>
+                  <span aria-hidden="true">•</span>
                   <span>{date}</span>
                 </>
               )}
-              <span>•</span>
-              <span>5 min read</span>
+              <span aria-hidden="true">•</span>
+              <span>{minutes} min read</span>
+              <span aria-hidden="true">•</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Eye className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                {reads.toLocaleString("en-IN")} {reads === 1 ? "read" : "reads"}
+              </span>
             </div>
           </div>
 
@@ -145,7 +184,7 @@ export default async function BlogDetailPage({
             )}
           </div>
 
-          <article className="blog-content max-w-none">
+          <article id="article-body" className="blog-content max-w-none">
             {contentHtml ? (
               <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
             ) : (
@@ -184,6 +223,9 @@ export default async function BlogDetailPage({
               }),
             }}
           />
+        </div>
+
+        <ArticleSidebar headings={headings} minutes={minutes} articleId="article-body" />
         </div>
 
         {recommendedBlogs.length ? (

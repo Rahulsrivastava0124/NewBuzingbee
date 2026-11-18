@@ -79,9 +79,6 @@ export default function Clients() {
   if (loading) return <LoadingState text="Loading clients..." />;
 
   const view = (c) => navigate(`/dashboard/finance/clients/${c._id}`);
-  // Mirrors the server: super admin edits any client, others only their own or unassigned ones
-  const canEdit = (c) =>
-    me?.role === "super" || !c.managedBy || String(c.managedBy._id || c.managedBy) === String(me?._id);
 
   const totalDue = clients.reduce((t, c) => t + (c.outstanding || 0), 0);
 
@@ -198,13 +195,12 @@ export default function Clients() {
                 <Eye />
               </IconButton>
             </Tooltip>
-            {canEdit(c) && (
-              <Tooltip title="Edit">
-                <IconButton size="small" color="primary" aria-label="Edit" onClick={() => setEditing(c)}>
-                  <Pencil />
-                </IconButton>
-              </Tooltip>
-            )}
+            {/* the server only lists clients you may edit */}
+            <Tooltip title="Edit">
+              <IconButton size="small" color="primary" aria-label="Edit" onClick={() => setEditing(c)}>
+                <Pencil />
+              </IconButton>
+            </Tooltip>
             {c.nextDue && (
               <Button
                 size="small"
@@ -214,13 +210,11 @@ export default function Clients() {
                 Pay
               </Button>
             )}
-            {canEdit(c) && (
-              <Tooltip title="Delete client">
-                <IconButton size="small" color="error" aria-label={`Delete ${c.name}`} onClick={() => remove(c)}>
-                  <Trash2 />
-                </IconButton>
-              </Tooltip>
-            )}
+            <Tooltip title="Delete client">
+              <IconButton size="small" color="error" aria-label={`Delete ${c.name}`} onClick={() => remove(c)}>
+                <Trash2 />
+              </IconButton>
+            </Tooltip>
           </>
         )}
       />

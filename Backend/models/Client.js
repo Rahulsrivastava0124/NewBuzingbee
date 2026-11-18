@@ -16,6 +16,14 @@ const clientSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    // Who added the client; admin/team see only clients they added or manage.
+    // Older clients have none, so only their manager (and the super admin) see them.
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+      default: null,
+      index: true,
+    },
     // Personal clients are visible only to their manager and the super admin
     personal: { type: Boolean, default: false },
   },

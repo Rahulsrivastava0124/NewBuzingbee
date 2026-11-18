@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -50,7 +50,6 @@ export default function ClientLedger() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
-  const { admin } = useOutletContext() || {};
   const [team, setTeam] = useState([]);
 
   const load = useCallback(() => {
@@ -105,18 +104,15 @@ export default function ClientLedger() {
             >
               Print
             </Button>
-            {(admin?.role === "super" ||
-              !client.managedBy ||
-              String(client.managedBy._id) === String(admin?._id)) && (
-              <Button
-                className="no-print"
-                variant="outlined"
-                startIcon={<Pencil />}
-                onClick={() => setEditing(true)}
-              >
-                Edit
-              </Button>
-            )}
+            {/* the server only shows clients you may edit */}
+            <Button
+              className="no-print"
+              variant="outlined"
+              startIcon={<Pencil />}
+              onClick={() => setEditing(true)}
+            >
+              Edit
+            </Button>
             <Button
               className="no-print"
               variant="contained"

@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const Admin = require("../models/Admin");
 const Client = require("../models/Client");
 const Invoice = require("../models/Invoice");
 const Payment = require("../models/Payment");
@@ -7,21 +6,24 @@ const Payment = require("../models/Payment");
 const toId = (id) => new mongoose.Types.ObjectId(String(id));
 
 const isSuper = (req) => req.admin?.role === "super";
-const superAdminIds = () => Admin.distinct("_id", { role: "super" });
 
-// Clients hidden from the signed-in user:
-// - another person's personal clients (hidden from everyone, super admin included)
-// - for admin/team: every client the super admin manages
-const hiddenClientIds = async (req) => {
-  const hide = [{ personal: true, managedBy: { $ne: toId(req.admin.id) } }];
-  if (!isSuper(req)) hide.push({ managedBy: { $in: await superAdminIds() } });
-  return Client.distinct("_id", { $or: hide });
+// Clients the signed-in user may see:
+// - everyone: never another person's personal client (super admin included)
+// - admin/team: only clients they added or manage
+const clientScope = (req) => {
+  const me = toId(req.admin.id);
+  const notOthersPersonal = { $or: [{ personal: { $ne: true } }, { managedBy: me }] };
+  if (isSuper(req)) return notOthersPersonal;
+  return { $and: [notOthersPersonal, { $or: [{ createdBy: me }, { managedBy: me }] }] };
 };
+
+// Everything outside clientScope, so invoices and payments follow the same rule
+const hiddenClientIds = (req) => Client.distinct("_id", { $nor: [clientScope(req)] });
 
 // Invoices the signed-in user may see.
 // Admin/team: bills they raised, plus every bill for a client they manage.
 // Super admin: everyone's, or one person's via ?billedBy=<id>|me.
-// Everyone: never bills for another person's personal client.
+// Everyone: never bills for a client outside their clientScope.
 // Uses ObjectIds so it also works inside aggregate $match (no auto-casting there),
 // and nests under $and so callers can still add their own $or.
 const invoiceScope = async (req) => {
@@ -46,7 +48,7 @@ const invoiceScope = async (req) => {
 const isScoped = (scope) => Object.keys(scope).length > 0;
 
 // Wallet entries the signed-in user may see: everything except payments
-// received on another person's personal clients.
+// received on clients outside their clientScope.
 const ledgerScope = async (req) => {
   const hidden = await hiddenClientIds(req);
   if (!hidden.length) return {};
@@ -55,24 +57,7 @@ const ledgerScope = async (req) => {
   return payments.length ? { $nor: [{ refType: "payment", refId: { $in: payments } }] } : {};
 };
 
-// Clients the signed-in user may see: shared clients plus their own personal ones,
-// minus (for admin/team) the super admin's clients.
-const clientScope = async (req) => {
-  const visible = { $or: [{ personal: { $ne: true } }, { managedBy: toId(req.admin.id) }] };
-  if (isSuper(req)) return visible;
-  return { $and: [visible, { managedBy: { $nin: await superAdminIds() } }] };
-};
-
-// Clients the signed-in user may edit or delete.
-// Super admin: any client they can see. Others: ones they manage, or unassigned.
-const clientEditScope = async (req) =>
-  isSuper(req)
-    ? clientScope(req)
-    : {
-        $and: [
-          await clientScope(req),
-          { $or: [{ managedBy: toId(req.admin.id) }, { managedBy: null }] },
-        ],
-      };
+// Clients the signed-in user may edit or delete: any client they can see
+const clientEditScope = clientScope;
 
 module.exports = { invoiceScope, isScoped, ledgerScope, clientScope, clientEditScope };

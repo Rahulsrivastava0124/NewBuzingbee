@@ -139,10 +139,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={generalSans.variable}>
       <head>
-        {/* apply the saved (or system) theme before first paint, so dark mode never flashes light */}
+        {/* light by default; apply a saved "dark" choice before first paint so it never flashes light */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}`,
+            __html: `try{if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")}catch(e){}`,
           }}
         />
         <script

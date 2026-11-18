@@ -43,7 +43,7 @@ Rules:
 
 The site has a light theme (default) and a dark theme, switched by the sun/moon button in the
 navbar (`components/ui/animated-theme-toggler.tsx`, Magic UI). The choice is saved in
-`localStorage` ("theme"); first-time visitors follow their system setting. A small script in
+`localStorage` ("theme"); first-time visitors always get the light theme. A small script in
 `app/layout.tsx` applies it before the page paints, so there is no flash.
 
 How it works:
