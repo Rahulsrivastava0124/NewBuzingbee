@@ -129,8 +129,10 @@ export default async function BlogDetailPage({
     <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="container-max">
         {/* article + sticky reading sidebar (sidebar only from lg up) */}
-        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="min-w-0 max-w-3xl">
+        {/* article column is capped at a readable 48rem and the grid is centred, so the
+            sidebar always sits right beside it with no gap */}
+        <div className="mx-auto grid max-w-3xl gap-10 lg:max-w-none lg:grid-cols-[minmax(0,48rem)_340px] xl:grid-cols-[minmax(0,48rem)_380px] lg:justify-center xl:gap-14">
+        <div className="min-w-0">
           <div className="mb-8">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <Link
