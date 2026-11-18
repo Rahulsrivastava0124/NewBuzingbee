@@ -1,14 +1,22 @@
 const mongoose = require("mongoose");
+const Admin = require("../models/Admin");
 const Client = require("../models/Client");
 const Invoice = require("../models/Invoice");
 const Payment = require("../models/Payment");
 
 const toId = (id) => new mongoose.Types.ObjectId(String(id));
 
-// Personal clients belong to whoever manages them; nobody else sees them,
-// not even the super admin.
-const hiddenClientIds = (req) =>
-  Client.distinct("_id", { personal: true, managedBy: { $ne: toId(req.admin.id) } });
+const isSuper = (req) => req.admin?.role === "super";
+const superAdminIds = () => Admin.distinct("_id", { role: "super" });
+
+// Clients hidden from the signed-in user:
+// - another person's personal clients (hidden from everyone, super admin included)
+// - for admin/team: every client the super admin manages
+const hiddenClientIds = async (req) => {
+  const hide = [{ personal: true, managedBy: { $ne: toId(req.admin.id) } }];
+  if (!isSuper(req)) hide.push({ managedBy: { $in: await superAdminIds() } });
+  return Client.distinct("_id", { $or: hide });
+};
 
 // Invoices the signed-in user may see.
 // Admin/team: bills they raised, plus every bill for a client they manage.
@@ -23,7 +31,7 @@ const invoiceScope = async (req) => {
   const hidden = await hiddenClientIds(req);
   if (hidden.length) conditions.push({ client: { $nin: hidden } });
 
-  if (req.admin?.role === "super") {
+  if (isSuper(req)) {
     const by = req.query?.billedBy;
     if (by === "me") conditions.push({ billedBy: me });
     else if (by && mongoose.isValidObjectId(by)) conditions.push({ billedBy: toId(by) });
@@ -47,16 +55,24 @@ const ledgerScope = async (req) => {
   return payments.length ? { $nor: [{ refType: "payment", refId: { $in: payments } }] } : {};
 };
 
-// Clients the signed-in user may see: shared clients plus their own personal ones.
-const clientScope = (req) => ({
-  $or: [{ personal: { $ne: true } }, { managedBy: toId(req.admin.id) }],
-});
+// Clients the signed-in user may see: shared clients plus their own personal ones,
+// minus (for admin/team) the super admin's clients.
+const clientScope = async (req) => {
+  const visible = { $or: [{ personal: { $ne: true } }, { managedBy: toId(req.admin.id) }] };
+  if (isSuper(req)) return visible;
+  return { $and: [visible, { managedBy: { $nin: await superAdminIds() } }] };
+};
 
 // Clients the signed-in user may edit or delete.
 // Super admin: any client they can see. Others: ones they manage, or unassigned.
-const clientEditScope = (req) =>
-  req.admin?.role === "super"
+const clientEditScope = async (req) =>
+  isSuper(req)
     ? clientScope(req)
-    : { $and: [clientScope(req), { $or: [{ managedBy: toId(req.admin.id) }, { managedBy: null }] }] };
+    : {
+        $and: [
+          await clientScope(req),
+          { $or: [{ managedBy: toId(req.admin.id) }, { managedBy: null }] },
+        ],
+      };
 
 module.exports = { invoiceScope, isScoped, ledgerScope, clientScope, clientEditScope };

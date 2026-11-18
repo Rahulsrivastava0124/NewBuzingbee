@@ -37,7 +37,7 @@ function Section({ title, color, icon, children }) {
 }
 
 // Bell in the top bar: overdue invoices, invoices due soon, unread enquiries.
-export default function NotificationBell({ newEnquiries = 0 }) {
+export default function NotificationBell({ newEnquiries = 0, showInvoices = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [anchor, setAnchor] = useState(null);
@@ -46,6 +46,8 @@ export default function NotificationBell({ newEnquiries = 0 }) {
   // Refresh on every navigation (a payment or edit changes what is due) and
   // on a timer so a long-open tab stays current.
   useEffect(() => {
+    // invoice reminders belong to Finance; without it the bell only counts enquiries
+    if (!showInvoices) return undefined;
     let cancelled = false;
     const fetchNotifications = () =>
       financeAPI
@@ -63,10 +65,11 @@ export default function NotificationBell({ newEnquiries = 0 }) {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [location.pathname]);
+  }, [location.pathname, showInvoices]);
 
-  const overdue = data?.overdue || [];
-  const dueSoon = data?.dueSoon || [];
+  const invoices = showInvoices ? data : null; // ignore a list fetched before Finance was hidden
+  const overdue = invoices?.overdue || [];
+  const dueSoon = invoices?.dueSoon || [];
   const total = overdue.length + dueSoon.length + newEnquiries;
 
   const go = (to) => {
@@ -117,9 +120,9 @@ export default function NotificationBell({ newEnquiries = 0 }) {
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
             Notifications
           </Typography>
-          {data && (
+          {invoices && (
             <Typography variant="caption" color="text.secondary">
-              Due within {data.days} days
+              Due within {invoices.days} days
             </Typography>
           )}
         </Stack>
@@ -176,12 +179,16 @@ export default function NotificationBell({ newEnquiries = 0 }) {
           )}
         </Box>
 
-        <Divider />
-        <Box sx={{ p: 1, textAlign: "center" }}>
-          <Button size="small" onClick={() => go("/dashboard/finance/invoices")}>
-            View all invoices
-          </Button>
-        </Box>
+        {showInvoices && (
+          <>
+            <Divider />
+            <Box sx={{ p: 1, textAlign: "center" }}>
+              <Button size="small" onClick={() => go("/dashboard/finance/invoices")}>
+                View all invoices
+              </Button>
+            </Box>
+          </>
+        )}
       </Popover>
     </>
   );

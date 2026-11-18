@@ -181,7 +181,9 @@ export default function Clients() {
               <MenuItem value="all">Everyone</MenuItem>
               {me && <MenuItem value="me">Me</MenuItem>}
               <MenuItem value="none">Unassigned</MenuItem>
-              {team.map((t) => (
+              {team
+                .filter((t) => me?.role === "super" || t.role !== "super")
+                .map((t) => (
                 <MenuItem key={t._id} value={t._id}>
                   {t.username}
                 </MenuItem>

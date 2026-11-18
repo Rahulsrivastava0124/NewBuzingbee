@@ -137,7 +137,7 @@ const createInvoice = async (req, res) => {
       req.body;
     const items = sanitizeItems(req.body.items);
 
-    if (!client || !(await Client.exists({ _id: client, ...clientScope(req) }))) {
+    if (!client || !(await Client.exists({ _id: client, ...(await clientScope(req)) }))) {
       return bad(res, "Valid client is required");
     }
     if (!dueDate) return bad(res, "Due date is required");
@@ -189,7 +189,7 @@ const updateInvoice = async (req, res) => {
 
     let clientChanged = false;
     if (client !== undefined && String(client) !== String(invoice.client)) {
-      if (!(await Client.exists({ _id: client, ...clientScope(req) }))) {
+      if (!(await Client.exists({ _id: client, ...(await clientScope(req)) }))) {
         return bad(res, "Valid client is required");
       }
       invoice.client = client;

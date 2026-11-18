@@ -31,12 +31,15 @@ const ownPersonal = (data, req) => {
 
 const MANAGER_FIELDS = "username email";
 
-// Returns an error message when the chosen manager is not a real admin account
-const validateManager = async (managedBy) => {
+// Returns an error message when the chosen manager is not a real admin account.
+// Only the super admin can assign a client to the super admin (admin/team can't see those).
+const validateManager = async (managedBy, req) => {
   if (!managedBy) return null;
   if (!mongoose.isValidObjectId(managedBy)) return "Choose a valid team member";
-  const exists = await Admin.exists({ _id: managedBy });
-  return exists ? null : "That team member no longer exists";
+  const manager = await Admin.findById(managedBy).select("role").lean();
+  if (!manager) return "That team member no longer exists";
+  if (manager.role === "super" && req.admin?.role !== "super") return "Choose a valid team member";
+  return null;
 };
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -44,7 +47,7 @@ const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const getClients = async (req, res) => {
   try {
     const { search, managedBy } = req.query;
-    const query = { $and: [clientScope(req)] };
+    const query = { $and: [await clientScope(req)] };
     // managedBy: a team member id, "me", or "none" for unassigned clients
     if (managedBy === "none") query.managedBy = null;
     else if (managedBy === "me") query.managedBy = req.admin?.id;
@@ -134,7 +137,7 @@ const createClient = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Client name is required" });
     }
-    const managerError = await validateManager(data.managedBy);
+    const managerError = await validateManager(data.managedBy, req);
     if (managerError) {
       return res.status(400).json({ success: false, message: managerError });
     }
@@ -149,12 +152,12 @@ const createClient = async (req, res) => {
 const updateClient = async (req, res) => {
   try {
     const data = ownPersonal(pick(req.body), req);
-    const managerError = await validateManager(data.managedBy);
+    const managerError = await validateManager(data.managedBy, req);
     if (managerError) {
       return res.status(400).json({ success: false, message: managerError });
     }
     const client = await Client.findOneAndUpdate(
-      { _id: req.params.id, ...clientEditScope(req) },
+      { _id: req.params.id, ...(await clientEditScope(req)) },
       data,
       { new: true, runValidators: true },
     ).populate("managedBy", MANAGER_FIELDS);
@@ -178,7 +181,7 @@ const deleteClient = async (req, res) => {
         message: "Client has invoices. Delete them first.",
       });
     }
-    const client = await Client.findOneAndDelete({ _id: req.params.id, ...clientEditScope(req) });
+    const client = await Client.findOneAndDelete({ _id: req.params.id, ...(await clientEditScope(req)) });
     if (!client) {
       return res
         .status(404)
@@ -195,7 +198,7 @@ const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 // Statement of account: every invoice is a debit, every payment a credit.
 const getClientLedger = async (req, res) => {
   try {
-    const client = await Client.findOne({ _id: req.params.id, ...clientScope(req) }).populate(
+    const client = await Client.findOne({ _id: req.params.id, ...(await clientScope(req)) }).populate(
       "managedBy",
       MANAGER_FIELDS,
     );

@@ -185,12 +185,16 @@ function DashboardHome() {
       desc: enqStats.new > 0 ? `${enqStats.new} unread messages` : "Manage contact requests",
       to: "/dashboard/enquiries",
     },
-    {
-      icon: <ReceiptText />,
-      title: "New Invoice",
-      desc: "Bill a client",
-      to: "/dashboard/finance/invoices/new",
-    },
+    ...(canSeeBills
+      ? [
+          {
+            icon: <ReceiptText />,
+            title: "New Invoice",
+            desc: "Bill a client",
+            to: "/dashboard/finance/invoices/new",
+          },
+        ]
+      : []),
     {
       icon: <TrendingUp />,
       title: "View Analytics",

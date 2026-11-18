@@ -182,8 +182,12 @@ function Dashboard() {
     navigate(`/dashboard/blogs${q ? `?search=${encodeURIComponent(q)}` : ""}`);
   };
 
-  // Wait for the profile so the Finance group doesn't flash for users without access
-  const canSeeBills = Boolean(admin) && (admin.role === "super" || admin.showBills !== false);
+  // Finance is BuzingBee's own books, so it never appears on another website's dashboard.
+  // Wait for the profile so the Finance group doesn't flash for users without access.
+  const canSeeBills =
+    site === "buzingbee" &&
+    Boolean(admin) &&
+    (admin.role === "super" || admin.showBills !== false);
 
   const sections = [
     {
@@ -589,7 +593,7 @@ function Dashboard() {
               >
                 <Search size={18} />
               </IconButton>
-              <NotificationBell newEnquiries={newEnqCount} />
+              <NotificationBell newEnquiries={newEnqCount} showInvoices={canSeeBills} />
               <ButtonBase
                 onClick={(e) => setMenuAnchor(e.currentTarget)}
                 aria-label="Open account menu"

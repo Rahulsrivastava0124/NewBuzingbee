@@ -32,6 +32,8 @@ export default function ClientFormDialog({ client, defaultManager = "", team, on
   // Personal clients are for admin/team members; the super admin doesn't get the option
   const { admin } = useOutletContext() || {};
   const canMarkPersonal = admin?.role !== "super";
+  // Admin/team can't see the super admin's clients, so they can't hand one to them either
+  const managers = canMarkPersonal ? team.filter((t) => t.role !== "super") : team;
   const [form, setForm] = useState(() =>
     client
       ? { ...EMPTY, ...client, managedBy: client.managedBy?._id || client.managedBy || "", personal: Boolean(client.personal) }
@@ -89,7 +91,7 @@ export default function ClientFormDialog({ client, defaultManager = "", team, on
               helperText="The team member responsible for this client"
             >
               <MenuItem value="">Unassigned</MenuItem>
-              {team.map((t) => (
+              {managers.map((t) => (
                 <MenuItem key={t._id} value={t._id}>
                   {t.username}
                   {t.email ? ` (${t.email})` : ""}

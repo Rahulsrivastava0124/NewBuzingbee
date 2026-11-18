@@ -1,5 +1,6 @@
 // Run: node utils/billingScope.check.js
 const assert = require("assert");
+const Admin = require("../models/Admin");
 const Client = require("../models/Client");
 const Invoice = require("../models/Invoice");
 const Payment = require("../models/Payment");
@@ -10,9 +11,19 @@ const managedClient = "6accce58a1c5368f1a629acf";
 const someoneElsesPersonal = "6accce58a1c5368f1a629ad0";
 const hiddenInvoice = "6accce58a1c5368f1a629ad1";
 const hiddenPayment = "6accce58a1c5368f1a629ad2";
+const superId = "6accce58a1c5368f1a629ad3";
 
-// No database needed: I manage one client; another person has one personal client
-Client.distinct = async (_field, q) => (q.personal ? [someoneElsesPersonal] : [managedClient]);
+// No database needed: I manage one client; another person has one personal client.
+// The hidden-clients query ($or) returns that personal client, plus a fake id for the
+// super admin's clients when they're hidden too.
+const superClient = "6accce58a1c5368f1a629ad4";
+let lastHiddenQuery;
+Client.distinct = async (_field, q) => {
+  if (!q.$or) return [managedClient];
+  lastHiddenQuery = q;
+  return q.$or.length > 1 ? [someoneElsesPersonal, superClient] : [someoneElsesPersonal];
+};
+Admin.distinct = async () => [superId];
 Invoice.distinct = async () => [hiddenInvoice];
 Payment.distinct = async () => [hiddenPayment];
 
@@ -26,7 +37,9 @@ const ids = (arr) => arr.map(String);
   for (const role of ["admin", "team", undefined]) {
     for (const asked of [undefined, other]) {
       const [notHidden, mine] = (await invoiceScope(req(role, asked))).$and;
-      assert.deepStrictEqual(ids(notHidden.client.$nin), [someoneElsesPersonal]);
+      // ...and never a client the super admin manages
+      assert.deepStrictEqual(ids(notHidden.client.$nin), [someoneElsesPersonal, superClient]);
+      assert.deepStrictEqual(ids(lastHiddenQuery.$or[1].managedBy.$in), [superId]);
       assert.strictEqual(String(mine.$or[0].billedBy), me);
       assert.deepStrictEqual(ids(mine.$or[1].client.$in), [managedClient]);
     }
@@ -48,16 +61,20 @@ const ids = (arr) => arr.map(String);
     assert.deepStrictEqual(ids(ls.$nor[0].refId.$in), [hiddenPayment]);
   }
 
-  // Clients: everyone (super included) sees shared clients + their own personal ones
-  for (const role of ["super", "admin"]) {
-    const cs = clientScope(req(role));
-    assert.deepStrictEqual(cs.$or[0], { personal: { $ne: true } });
-    assert.strictEqual(String(cs.$or[1].managedBy), me);
+  // Clients: everyone (super included) sees shared clients + their own personal ones;
+  // admin/team additionally never see the super admin's clients
+  const superScope = await clientScope(req("super"));
+  assert.deepStrictEqual(superScope.$or[0], { personal: { $ne: true } });
+  assert.strictEqual(String(superScope.$or[1].managedBy), me);
+  for (const role of ["admin", "team"]) {
+    const [shared, notSuper] = (await clientScope(req(role))).$and;
+    assert.deepStrictEqual(shared, superScope);
+    assert.deepStrictEqual(ids(notSuper.managedBy.$nin), [superId]);
   }
   // Editing: super edits anything visible; others only their own or unassigned
-  assert.deepStrictEqual(clientEditScope(req("super")), clientScope(req("super")));
-  const [visible, editable] = clientEditScope(req("admin")).$and;
-  assert.deepStrictEqual(visible, clientScope(req("admin")));
+  assert.deepStrictEqual(await clientEditScope(req("super")), superScope);
+  const [visible, editable] = (await clientEditScope(req("admin"))).$and;
+  assert.deepStrictEqual(visible, await clientScope(req("admin")));
   assert.strictEqual(String(editable.$or[0].managedBy), me);
   assert.deepStrictEqual(editable.$or[1], { managedBy: null });
 
