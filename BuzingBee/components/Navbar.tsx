@@ -32,7 +32,15 @@ const ENQUIRY_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL
   ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/enquiries/submit`
   : "https://api.buzingbee.com/api/enquiries/submit";
 
-const EMPTY_FORM = { name: "", email: "", phone: "", message: "" };
+const EMPTY_FORM = { name: "", email: "", phone: "", service: "", message: "" };
+
+// What the free audit should cover: a full audit, one of the site's 8 services
+// (the same list as the Services menu, so clicking a service pre-selects it), or other
+const AUDIT_OPTIONS = [
+  "Complete digital marketing audit",
+  ...SERVICES.map((svc) => svc.title),
+  "Something else",
+];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -94,10 +102,11 @@ export default function Navbar() {
   useEffect(() => {
     const open = (e: Event) => {
       const service = (e as CustomEvent<{ service?: string }>).detail?.service;
+      // a service picked from the menu or grid pre-selects it in the audit selector
       if (service) {
         setEnquiryForm((prev) => ({
           ...prev,
-          message: prev.message || `I'm interested in ${service}.`,
+          service: AUDIT_OPTIONS.includes(service) ? service : prev.service,
         }));
       }
       // clear the last result, but let a send that's still in flight report back here
@@ -225,6 +234,29 @@ export default function Navbar() {
                 }
                 className="w-full rounded-xl border border-border bg-bgPrimary px-4 py-2.5 text-sm text-textHeading placeholder:text-textMuted outline-none focus:border-accent"
               />
+              <label htmlFor="audit-service" className="sr-only">
+                Which service do you need an audit for?
+              </label>
+              <select
+                id="audit-service"
+                required
+                value={enquiryForm.service}
+                onChange={(e) =>
+                  setEnquiryForm((prev) => ({ ...prev, service: e.target.value }))
+                }
+                className={`w-full rounded-xl border border-border bg-bgPrimary px-4 py-2.5 text-sm outline-none focus:border-accent ${
+                  enquiryForm.service ? "text-textHeading" : "text-textMuted"
+                }`}
+              >
+                <option value="" disabled>
+                  Which service do you need an audit for?
+                </option>
+                {AUDIT_OPTIONS.map((option) => (
+                  <option key={option} value={option} className="text-textHeading">
+                    {option}
+                  </option>
+                ))}
+              </select>
               <textarea
                 rows={4}
                 placeholder="Tell us about your requirement"
