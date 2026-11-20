@@ -34,12 +34,19 @@ const ENQUIRY_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 const EMPTY_FORM = { name: "", email: "", phone: "", service: "", message: "" };
 
-// What the free audit should cover: a full audit, one of the site's 8 services
-// (the same list as the Services menu, so clicking a service pre-selects it), or other
+// What the free audit should cover: BuzingBee's services, with the same values as
+// the contact form so the admin panel labels them the same way
 const AUDIT_OPTIONS = [
-  "Complete digital marketing audit",
-  ...SERVICES.map((svc) => svc.title),
-  "Something else",
+  { value: "web-development", label: "Web Development" },
+  { value: "mobile-app", label: "Mobile App Development" },
+  { value: "ai-ml", label: "AI & ML Development" },
+  { value: "seo", label: "SEO Optimization" },
+  { value: "social-media", label: "Social Media Marketing" },
+  { value: "ppc", label: "Google & Meta Ads" },
+  { value: "email-marketing", label: "Email Marketing" },
+  { value: "branding", label: "Brand Identity & Logo" },
+  { value: "ecommerce", label: "E-Commerce Solutions" },
+  { value: "other", label: "Other" },
 ];
 
 export default function Navbar() {
@@ -102,11 +109,10 @@ export default function Navbar() {
   useEffect(() => {
     const open = (e: Event) => {
       const service = (e as CustomEvent<{ service?: string }>).detail?.service;
-      // a service picked from the menu or grid pre-selects it in the audit selector
       if (service) {
         setEnquiryForm((prev) => ({
           ...prev,
-          service: AUDIT_OPTIONS.includes(service) ? service : prev.service,
+          message: prev.message || `I'm interested in ${service}.`,
         }));
       }
       // clear the last result, but let a send that's still in flight report back here
@@ -252,8 +258,8 @@ export default function Navbar() {
                   Which service do you need an audit for?
                 </option>
                 {AUDIT_OPTIONS.map((option) => (
-                  <option key={option} value={option} className="text-textHeading">
-                    {option}
+                  <option key={option.value} value={option.value} className="text-textHeading">
+                    {option.label}
                   </option>
                 ))}
               </select>
