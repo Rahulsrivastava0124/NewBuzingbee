@@ -14,11 +14,12 @@ import {
 } from "lucide-react";
 import { SITE_CONFIG } from "@/lib/constants";
 import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
-import PhoneOtpField from "@/components/PhoneOtpField";
+import OtpVerifyDialog, { type EnquiryVerification } from "@/components/OtpVerifyDialog";
 
 interface ContactFormData {
   name: string;
   email: string;
+  phone: string;
   service: string;
   budget: string;
   message: string;
@@ -42,19 +43,11 @@ export default function ContactPage() {
   const [submitMessage, setSubmitMessage] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaReset, setCaptchaReset] = useState(0);
-  const [phone, setPhone] = useState("");
-  const [phoneToken, setPhoneToken] = useState("");
-  const [phoneReset, setPhoneReset] = useState(0);
+  const [verification, setVerification] = useState<EnquiryVerification | null>(null);
 
   const onSubmit = async (data: ContactFormData) => {
     setSubmitState("idle");
     setSubmitMessage("");
-
-    if (!phoneToken) {
-      setSubmitState("error");
-      setSubmitMessage("Please verify your WhatsApp number with the OTP first.");
-      return;
-    }
 
     if (TURNSTILE_SITE_KEY && !captchaToken) {
       setSubmitState("error");
@@ -66,13 +59,7 @@ export default function ContactPage() {
       const res = await fetch(ENQUIRY_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          phone,
-          phoneToken,
-          source: "contact-form",
-          captchaToken,
-        }),
+        body: JSON.stringify({ ...data, source: "contact-form", captchaToken }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Submission failed");
@@ -81,9 +68,8 @@ export default function ContactPage() {
         json.message || "Thank you! We'll get back to you within 24 hours.",
       );
       reset();
-      setPhone("");
-      setPhoneToken("");
-      setPhoneReset((n) => n + 1);
+      // second step: WhatsApp OTP marks the saved lead as verified
+      if (json.verification?.required) setVerification(json.verification);
       setCaptchaReset((n) => n + 1); // a token can only be used once
     } catch (err: unknown) {
       setCaptchaReset((n) => n + 1);
@@ -183,13 +169,27 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              <PhoneOtpField
-                value={phone}
-                onChange={setPhone}
-                onVerified={setPhoneToken}
-                inputClassName={inputClasses}
-                resetSignal={phoneReset}
-              />
+              <div>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  {...register("phone", {
+                    required: "WhatsApp number is required",
+                    pattern: {
+                      value: /^(?:\+?91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}$/,
+                      message: "Enter a valid 10-digit mobile number",
+                    },
+                  })}
+                  placeholder="WhatsApp Number *"
+                  className={inputClasses}
+                />
+                {errors.phone && (
+                  <p className="text-red-400 text-xs mt-1">
+                    {errors.phone.message}
+                  </p>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <select {...register("service")} className={inputClasses}>
@@ -259,6 +259,18 @@ export default function ContactPage() {
                 </div>
               )}
             </form>
+            <OtpVerifyDialog
+              verification={verification}
+              onClose={(verified) => {
+                setVerification(null);
+                setSubmitState("success");
+                setSubmitMessage(
+                  verified
+                    ? "Thank you! Your number is verified and we'll get back to you within 24 hours."
+                    : "Thank you! We'll get back to you within 24 hours.",
+                );
+              }}
+            />
           </motion.div>
 
           {/* Contact Info */}

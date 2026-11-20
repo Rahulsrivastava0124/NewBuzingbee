@@ -6,7 +6,7 @@ const { resolveSite, siteFilter } = require("../utils/site");
 const {
   otpRequiredFor,
   normalizeIndianMobile,
-  verifyPhoneToken,
+  issueEnquiryToken,
 } = require("../utils/whatsappOtp");
 
 const getClientIP = (req) => {
@@ -60,20 +60,11 @@ const submitEnquiry = async (req, res) => {
       });
     }
 
-    // Phone must be verified by WhatsApp OTP (only for sites listed in ENQUIRY_OTP_SITES)
+    // Every lead is saved now; phone verification by WhatsApp OTP follows as a
+    // second step (only for sites listed in ENQUIRY_OTP_SITES).
     const site = resolveSite(body.site);
-    let phone = fields.phone.value;
-    if (otpRequiredFor(site)) {
-      const verifiedPhone = normalizeIndianMobile(phone);
-      if (!verifiedPhone || !verifyPhoneToken(body.phoneToken, verifiedPhone)) {
-        return res.status(400).json({
-          success: false,
-          code: "PHONE_NOT_VERIFIED",
-          message: "Please verify your WhatsApp number with the OTP before submitting.",
-        });
-      }
-      phone = `+91 ${verifiedPhone}`;
-    }
+    const mobile = normalizeIndianMobile(fields.phone.value);
+    const phone = mobile ? `+91 ${mobile}` : fields.phone.value;
 
     const enquiry = new Enquiry({
       site,
@@ -89,9 +80,13 @@ const submitEnquiry = async (req, res) => {
 
     await enquiry.save();
 
+    const canVerify = Boolean(mobile) && otpRequiredFor(site);
     return res.status(201).json({
       success: true,
       message: "Thank you! We'll get back to you within 24 hours.",
+      verification: canVerify
+        ? { required: true, phone: mobile, enquiryToken: issueEnquiryToken(enquiry._id, mobile) }
+        : { required: false },
     });
   } catch (error) {
     return res.status(500).json({
@@ -109,6 +104,9 @@ const getAllEnquiries = async (req, res) => {
     const query = { $and: [siteFilter(req.query.site)] };
 
     if (typeof status === "string" && status !== "all") query.status = status;
+    // ?verified=true|false filters by WhatsApp OTP verification
+    if (req.query.verified === "true") query.phoneVerified = true;
+    if (req.query.verified === "false") query.phoneVerified = { $ne: true };
     if (typeof search === "string" && search) {
       const rx = escapeRegex(search.slice(0, 100));
       query.$or = [

@@ -1,20 +1,28 @@
 const OtpCode = require("../models/OtpCode");
+const Enquiry = require("../models/Enquiry");
 const { errorDetail } = require("../utils/errors");
 const {
   OTP_TTL_MS,
   isOtpEnabled,
-  normalizeIndianMobile,
   generateCode,
   hashCode,
   codesMatch,
   sendWhatsAppOtp,
-  issuePhoneToken,
+  readEnquiryToken,
 } = require("../utils/whatsappOtp");
 
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_ATTEMPTS = 5;
 
-// PUBLIC: send a 6-digit code to the phone over WhatsApp
+const badToken = (res) =>
+  res.status(400).json({
+    success: false,
+    message: "This verification link has expired. Your enquiry is saved; we'll contact you soon.",
+  });
+
+// PUBLIC: send a 6-digit code over WhatsApp to the phone of a just-submitted enquiry.
+// The enquiry token (returned by /submit) decides the number, so this endpoint cannot
+// be used to message arbitrary numbers.
 const sendOtp = async (req, res) => {
   try {
     if (!isOtpEnabled()) {
@@ -23,11 +31,14 @@ const sendOtp = async (req, res) => {
         .json({ success: false, message: "Phone verification is not available right now." });
     }
 
-    const phone = normalizeIndianMobile(req.body?.phone);
-    if (!phone) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Enter a valid 10-digit Indian mobile number." });
+    const token = readEnquiryToken(req.body?.enquiryToken);
+    if (!token) return badToken(res);
+    const { phone } = token;
+
+    const enquiry = await Enquiry.findById(token.enquiryId).select("phoneVerified");
+    if (!enquiry) return badToken(res);
+    if (enquiry.phoneVerified) {
+      return res.status(200).json({ success: true, alreadyVerified: true, message: "Phone number already verified." });
     }
 
     const latest = await OtpCode.findOne({ phone }).sort({ createdAt: -1 });
@@ -35,9 +46,11 @@ const sendOtp = async (req, res) => {
       const wait = Math.ceil(
         (RESEND_COOLDOWN_MS - (Date.now() - latest.createdAt.getTime())) / 1000,
       );
-      return res
-        .status(429)
-        .json({ success: false, message: `Please wait ${wait}s before requesting a new code.`, retryAfter: wait });
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${wait}s before requesting a new code.`,
+        retryAfter: wait,
+      });
     }
 
     const code = generateCode();
@@ -53,7 +66,8 @@ const sendOtp = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "We sent a 6-digit code to your WhatsApp.",
+      message: `OTP sent successfully to your WhatsApp (+91 ${phone}).`,
+      phone,
       expiresInSeconds: OTP_TTL_MS / 1000,
       resendAfterSeconds: RESEND_COOLDOWN_MS / 1000,
     });
@@ -67,12 +81,15 @@ const sendOtp = async (req, res) => {
   }
 };
 
-// PUBLIC: check the code; on success return a short-lived token for the enquiry form
+// PUBLIC: check the code and mark the enquiry's phone as verified
 const verifyOtp = async (req, res) => {
   try {
-    const phone = normalizeIndianMobile(req.body?.phone);
+    const token = readEnquiryToken(req.body?.enquiryToken);
+    if (!token) return badToken(res);
+    const { phone, enquiryId } = token;
+
     const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
-    if (!phone || !/^\d{6}$/.test(code)) {
+    if (!/^\d{6}$/.test(code)) {
       return res
         .status(400)
         .json({ success: false, message: "Enter the 6-digit code sent to your WhatsApp." });
@@ -96,16 +113,22 @@ const verifyOtp = async (req, res) => {
       const left = MAX_ATTEMPTS - record.attempts;
       return res.status(400).json({
         success: false,
-        message: left > 0 ? `Incorrect code. ${left} attempt(s) left.` : "Too many wrong attempts. Please request a new code.",
+        message:
+          left > 0
+            ? `Incorrect code. ${left} attempt(s) left.`
+            : "Too many wrong attempts. Please request a new code.",
       });
     }
 
     await OtpCode.deleteMany({ phone });
-    return res.status(200).json({
-      success: true,
-      message: "Phone number verified.",
-      phoneToken: issuePhoneToken(phone),
-    });
+    const enquiry = await Enquiry.findByIdAndUpdate(
+      enquiryId,
+      { phoneVerified: true, phoneVerifiedAt: new Date() },
+      { returnDocument: "after" },
+    );
+    if (!enquiry) return badToken(res);
+
+    return res.status(200).json({ success: true, message: "Your WhatsApp number is verified. Thank you!" });
   } catch (error) {
     return res.status(500).json({
       success: false,

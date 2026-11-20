@@ -81,6 +81,23 @@ function Field({ label, children }) {
   );
 }
 
+// WhatsApp OTP result for the lead's phone number
+function VerifiedChip({ verified, at }) {
+  const chip = (
+    <Chip
+      size="small"
+      variant={verified ? "filled" : "outlined"}
+      color={verified ? "success" : "default"}
+      label={verified ? "Verified" : "Unverified"}
+    />
+  );
+  return verified && at ? (
+    <Tooltip title={`Verified by WhatsApp OTP on ${new Date(at).toLocaleString()}`}>{chip}</Tooltip>
+  ) : (
+    chip
+  );
+}
+
 export default function Enquiries() {
   const { confirm, notify } = useFeedback();
   const [enquiries, setEnquiries] = useState([]);
@@ -89,6 +106,7 @@ export default function Enquiries() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterVerified, setFilterVerified] = useState("all");
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [noteText, setNoteText] = useState("");
@@ -103,6 +121,7 @@ export default function Enquiries() {
         if (showLoader) setLoading(true);
         const filters = {};
         if (filterStatus !== "all") filters.status = filterStatus;
+        if (filterVerified !== "all") filters.verified = String(filterVerified === "verified");
         if (searchTerm.trim()) filters.search = searchTerm.trim();
         const data = await enquiryAPI.getAll(filters);
         if (req !== latest.current) return;
@@ -115,7 +134,7 @@ export default function Enquiries() {
         if (req === latest.current) setLoading(false);
       }
     },
-    [filterStatus, searchTerm],
+    [filterStatus, filterVerified, searchTerm],
   );
 
   // Loading starts true for the first fetch; later searches keep the table (and the
@@ -231,6 +250,11 @@ export default function Enquiries() {
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
+            <ToggleButtonGroup exclusive size="small" value={filterVerified} onChange={(_, v) => v && setFilterVerified(v)}>
+              <ToggleButton value="all">All leads</ToggleButton>
+              <ToggleButton value="verified">Verified</ToggleButton>
+              <ToggleButton value="unverified">Unverified</ToggleButton>
+            </ToggleButtonGroup>
           </TableToolbar>
         }
         columns={[
@@ -260,6 +284,12 @@ export default function Enquiries() {
             label: "Budget",
             value: (enq) => BUDGET_LABELS[enq.budget] || enq.budget || "",
             render: (enq) => BUDGET_LABELS[enq.budget] || enq.budget || "—",
+          },
+          {
+            key: "phoneVerified",
+            label: "Lead",
+            value: (enq) => (enq.phoneVerified ? 1 : 0),
+            render: (enq) => <VerifiedChip verified={enq.phoneVerified} />,
           },
           {
             key: "status",
@@ -356,9 +386,12 @@ export default function Enquiries() {
                     {selected.phone && (
                       <Grid size={6}>
                         <Field label="Phone">
-                          <Link href={`tel:${selected.phone}`} underline="hover">
-                            {selected.phone}
-                          </Link>
+                          <Stack spacing={0.5} sx={{ alignItems: "flex-start" }}>
+                            <Link href={`tel:${selected.phone}`} underline="hover">
+                              {selected.phone}
+                            </Link>
+                            <VerifiedChip verified={selected.phoneVerified} at={selected.phoneVerifiedAt} />
+                          </Stack>
                         </Field>
                       </Grid>
                     )}

@@ -59,6 +59,17 @@ const enquirySchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // WhatsApp OTP check on the phone number. Every lead is saved; only those
+    // whose visitor entered the code are verified.
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    phoneVerifiedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );

@@ -5,7 +5,7 @@ const { getJwtSecret, parseList } = require("../config");
 
 const SEND_URL = "https://api.authkey.io/request";
 const OTP_TTL_MS = 10 * 60 * 1000;
-const TOKEN_TTL = "30m";
+const TOKEN_TTL = "60m";
 const TOKEN_PURPOSE = "enquiry-phone";
 
 const isOtpEnabled = () =>
@@ -55,17 +55,22 @@ const sendWhatsAppOtp = async (phone, code) => {
   }
 };
 
-// Short-lived proof that a phone number passed OTP verification
-const issuePhoneToken = (phone) =>
-  jwt.sign({ phone, purpose: TOKEN_PURPOSE }, getJwtSecret(), { expiresIn: TOKEN_TTL });
+// Returned after an enquiry is saved: lets that visitor (and only for that phone)
+// send and check an OTP for this one enquiry.
+const issueEnquiryToken = (enquiryId, phone) =>
+  jwt.sign({ enquiryId: String(enquiryId), phone, purpose: TOKEN_PURPOSE }, getJwtSecret(), {
+    expiresIn: TOKEN_TTL,
+  });
 
-const verifyPhoneToken = (token, phone) => {
-  if (typeof token !== "string" || !token || token.length > 1024) return false;
+// Returns { enquiryId, phone } or null
+const readEnquiryToken = (token) => {
+  if (typeof token !== "string" || !token || token.length > 1024) return null;
   try {
     const payload = jwt.verify(token, getJwtSecret());
-    return payload.purpose === TOKEN_PURPOSE && payload.phone === phone;
+    if (payload.purpose !== TOKEN_PURPOSE || !payload.enquiryId || !payload.phone) return null;
+    return { enquiryId: payload.enquiryId, phone: payload.phone };
   } catch {
-    return false;
+    return null;
   }
 };
 
@@ -78,6 +83,6 @@ module.exports = {
   hashCode,
   codesMatch,
   sendWhatsAppOtp,
-  issuePhoneToken,
-  verifyPhoneToken,
+  issueEnquiryToken,
+  readEnquiryToken,
 };
