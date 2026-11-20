@@ -159,7 +159,7 @@ const updateClient = async (req, res) => {
     const client = await Client.findOneAndUpdate(
       { _id: req.params.id, ...(await clientEditScope(req)) },
       data,
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).populate("managedBy", MANAGER_FIELDS);
     if (!client) {
       return res

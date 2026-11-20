@@ -298,7 +298,7 @@ const getBlogById = async (req, res) => {
       ? await Blog.findByIdAndUpdate(
           req.params.id,
           { $inc: { views: 1 } },
-          { new: true },
+          { returnDocument: "after" },
         )
       : await Blog.findById(req.params.id);
 
@@ -385,7 +385,7 @@ const getBlogBySlug = async (req, res) => {
       ? await Blog.findOneAndUpdate(
           query,
           { $inc: { views: 1 } },
-          { new: true },
+          { returnDocument: "after" },
         )
       : await Blog.findOne(query);
 

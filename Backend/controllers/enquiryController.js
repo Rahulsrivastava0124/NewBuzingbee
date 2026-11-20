@@ -182,7 +182,7 @@ const updateEnquiry = async (req, res) => {
 
     // runValidators: reject statuses outside the model's enum
     const enquiry = await Enquiry.findByIdAndUpdate(req.params.id, update, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     });
     if (!enquiry) {

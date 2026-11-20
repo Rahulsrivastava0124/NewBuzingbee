@@ -295,7 +295,7 @@ const updateCaseStudy = async (req, res) => {
             ogImage !== undefined ? ogImage : existing.seo?.ogImage || "",
         },
       },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     );
 
     return res

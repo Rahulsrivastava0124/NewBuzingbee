@@ -39,10 +39,12 @@ const BODY_SIZE_LIMIT = process.env.BODY_SIZE_LIMIT || "5mb";
 const allowedOrigins = parseList(process.env.CORS_ORIGINS);
 
 // Behind nginx / a load balancer, trust the first proxy so req.ip and the
-// rate limiters see the real client address.
-if (process.env.TRUST_PROXY) {
-  const value = Number(process.env.TRUST_PROXY);
-  app.set("trust proxy", Number.isNaN(value) ? process.env.TRUST_PROXY : value);
+// rate limiters see the real client address. Production runs behind a proxy,
+// so it trusts one hop unless TRUST_PROXY says otherwise ("0"/"false" turns it off).
+const trustProxy = process.env.TRUST_PROXY ?? (isProduction ? "1" : "");
+if (trustProxy && !["0", "false"].includes(trustProxy.toLowerCase())) {
+  const value = Number(trustProxy);
+  app.set("trust proxy", Number.isNaN(value) ? trustProxy : value);
 }
 
 // Middleware
