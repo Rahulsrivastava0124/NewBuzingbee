@@ -14,11 +14,11 @@ import {
 } from "lucide-react";
 import { SITE_CONFIG } from "@/lib/constants";
 import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
+import PhoneOtpField from "@/components/PhoneOtpField";
 
 interface ContactFormData {
   name: string;
   email: string;
-  phone: string;
   service: string;
   budget: string;
   message: string;
@@ -42,10 +42,19 @@ export default function ContactPage() {
   const [submitMessage, setSubmitMessage] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaReset, setCaptchaReset] = useState(0);
+  const [phone, setPhone] = useState("");
+  const [phoneToken, setPhoneToken] = useState("");
+  const [phoneReset, setPhoneReset] = useState(0);
 
   const onSubmit = async (data: ContactFormData) => {
     setSubmitState("idle");
     setSubmitMessage("");
+
+    if (!phoneToken) {
+      setSubmitState("error");
+      setSubmitMessage("Please verify your WhatsApp number with the OTP first.");
+      return;
+    }
 
     if (TURNSTILE_SITE_KEY && !captchaToken) {
       setSubmitState("error");
@@ -57,7 +66,13 @@ export default function ContactPage() {
       const res = await fetch(ENQUIRY_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, source: "contact-form", captchaToken }),
+        body: JSON.stringify({
+          ...data,
+          phone,
+          phoneToken,
+          source: "contact-form",
+          captchaToken,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Submission failed");
@@ -66,6 +81,9 @@ export default function ContactPage() {
         json.message || "Thank you! We'll get back to you within 24 hours.",
       );
       reset();
+      setPhone("");
+      setPhoneToken("");
+      setPhoneReset((n) => n + 1);
       setCaptchaReset((n) => n + 1); // a token can only be used once
     } catch (err: unknown) {
       setCaptchaReset((n) => n + 1);
@@ -165,12 +183,15 @@ export default function ContactPage() {
                 </div>
               </div>
 
+              <PhoneOtpField
+                value={phone}
+                onChange={setPhone}
+                onVerified={setPhoneToken}
+                inputClassName={inputClasses}
+                resetSignal={phoneReset}
+              />
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <input
-                  {...register("phone")}
-                  placeholder="Phone Number"
-                  className={inputClasses}
-                />
                 <select {...register("service")} className={inputClasses}>
                   <option value="">Select a Service</option>
                   <option value="web-development">Web Development</option>
@@ -184,17 +205,16 @@ export default function ContactPage() {
                   <option value="ecommerce">E-Commerce Solutions</option>
                   <option value="other">Other</option>
                 </select>
-              </div>
-
-              <select {...register("budget")} className={inputClasses}>
+                <select {...register("budget")} className={inputClasses}>
                 <option value="">Select Budget Range</option>
                 <option value="below-5k">Below ₹5,000</option>
                 <option value="5k-10k">₹5,000 — ₹10,000</option>
                 <option value="10k-25k">₹10,000 — ₹25,000</option>
                 <option value="25k-50k">₹25,000 — ₹50,000</option>
                 <option value="50k-1l">₹50,000 — ₹1,00,000</option>
-                <option value="above-1l">Above ₹1,00,000</option>
-              </select>
+                  <option value="above-1l">Above ₹1,00,000</option>
+                </select>
+              </div>
 
               <div>
                 <textarea

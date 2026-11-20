@@ -8,6 +8,7 @@ const {
   deleteEnquiry,
   getEnquiryStats,
 } = require("../controllers/enquiryController");
+const { sendOtp, verifyOtp } = require("../controllers/otpController");
 const { protectAdmin } = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -24,7 +25,25 @@ const submitLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Phone verification (WhatsApp OTP): caps per IP on top of the per-number cooldown
+const otpSendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { success: false, message: "Too many code requests. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const otpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { success: false, message: "Too many attempts. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Public
+router.post("/otp/send", otpSendLimiter, sendOtp);
+router.post("/otp/verify", otpVerifyLimiter, verifyOtp);
 router.post("/submit", submitLimiter, submitEnquiry);
 
 // Admin-protected

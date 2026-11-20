@@ -3,6 +3,11 @@ const Enquiry = require("../models/Enquiry");
 const { escapeRegex, readText, EMAIL_RE } = require("../utils/validate");
 const { verifyTurnstile } = require("../utils/turnstile");
 const { resolveSite, siteFilter } = require("../utils/site");
+const {
+  otpRequiredFor,
+  normalizeIndianMobile,
+  verifyPhoneToken,
+} = require("../utils/whatsappOtp");
 
 const getClientIP = (req) => {
   return (
@@ -55,11 +60,26 @@ const submitEnquiry = async (req, res) => {
       });
     }
 
+    // Phone must be verified by WhatsApp OTP (only for sites listed in ENQUIRY_OTP_SITES)
+    const site = resolveSite(body.site);
+    let phone = fields.phone.value;
+    if (otpRequiredFor(site)) {
+      const verifiedPhone = normalizeIndianMobile(phone);
+      if (!verifiedPhone || !verifyPhoneToken(body.phoneToken, verifiedPhone)) {
+        return res.status(400).json({
+          success: false,
+          code: "PHONE_NOT_VERIFIED",
+          message: "Please verify your WhatsApp number with the OTP before submitting.",
+        });
+      }
+      phone = `+91 ${verifiedPhone}`;
+    }
+
     const enquiry = new Enquiry({
-      site: resolveSite(body.site),
+      site,
       name: fields.name.value,
       email: fields.email.value.toLowerCase(),
-      phone: fields.phone.value,
+      phone,
       service: fields.service.value,
       budget: fields.budget.value,
       message: fields.message.value,

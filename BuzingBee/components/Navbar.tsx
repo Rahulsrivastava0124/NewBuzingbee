@@ -20,6 +20,7 @@ import { AUDIT_POPUP_EVENT, openAuditPopup } from "@/lib/audit-popup";
 import { SERVICES } from "@/components/ServicesGrid";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
+import PhoneOtpField from "@/components/PhoneOtpField";
 
 // desktop menu: the site's own links (the external Restaurant link stays in mobile menu + footer)
 const DESKTOP_LINKS = NAV_LINKS.filter((link) => link.href.startsWith("/"));
@@ -42,6 +43,8 @@ export default function Navbar() {
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [submitMessage, setSubmitMessage] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
+  const [phoneToken, setPhoneToken] = useState("");
+  const [phoneReset, setPhoneReset] = useState(0);
   const [captchaReset, setCaptchaReset] = useState(0);
   const pathname = usePathname();
   const currentPath = pathname || "/";
@@ -123,6 +126,12 @@ export default function Navbar() {
   const handleEnquirySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (!phoneToken) {
+      setSubmitState("error");
+      setSubmitMessage("Please verify your WhatsApp number with the OTP first.");
+      return;
+    }
+
     if (TURNSTILE_SITE_KEY && !captchaToken) {
       setSubmitState("error");
       setSubmitMessage("Please complete the verification below.");
@@ -136,7 +145,7 @@ export default function Navbar() {
       const response = await fetch(ENQUIRY_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...enquiryForm, source: "audit-popup", captchaToken }),
+        body: JSON.stringify({ ...enquiryForm, phoneToken, source: "audit-popup", captchaToken }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.message || "Failed to submit enquiry");
@@ -144,6 +153,8 @@ export default function Navbar() {
       setSubmitState("success");
       setSubmitMessage(payload?.message || "Thank you! We'll be in touch shortly with your audit.");
       setEnquiryForm(EMPTY_FORM);
+      setPhoneToken("");
+      setPhoneReset((n) => n + 1);
     } catch (error) {
       setSubmitState("error");
       setSubmitMessage(
@@ -207,15 +218,12 @@ export default function Navbar() {
                 }
                 className="w-full rounded-xl border border-border bg-bgPrimary px-4 py-2.5 text-sm text-textHeading placeholder:text-textMuted outline-none focus:border-accent"
               />
-              <input
-                type="tel"
-                required
-                placeholder="Phone Number"
+              <PhoneOtpField
                 value={enquiryForm.phone}
-                onChange={(e) =>
-                  setEnquiryForm((prev) => ({ ...prev, phone: e.target.value }))
-                }
-                className="w-full rounded-xl border border-border bg-bgPrimary px-4 py-2.5 text-sm text-textHeading placeholder:text-textMuted outline-none focus:border-accent"
+                onChange={(phone) => setEnquiryForm((prev) => ({ ...prev, phone }))}
+                onVerified={setPhoneToken}
+                inputClassName="w-full rounded-xl border border-border bg-bgPrimary px-4 py-2.5 text-sm text-textHeading placeholder:text-textMuted outline-none focus:border-accent"
+                resetSignal={phoneReset}
               />
               <textarea
                 rows={4}
