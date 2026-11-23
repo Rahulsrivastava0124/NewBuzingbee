@@ -31,7 +31,8 @@ export async function generateMetadata({
 
   const title = cs?.seoTitle || cs?.title || toTitleFromSlug(slug);
   const description =
-    cs?.seoDescription || cs?.summary || "Read this case study.";
+    cs?.seoDescription || cs?.summary ||
+    `Explore how BuzingBee helped ${cs?.client || "a client"} achieve measurable growth — ${cs?.title || toTitleFromSlug(slug)}.`;
   const image = cs?.image || "/og-image.png";
   const canonicalPath = `/case-studies/${slug}`;
   const canonicalUrl = resolveCmsCanonical(cs?.canonicalUrl, canonicalPath);
@@ -75,18 +76,36 @@ export default async function CaseStudyDetailPage({
   const image = cs?.image || "";
   const related = allCards.filter((c) => c.slug !== slug).slice(0, 3);
 
+  const articleUrl = canonicalForPath(`/case-studies/${slug}`);
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
+    "@id": articleUrl,
     headline: title,
     description: cs?.summary || "",
-    image: image || `${SITE_CONFIG.url}/og-image.png`,
-    url: canonicalForPath(`/case-studies/${slug}`),
-    author: { "@type": "Organization", name: SITE_CONFIG.name },
+    image: image ? [image] : [`${SITE_CONFIG.url}/og-image.png`],
+    url: articleUrl,
+    inLanguage: "en",
+    author: {
+      "@type": "Organization",
+      "@id": `${SITE_CONFIG.url}/#organization`,
+      name: SITE_CONFIG.name,
+      url: SITE_CONFIG.url,
+    },
     publisher: {
       "@type": "Organization",
+      "@id": `${SITE_CONFIG.url}/#organization`,
       name: SITE_CONFIG.name,
-      logo: { "@type": "ImageObject", url: `${SITE_CONFIG.url}/logo.png` },
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_CONFIG.url}/android-chrome-512x512.png`,
+        width: 512,
+        height: 512,
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": articleUrl,
     },
   };
 

@@ -22,9 +22,6 @@ import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 import OtpVerifyDialog, { type EnquiryVerification } from "@/components/OtpVerifyDialog";
 
-// desktop menu: the site's own links (the external Restaurant link stays in mobile menu + footer)
-const DESKTOP_LINKS = NAV_LINKS.filter((link) => link.href.startsWith("/"));
-
 // homepage sections the menu links to, in page order (used to underline the one in view)
 const SECTION_IDS = ["about", "work", "insights", "all-services"];
 
@@ -341,7 +338,7 @@ export default function Navbar() {
 
             {/* Desktop nav */}
             <div className="hidden xl:flex flex-1 items-center justify-center gap-10 2xl:gap-14 min-w-0">
-              {DESKTOP_LINKS.map((link) => {
+              {NAV_LINKS.map((link) => {
                 const active = isActiveLink(link.href);
                 const linkClass = `relative inline-flex items-center gap-1.5 py-2 text-[16px] transition-colors duration-300 ${
                   active

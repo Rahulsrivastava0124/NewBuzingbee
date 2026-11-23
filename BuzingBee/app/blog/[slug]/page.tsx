@@ -71,7 +71,8 @@ export async function generateMetadata({
 
   const title = post?.seoTitle || post?.title || toTitleFromSlug(slug);
   const description =
-    post?.seoDescription || post?.excerpt || "Read this blog article.";
+    post?.seoDescription || post?.excerpt ||
+    `Read the full article: ${post?.title || toTitleFromSlug(slug)} — digital marketing and AI insights by BuzingBee.`;
   const image = post?.image || "/og-image.png";
   const canonicalPath = `/blog/${slug}`;
   const canonicalUrl = resolveCmsCanonical(post?.canonicalUrl, canonicalPath);
@@ -114,6 +115,9 @@ export default async function BlogDetailPage({
   const image = post?.image || "";
   const category = post?.category || "Blog";
   const date = post?.date || "";
+  // schema.org needs ISO 8601; the display date ("November 11, 2026") parses back fine, "Recent" doesn't
+  const parsedDate = new Date(date);
+  const isoDate = Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate.toISOString();
   const { html: contentHtml, headings: allHeadings } = withHeadingIds(sanitizeBlogHtml(post?.content || ""));
   // posts often repeat their title as the first heading; the sidebar lists only the points
   const sameText = (a: string) => a.trim().toLowerCase() === title.trim().toLowerCase();
@@ -202,21 +206,35 @@ export default async function BlogDetailPage({
               __html: JSON.stringify({
                 "@context": "https://schema.org",
                 "@type": "BlogPosting",
+                "@id": articleUrl,
                 headline: post?.seoTitle || title,
                 description: post?.seoDescription || post?.excerpt || "",
-                image: image ? [image] : undefined,
-                datePublished: date || undefined,
+                image: image ? [image] : [`${SITE_CONFIG.url}/og-image.png`],
+                datePublished: isoDate,
+                dateModified: isoDate,
+                url: articleUrl,
+                inLanguage: "en",
                 author: {
                   "@type": "Organization",
+                  "@id": `${SITE_CONFIG.url}/#organization`,
                   name: "BuzingBee",
+                  url: SITE_CONFIG.url,
                 },
                 publisher: {
                   "@type": "Organization",
+                  "@id": `${SITE_CONFIG.url}/#organization`,
                   name: "BuzingBee",
                   logo: {
                     "@type": "ImageObject",
                     url: `${SITE_CONFIG.url}/android-chrome-512x512.png`,
+                    width: 512,
+                    height: 512,
                   },
+                },
+                isPartOf: {
+                  "@type": "Blog",
+                  "@id": `${SITE_CONFIG.url}/blog`,
+                  name: "BuzingBee Blog",
                 },
                 mainEntityOfPage: {
                   "@type": "WebPage",

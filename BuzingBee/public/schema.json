@@ -8,22 +8,24 @@
       "url": "https://buzingbee.com",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://buzingbee.com/logo.png"
+        "url": "https://buzingbee.com/android-chrome-512x512.png",
+        "width": 512,
+        "height": 512
       },
       "image": "https://buzingbee.com/og-image.png",
       "description": "BuzingBee provides digital marketing services and AI services for business growth, including SEO, paid ads, intelligent automation, and AI agents.",
-      "keywords": "digital marketing services, AI services, business growth, SEO, Google Ads, Meta Ads, email marketing, AI agents",
       "sameAs": [
         "https://www.instagram.com/buzingbee_/",
         "https://www.facebook.com/profile.php?id=61562079487441",
         "https://x.com/BuzingBee_",
-        "https://www.linkedin.com/company/buzing-bee/?viewAsMember=true"
+        "https://www.linkedin.com/company/buzing-bee/"
       ],
       "contactPoint": {
         "@type": "ContactPoint",
         "contactType": "customer service",
-        "telephone": "+91 95079 81942",
-        "areaServed": "Worldwide"
+        "telephone": "+91 73608 79787",
+        "areaServed": "Worldwide",
+        "availableLanguage": ["English", "Hindi"]
       },
       "address": {
         "@type": "PostalAddress",
@@ -39,14 +41,6 @@
       "url": "https://buzingbee.com/",
       "description": "Digital marketing services and AI services to grow your business online.",
       "publisher": { "@id": "https://buzingbee.com/#organization" },
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://buzingbee.com/?q={search_term_string}"
-        },
-        "query-input": "required name=search_term_string"
-      },
       "hasPart": [
         {
           "@type": ["WebPage", "SiteNavigationElement"],

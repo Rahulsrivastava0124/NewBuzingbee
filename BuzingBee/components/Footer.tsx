@@ -59,12 +59,36 @@ export default function Footer() {
               Services
             </h4>
             <ul className="space-y-2 text-sm text-textMuted">
-              <li>Web Design & Development</li>
-              <li>Mobile App Development</li>
-              <li>AI & ML Development</li>
-              <li>SEO Optimization</li>
-              <li>Social Media Marketing</li>
-              <li>Google & Meta Ads</li>
+              <li>
+                <Link href="/services#web-app-development" className="hover:text-accent transition-colors">
+                  Web Design &amp; Development
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#web-app-development" className="hover:text-accent transition-colors">
+                  Mobile App Development
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#ai-services" className="hover:text-accent transition-colors">
+                  AI &amp; ML Development
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#digital-marketing" className="hover:text-accent transition-colors">
+                  SEO Optimization
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#digital-marketing" className="hover:text-accent transition-colors">
+                  Social Media Marketing
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#advertising" className="hover:text-accent transition-colors">
+                  Google &amp; Meta Ads
+                </Link>
+              </li>
             </ul>
           </div>
 

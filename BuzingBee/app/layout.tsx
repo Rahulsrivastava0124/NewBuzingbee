@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_CONFIG.name}`,
   },
   alternates: {
-    canonical: "/",
+    canonical: "https://buzingbee.com/",
   },
   description:
     "BuzingBee is a leading digital marketing and AI services agency. We help businesses grow with web development, mobile apps, SEO, paid ads, and AI-powered automation.",
@@ -87,6 +87,7 @@ const structuredData = {
       image: `${SITE_CONFIG.url}/og-image.png`,
       description:
         "BuzingBee provides digital marketing services and AI services to help businesses grow.",
+      email: SITE_CONFIG.email,
       knowsAbout: [
         "SEO",
         "AI SEO",
@@ -109,7 +110,15 @@ const structuredData = {
         "@type": "ContactPoint",
         contactType: "customer service",
         telephone: SITE_CONFIG.phone,
+        email: SITE_CONFIG.email,
         areaServed: "Worldwide",
+        availableLanguage: ["English", "Hindi"],
+      },
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Kolkata",
+        addressRegion: "West Bengal",
+        addressCountry: "IN",
       },
     },
     {
@@ -117,6 +126,7 @@ const structuredData = {
       "@id": `${SITE_CONFIG.url}/#website`,
       name: SITE_CONFIG.name,
       url: SITE_CONFIG.url,
+      description: "Digital marketing services and AI services to grow your business online.",
       publisher: { "@id": `${SITE_CONFIG.url}/#organization` },
       hasPart: [
         {
