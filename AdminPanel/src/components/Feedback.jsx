@@ -14,7 +14,7 @@ const FeedbackContext = createContext(null);
 const toastStyles = {
   ":root": {
     "--toastify-font-family": "inherit",
-    "--toastify-toast-bd-radius": "14px",
+    "--toastify-toast-bd-radius": "6px",
     "--toastify-toast-shadow": "0 12px 32px -8px rgba(17, 24, 39, 0.18)",
     "--toastify-toast-top": "max(16px, env(safe-area-inset-top))",
     "--toastify-color-success": "#059669",

@@ -13,7 +13,7 @@ const loadAdmin = async (id) => {
   const cached = adminCache.get(id);
   if (cached && cached.until > Date.now()) return cached.admin;
 
-  const doc = await Admin.findById(id).select("role username email showBills");
+  const doc = await Admin.findById(id).select("role username email showBills passwordChangedAt");
   let admin = null;
   if (doc) {
     // Accounts that pre-date the role column (or are already signed in) get
@@ -27,10 +27,19 @@ const loadAdmin = async (id) => {
       username: doc.username,
       role: doc.role,
       showBills: doc.role === "super" || doc.showBills !== false,
+      passwordChangedAt: doc.passwordChangedAt ? doc.passwordChangedAt.getTime() : 0,
     };
   }
   adminCache.set(id, { admin, until: Date.now() + CACHE_TTL_MS });
   if (adminCache.size > 500) adminCache.clear();
+  return admin;
+};
+
+// The admin a verified token belongs to, or null if the account is gone or the
+// token was issued before the password last changed
+const adminForToken = async (decoded) => {
+  const admin = decoded?.id ? await loadAdmin(String(decoded.id)) : null;
+  if (!admin || (decoded.iat || 0) * 1000 < admin.passwordChangedAt) return null;
   return admin;
 };
 
@@ -51,7 +60,7 @@ const protectAdmin = async (req, res, next) => {
       algorithms: ["HS256"],
     });
 
-    const admin = decoded?.id ? await loadAdmin(String(decoded.id)) : null;
+    const admin = await adminForToken(decoded);
     if (!admin) return unauthorized(res, "Invalid or expired token");
 
     req.admin = admin;
@@ -71,7 +80,7 @@ const optionalAdmin = async (req, _res, next) => {
     const decoded = jwt.verify(token, getJwtSecret(), {
       algorithms: ["HS256"],
     });
-    const admin = decoded?.id ? await loadAdmin(String(decoded.id)) : null;
+    const admin = await adminForToken(decoded);
     if (admin) req.admin = admin;
   } catch (_error) {
     // anonymous

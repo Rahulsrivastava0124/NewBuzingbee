@@ -11,7 +11,7 @@ import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
-import { financeAPI } from "../../services/api";
+import { adminAPI, financeAPI } from "../../services/api";
 import { useFeedback } from "../../components/Feedback";
 import { LoadingState, PageHeader, TableToolbar } from "../../components/common";
 import DataTable from "../../components/DataTable";
@@ -56,6 +56,14 @@ function Stat({ label, value, color }) {
 
 export default function WalletLedger() {
   const { notify } = useFeedback();
+  // Only the super admin and admins may change manual entries (server enforces it too)
+  const [canEdit, setCanEdit] = useState(false);
+  useEffect(() => {
+    adminAPI
+      .getProfile()
+      .then((res) => setCanEdit(["super", "admin"].includes(res?.admin?.role)))
+      .catch(() => {});
+  }, []);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [type, setType] = useState("all");
@@ -121,17 +129,19 @@ export default function WalletLedger() {
             >
               Print
             </Button>
-            <Button
-              className="no-print"
-              variant="contained"
-              startIcon={<Plus />}
-              onClick={() => {
-                setFormError("");
-                setEditing(blank());
-              }}
-            >
-              Manual Entry
-            </Button>
+            {canEdit && (
+              <Button
+                className="no-print"
+                variant="contained"
+                startIcon={<Plus />}
+                onClick={() => {
+                  setFormError("");
+                  setEditing(blank());
+                }}
+              >
+                Manual Entry
+              </Button>
+            )}
           </>
         }
       />

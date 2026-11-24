@@ -57,6 +57,7 @@ const formatChartTick = (value, isHourly) => {
 const ChartTooltip = ({ active, payload, isHourly }) => {
   if (!active || !payload?.length) return null;
   const item = payload[0].payload;
+
   return (
     <Paper sx={{ px: 1.5, py: 1 }}>
       <Typography variant="caption" color="text.secondary">
@@ -209,60 +210,10 @@ function DashboardHome() {
     },
   ];
 
-  return (
-    <Box>
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            label="Total Blogs"
-            value={stats.total}
-            icon={<FileText />}
-            color="primary"
-            caption={`${stats.published} published`}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            label="Draft Blogs"
-            value={stats.drafts}
-            icon={<PenLine />}
-            color="info"
-            caption="In progress"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            label={`Traffic & Clicks (${selectedRange.shortLabel})`}
-            value={analytics.totalViews.toLocaleString()}
-            icon={<TrendingUp />}
-            color="success"
-            caption="Tracked with analytics API"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            label="Total Enquiries"
-            value={enqStats.total}
-            icon={<Inbox />}
-            color="error"
-            caption={enqStats.new > 0 ? `${enqStats.new} unread` : "All caught up"}
-            chip={
-              enqStats.new > 0 ? (
-                <Chip size="small" color="error" label={`${enqStats.new} new`} />
-              ) : null
-            }
-          />
-        </Grid>
-      </Grid>
-
-      {canSeeBills && (
-        <Box component="section" sx={{ mb: 3 }}>
-          <FinanceOverview />
-        </Box>
-      )}
-
-      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+  // Traffic chart: beside the finance chart (same row) or alone when bills are hidden
+  const trafficTrend = (
+      <Paper sx={{ p: { xs: 2, sm: 3 }, height: "100%" }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={2}
@@ -317,6 +268,63 @@ function DashboardHome() {
           </LineChart>
         </ResponsiveContainer>
       </Paper>
+  );
+
+  return (
+    <Box>
+
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label="Total Blogs"
+            value={stats.total}
+            icon={<FileText />}
+            color="primary"
+            caption={`${stats.published} published`}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label="Draft Blogs"
+            value={stats.drafts}
+            icon={<PenLine />}
+            color="info"
+            caption="In progress"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label={`Traffic & Clicks (${selectedRange.shortLabel})`}
+            value={analytics.totalViews.toLocaleString()}
+            icon={<TrendingUp />}
+            color="success"
+            caption="Tracked with analytics API"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label="Total Enquiries"
+            value={enqStats.total}
+            icon={<Inbox />}
+            color="error"
+            caption={enqStats.new > 0 ? `${enqStats.new} unread` : "All caught up"}
+            chip={
+              enqStats.new > 0 ? (
+                <Chip size="small" color="error" label={`${enqStats.new} new`} />
+              ) : null
+            }
+          />
+        </Grid>
+      </Grid>
+
+      {canSeeBills ? (
+        <Box component="section" sx={{ mb: 3 }}>
+          <FinanceOverview aside={trafficTrend} />
+        </Box>
+      ) : (
+        <Box sx={{ mb: 3 }}>{trafficTrend}</Box>
+      )}
+
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
@@ -413,7 +421,7 @@ function DashboardHome() {
             </Typography>
             <List sx={{ px: 1, pb: 1 }}>
               {quickActions.map((a) => (
-                <ListItemButton key={a.title} onClick={() => navigate(a.to)} sx={{ borderRadius: 2 }}>
+                <ListItemButton key={a.title} onClick={() => navigate(a.to)} sx={{ borderRadius: 1 }}>
                   <ListItemIcon sx={{ color: "primary.main" }}>{a.icon}</ListItemIcon>
                   <ListItemText
                     primary={a.title}

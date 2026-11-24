@@ -1,5 +1,5 @@
 const express = require("express");
-const { protectAdmin, requireBills, requireSuper } = require("../middleware/authMiddleware");
+const { protectAdmin, requireBills, requireSuper, requireRole } = require("../middleware/authMiddleware");
 const client = require("../controllers/clientController");
 const invoice = require("../controllers/invoiceController");
 const expense = require("../controllers/expenseController");
@@ -47,17 +47,21 @@ router.get("/expense-wallets", requireSuper, expenseWallet.getExpenseWallets);
 router.get("/expense-wallets/me", expenseWallet.getMyExpenseWallet);
 router.post("/expense-wallets/:id/pay", requireSuper, expenseWallet.payExpenseWallet);
 
+// Loans and manual wallet entries move company money directly, so only the
+// super admin and admins may change them; anyone with bill access can view
+const canMoveMoney = requireRole("super", "admin");
+
 // Loans (taken or given) + repayments; each one is mirrored in the wallet
 router.get("/loans", loan.getLoans);
-router.post("/loans", loan.createLoan);
-router.put("/loans/:id", loan.updateLoan);
-router.delete("/loans/:id", loan.deleteLoan);
-router.post("/loans/:id/repayments", loan.addRepayment);
-router.delete("/loans/:id/repayments/:repaymentId", loan.deleteRepayment);
+router.post("/loans", canMoveMoney, loan.createLoan);
+router.put("/loans/:id", canMoveMoney, loan.updateLoan);
+router.delete("/loans/:id", canMoveMoney, loan.deleteLoan);
+router.post("/loans/:id/repayments", canMoveMoney, loan.addRepayment);
+router.delete("/loans/:id/repayments/:repaymentId", canMoveMoney, loan.deleteRepayment);
 
 // Wallet ledger
 router.get("/wallet", wallet.getLedger);
-router.post("/wallet", wallet.addManualEntry);
-router.delete("/wallet/:id", wallet.deleteManualEntry);
+router.post("/wallet", canMoveMoney, wallet.addManualEntry);
+router.delete("/wallet/:id", canMoveMoney, wallet.deleteManualEntry);
 
 module.exports = router;

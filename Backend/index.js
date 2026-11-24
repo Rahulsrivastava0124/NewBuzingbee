@@ -17,6 +17,7 @@ const healthRoutes = require("./routes/healthRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const financeRoutes = require("./routes/financeRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const leadRoutes = require("./routes/leadRoutes");
 const { loadSmtpIntoMailer } = require("./controllers/settingsController");
 const { autoPublishScheduledBlogs } = require("./controllers/blogController");
 const { checkR2Connection } = require("./services/storageService");
@@ -97,6 +98,7 @@ app.use("/api/enquiries", enquiryRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/finance", financeRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/leads", leadRoutes);
 app.use("/health", healthRoutes);
 
 app.use((_req, res) => {

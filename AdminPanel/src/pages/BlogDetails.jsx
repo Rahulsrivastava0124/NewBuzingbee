@@ -115,7 +115,7 @@ export default function BlogDetails() {
           component="img"
           src={blog.image}
           alt={blog.title}
-          sx={{ width: "100%", maxHeight: 420, objectFit: "cover", borderRadius: 3, mb: 3 }}
+          sx={{ width: "100%", maxHeight: 420, objectFit: "cover", borderRadius: 1, mb: 3 }}
         />
       )}
 

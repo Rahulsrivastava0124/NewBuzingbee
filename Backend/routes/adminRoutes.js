@@ -10,10 +10,11 @@ const {
   resetPassword,
   listAdmins,
   updateAdminRole,
+  editAdmin,
   deleteAdmin,
   sendPasswordOtp,
 } = require("../controllers/adminController");
-const { protectAdmin, requireSuper } = require("../middleware/authMiddleware");
+const { protectAdmin, requireSuper, requireRole } = require("../middleware/authMiddleware");
 const { listAuditLog } = require("../middleware/auditLog");
 
 const {
@@ -95,6 +96,8 @@ router.post("/smtp/test", protectAdmin, requireSuper, async (req, res) => {
 router.get("/audit-log", protectAdmin, requireSuper, listAuditLog);
 router.get("/users", protectAdmin, listAdmins);
 router.patch("/users/:id", protectAdmin, requireSuper, updateAdminRole);
+// name / email / password; admins may edit team members only (checked in the controller)
+router.put("/users/:id", protectAdmin, requireRole("super", "admin"), editAdmin);
 router.delete("/users/:id", protectAdmin, requireSuper, deleteAdmin);
 router.get("/profile", protectAdmin, getAdminProfile);
 router.put("/profile", protectAdmin, updateAdminProfile);

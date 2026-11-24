@@ -9,7 +9,7 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { adminAPI } from "../services/api";
+import { adminAPI, authHelper } from "../services/api";
 import { IconTile, LoadingState, PageHeader, PasswordField } from "../components/common";
 import CompanyTab from "./settings/CompanyTab";
 import EmailTab from "./settings/EmailTab";
@@ -189,6 +189,8 @@ function ProfileSettings() {
     setPasswordSaving(true);
     try {
       const response = await adminAPI.updateProfile(passwordForm);
+      // Changing the password signs out every other session; keep this one
+      if (response?.token) authHelper.saveToken(response.token, response.expiresAt);
       setPasswordSuccess(response?.message || "Password updated successfully.");
       setPasswordForm(EMPTY_PASSWORDS);
       setOtpSentTo("");

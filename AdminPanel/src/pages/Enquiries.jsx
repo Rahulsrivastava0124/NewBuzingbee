@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -15,11 +16,11 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { enquiryAPI } from "../services/api";
+import { SERVICE_LABELS, enquiryAPI } from "../services/api";
 import { useFeedback } from "../components/Feedback";
 import { LoadingState, PageHeader, SearchField, TableToolbar } from "../components/common";
 import DataTable from "../components/DataTable";
-import { Eye, MessagesSquare, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Eye, MessagesSquare, RefreshCw, Search, Target, Trash2, X } from "lucide-react";
 
 const STATUS_COLORS = {
   new: "success",
@@ -33,19 +34,6 @@ const STATUS_LABELS = {
   read: "Read",
   replied: "Replied",
   archived: "Archived",
-};
-
-const SERVICE_LABELS = {
-  "web-development": "Web Development",
-  "mobile-app": "Mobile App",
-  "ai-ml": "AI & ML",
-  seo: "SEO",
-  "social-media": "Social Media",
-  ppc: "Google & Meta Ads",
-  "email-marketing": "Email Marketing",
-  branding: "Branding",
-  ecommerce: "E-Commerce",
-  other: "Other",
 };
 
 const BUDGET_LABELS = {
@@ -98,7 +86,22 @@ function VerifiedChip({ verified, at }) {
   );
 }
 
+// Prefills the CRM's New lead form; the Leads page reads it from the route state
+const leadFromEnquiry = (e) => ({
+  enquiry: e._id,
+  businessName: e.name,
+  contactPerson: e.name,
+  phone: e.phone,
+  email: e.email,
+  source: "website",
+  services: e.service && SERVICE_LABELS[e.service] ? [e.service] : [],
+  mainProblem: [e.message, e.budget && `Budget on the form: ${BUDGET_LABELS[e.budget] || e.budget}`]
+    .filter(Boolean)
+    .join("\n"),
+});
+
 export default function Enquiries() {
+  const navigate = useNavigate();
   const { confirm, notify } = useFeedback();
   const [enquiries, setEnquiries] = useState([]);
   const [total, setTotal] = useState(0);
@@ -433,6 +436,13 @@ export default function Enquiries() {
                   onClick={() => handleStatusChange(selected._id, "replied")}
                 >
                   Reply via email
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Target size={16} />}
+                  onClick={() => navigate("/dashboard/crm/leads", { state: { prefill: leadFromEnquiry(selected) } })}
+                >
+                  Convert to CRM lead
                 </Button>
 
                 <Stack spacing={1}>

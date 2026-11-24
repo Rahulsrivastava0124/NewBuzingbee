@@ -5,6 +5,7 @@ const Admin = require("../models/Admin");
 const mongoose = require("mongoose");
 const { invoiceScope, clientScope, clientEditScope } = require("../utils/billingScope");
 const { errorDetail } = require("../utils/errors");
+const { syncClientPayments } = require("../utils/paymentLedger");
 
 const fail = (res, message, error, code = 500) =>
   res.status(code).json({ success: false, message, error: errorDetail(error) });
@@ -166,6 +167,8 @@ const updateClient = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Client not found" });
     }
+    // Turning "personal" on or off moves this client's payments out of or into the company wallet
+    if (data.personal !== undefined) await syncClientPayments(client._id);
     return res.json({ success: true, client });
   } catch (error) {
     return fail(res, "Failed to update client", error);

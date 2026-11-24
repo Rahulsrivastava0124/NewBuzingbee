@@ -1,5 +1,8 @@
 const { errorDetail } = require("../utils/errors");
 const Enquiry = require("../models/Enquiry");
+const Admin = require("../models/Admin");
+const Settings = require("../models/Settings");
+const { sendMail } = require("../services/mailService");
 const { escapeRegex, readText, EMAIL_RE } = require("../utils/validate");
 const { verifyTurnstile } = require("../utils/turnstile");
 const { resolveSite, siteFilter } = require("../utils/site");
@@ -18,6 +21,43 @@ const getClientIP = (req) => {
     req.ip ||
     "unknown"
   );
+};
+
+const escapeHtml = (value) =>
+  String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+
+// Tells the team a lead came in, at the company email from Settings (or the super
+// admin's address). The visitor's text only goes into the body, escaped.
+const buildTeamAlert = (e) => {
+  const rows = [
+    ["Website", e.site],
+    ["Name", e.name],
+    ["Email", e.email],
+    ["Phone", e.phone],
+    ["Service", e.service],
+    ["Budget", e.budget],
+    ["Source", e.source],
+  ].filter(([, v]) => v);
+  return {
+    subject: `New enquiry: ${e.name.replace(/[\r\n]+/g, " ").slice(0, 80)}${e.service ? ` (${e.service})` : ""}`,
+    replyTo: e.email,
+    text: [...rows.map(([k, v]) => `${k}: ${v}`), "", e.message, "", "Open Enquiries in the admin panel to follow up."].join("\n"),
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;color:#0f172a">
+        <h2 style="margin:0 0 12px">New enquiry</h2>
+        <table style="border-collapse:collapse">${rows
+          .map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#64748b">${k}</td><td style="padding:4px 0">${escapeHtml(v)}</td></tr>`)
+          .join("")}</table>
+        <p style="white-space:pre-wrap;background:#f8fafc;padding:12px;border-radius:6px">${escapeHtml(e.message)}</p>
+        <p style="color:#64748b;font-size:13px">Open Enquiries in the admin panel to follow up.</p>
+      </div>`,
+  };
+};
+
+const notifyTeam = async (enquiry) => {
+  const settings = await Settings.findOne({ key: "main" }).select("company.email").lean();
+  const to = settings?.company?.email || Admin.SUPER_EMAIL;
+  await sendMail({ to, ...buildTeamAlert(enquiry) });
 };
 
 // PUBLIC: Submit a new enquiry from the contact form
@@ -79,6 +119,10 @@ const submitEnquiry = async (req, res) => {
     });
 
     await enquiry.save();
+    // Not awaited: a mail problem must not fail the visitor's submission
+    notifyTeam(enquiry).catch((error) => {
+      console.error("[enquiry] team alert email failed:", error.message);
+    });
 
     const canVerify = Boolean(mobile) && otpRequiredFor(site);
     return res.status(201).json({
@@ -245,6 +289,7 @@ const getEnquiryStats = async (req, res) => {
 };
 
 module.exports = {
+  buildTeamAlert,
   submitEnquiry,
   getAllEnquiries,
   getEnquiryById,

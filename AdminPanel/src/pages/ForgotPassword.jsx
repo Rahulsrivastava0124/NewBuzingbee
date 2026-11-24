@@ -45,7 +45,7 @@ export default function ForgotPassword() {
         bgcolor: "background.default",
       }}
     >
-      <Paper sx={{ width: "100%", maxWidth: 420, p: { xs: 3, sm: 5 }, borderRadius: 4 }}>
+      <Paper sx={{ width: "100%", maxWidth: 420, p: { xs: 3, sm: 5 }, borderRadius: 1 }}>
         <Stack spacing={1} sx={{ alignItems: "center", mb: 3, textAlign: "center" }}>
           <BrandMark size={56} />
           <Typography variant="h5">Forgot your password?</Typography>

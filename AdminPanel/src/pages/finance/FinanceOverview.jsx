@@ -4,8 +4,10 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
+import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -46,18 +48,30 @@ function Stat({ label, value, sub, color }) {
 }
 
 // Finance section of the main dashboard
-export default function FinanceOverview() {
+// aside: optional card shown next to the "Last 6 months" chart, in the same row
+const MONTH_RANGES = [
+  { value: 3, label: "Last 3 months" },
+  { value: 6, label: "Last 6 months" },
+  { value: 12, label: "Last 12 months" },
+  { value: 24, label: "Last 2 years" },
+];
+
+export default function FinanceOverview({ aside }) {
   const navigate = useNavigate();
   const theme = useTheme();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [months, setMonths] = useState(6);
+  const [loading, setLoading] = useState(true);
 
+  // keeps showing the last numbers while a new range loads
   useEffect(() => {
     financeAPI
-      .summary()
+      .summary(months)
       .then(setData)
-      .catch((e) => setError(e.message));
-  }, []);
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [months]);
 
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!data) return <LoadingState text="Loading finance..." />;
@@ -112,9 +126,37 @@ export default function FinanceOverview() {
         </Grid>
       </Grid>
 
-      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-        <Stack sx={{ mb: 2 }}>
-          <Typography variant="h6">Last 6 months</Typography>
+      <Grid container spacing={2}>
+      <Grid size={{ xs: 12, md: aside ? 6 : 12 }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, height: "100%" }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{ justifyContent: "space-between", mb: 2 }}
+        >
+          <Box>
+            <Typography variant="h6">Income vs expenses</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {MONTH_RANGES.find((r) => r.value === months)?.label}
+            </Typography>
+          </Box>
+          <TextField
+            select
+            value={months}
+            onChange={(e) => {
+              setLoading(true);
+              setMonths(Number(e.target.value));
+            }}
+            disabled={loading}
+            sx={{ width: { sm: 200 } }}
+            aria-label="Finance range"
+          >
+            {MONTH_RANGES.map((r) => (
+              <MenuItem key={r.value} value={r.value}>
+                {r.label}
+              </MenuItem>
+            ))}
+          </TextField>
         </Stack>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data.months} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -128,6 +170,9 @@ export default function FinanceOverview() {
           </BarChart>
         </ResponsiveContainer>
       </Paper>
+      </Grid>
+      {aside && <Grid size={{ xs: 12, md: 6 }}>{aside}</Grid>}
+      </Grid>
     </Box>
   );
 }

@@ -284,6 +284,12 @@ export default function ChatWidget() {
       });
 
       if (!response.ok) {
+        // Rate limit / too-long messages come back with a reply worth showing
+        const errorData = (await response.json().catch(() => null)) as { reply?: unknown } | null;
+        if ((response.status === 429 || response.status === 400) && typeof errorData?.reply === "string") {
+          setMessages((prev) => [...prev, createMessage("bot", errorData.reply as string)]);
+          return;
+        }
         throw new Error(`Chat request failed with ${response.status}`);
       }
 
@@ -594,6 +600,7 @@ export default function ChatWidget() {
                     onChange={(event) => setInput(event.target.value)}
                     onKeyDown={(event) => void handleKeyDown(event)}
                     placeholder="Ask me anything..."
+                    maxLength={1000}
                     className="h-11 flex-1 rounded-full border border-[#e5e5e5] bg-[#fafafa] px-4 py-2.5 text-sm text-[#1a1a1a] outline-none transition placeholder:text-[#6b7280] focus:border-[#d4900a] focus:ring-1 focus:ring-[#f3cf73]"
                   />
 

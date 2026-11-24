@@ -1,5 +1,8 @@
 import { createTheme } from "@mui/material/styles";
 
+// Corner radius for every surface and control (rounded-md look, no pills)
+const RADIUS = 6;
+
 // Minimal palette: quiet greys everywhere, honey only for primary actions
 const honey = "#f5a623";
 const honeyDeep = "#e8920a";
@@ -25,7 +28,8 @@ const theme = createTheme({
     divider: border,
     action: { hover: "rgba(17, 24, 39, 0.04)" },
   },
-  shape: { borderRadius: 12 },
+  // one small radius everywhere (no pills); sx borderRadius: 1 = RADIUS
+  shape: { borderRadius: RADIUS },
   spacing: 8,
   typography: {
     fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -47,11 +51,11 @@ const theme = createTheme({
       },
     },
 
-    // Rounded (pill) buttons everywhere
+    // Buttons: small radius
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {
-        root: { borderRadius: 999, minHeight: 38, paddingInline: 18 },
+        root: { borderRadius: RADIUS, minHeight: 38, paddingInline: 18 },
         sizeSmall: { minHeight: 32, paddingInline: 14 },
         sizeLarge: { minHeight: 46, paddingInline: 24 },
         startIcon: { marginRight: 8, "& > svg": { width: 18, height: 18 } },
@@ -72,10 +76,10 @@ const theme = createTheme({
         // Plain icon buttons stay grey; coloured ones (view, edit, delete...) get a soft tint
         root: ({ ownerState }) => {
           const c = ownerState.color;
-          if (!SOFT_CHIP_COLORS.includes(c)) return { borderRadius: 999, color: "#4b5563" };
+          if (!SOFT_CHIP_COLORS.includes(c)) return { borderRadius: RADIUS, color: "#4b5563" };
           const main = `var(--mui-palette-${c}-main)`;
           return {
-            borderRadius: 999,
+            borderRadius: RADIUS,
             color: c === "primary" ? honeyDeep : main,
             backgroundColor: `color-mix(in srgb, ${main} 12%, transparent)`,
             "&:hover": { backgroundColor: `color-mix(in srgb, ${main} 22%, transparent)` },
@@ -90,32 +94,32 @@ const theme = createTheme({
     MuiPaper: {
       defaultProps: { variant: "outlined" },
       styleOverrides: {
-        root: { backgroundImage: "none", borderRadius: 16, borderColor: border, boxShadow: "none" },
+        root: { backgroundImage: "none", borderRadius: RADIUS, borderColor: border, boxShadow: "none" },
       },
     },
 
     MuiTextField: { defaultProps: { size: "small", fullWidth: true } },
     MuiOutlinedInput: {
       styleOverrides: {
-        root: { backgroundColor: "#fff", borderRadius: 12 },
+        root: { backgroundColor: "#fff", borderRadius: RADIUS },
         notchedOutline: { borderColor: "#e4e4e7" },
       },
     },
     MuiInputAdornment: { styleOverrides: { root: { color: muted } } },
 
-    // Segmented filters: grey track, white pill for the active option
+    // Segmented filters: grey track, white block for the active option
     MuiToggleButtonGroup: {
       styleOverrides: {
         root: {
           backgroundColor: subtle,
-          borderRadius: 999,
+          borderRadius: RADIUS,
           padding: 3,
           gap: 2,
           alignSelf: "flex-start",
           flexWrap: "wrap",
           maxWidth: "100%",
         },
-        grouped: { border: 0, borderRadius: "999px !important", margin: "0 !important" },
+        grouped: { border: 0, borderRadius: `${RADIUS}px !important`, margin: "0 !important" },
       },
     },
     MuiToggleButton: {
@@ -141,7 +145,7 @@ const theme = createTheme({
     MuiTab: { styleOverrides: { root: { textTransform: "none", fontWeight: 600, minHeight: 44 } } },
 
     // Quiet tables
-    MuiTableContainer: { styleOverrides: { root: { borderRadius: 16 } } },
+    MuiTableContainer: { styleOverrides: { root: { borderRadius: RADIUS } } },
     MuiTableCell: {
       styleOverrides: {
         root: { borderColor: "#f1f1f3", paddingBlock: 12, paddingInline: 10 },
@@ -169,6 +173,7 @@ const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: ({ ownerState }) => ({
+          borderRadius: RADIUS,
           fontWeight: 600,
           fontSize: 12,
           height: 24,
@@ -187,16 +192,16 @@ const theme = createTheme({
 
     MuiDialog: {
       defaultProps: { fullWidth: true },
-      styleOverrides: { paper: { borderRadius: 20, boxShadow: "0 20px 40px -12px rgba(17, 24, 39, 0.18)" } },
+      styleOverrides: { paper: { borderRadius: RADIUS, boxShadow: "0 20px 40px -12px rgba(17, 24, 39, 0.18)" } },
     },
     MuiDialogTitle: { styleOverrides: { root: { fontSize: "1.125rem", fontWeight: 700 } } },
     MuiMenu: {
       styleOverrides: {
-        paper: { borderRadius: 14, boxShadow: "0 12px 32px -8px rgba(17, 24, 39, 0.16)" },
+        paper: { borderRadius: RADIUS, boxShadow: "0 12px 32px -8px rgba(17, 24, 39, 0.16)" },
       },
     },
-    MuiMenuItem: { styleOverrides: { root: { borderRadius: 8, marginInline: 4 } } },
-    MuiPopover: { styleOverrides: { paper: { borderRadius: 14 } } },
+    MuiMenuItem: { styleOverrides: { root: { borderRadius: RADIUS, marginInline: 4 } } },
+    MuiPopover: { styleOverrides: { paper: { borderRadius: RADIUS } } },
     MuiAppBar: { styleOverrides: { root: { backgroundColor: "#fff" } } },
     MuiToolbar: { styleOverrides: { root: { minHeight: 64 } } },
     MuiDrawer: {
@@ -205,9 +210,9 @@ const theme = createTheme({
     MuiListItemIcon: { styleOverrides: { root: { minWidth: 36, color: muted } } },
     MuiListItemText: { styleOverrides: { primary: { fontSize: 14, fontWeight: 500 } } },
     MuiTooltip: {
-      styleOverrides: { tooltip: { fontSize: 12, borderRadius: 8, backgroundColor: ink } },
+      styleOverrides: { tooltip: { fontSize: 12, borderRadius: RADIUS, backgroundColor: ink } },
     },
-    MuiAlert: { styleOverrides: { root: { borderRadius: 12, alignItems: "center" } } },
+    MuiAlert: { styleOverrides: { root: { borderRadius: RADIUS, alignItems: "center" } } },
     MuiTablePagination: {
       styleOverrides: {
         root: { borderTop: `1px solid ${border}` },

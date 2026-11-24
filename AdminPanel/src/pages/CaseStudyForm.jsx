@@ -448,7 +448,7 @@ export default function CaseStudyForm() {
                       alt="Preview"
                       onError={() => setPreviewError(true)}
                       onLoad={() => setPreviewError(false)}
-                      sx={{ width: "100%", borderRadius: 2, display: previewError ? "none" : "block" }}
+                      sx={{ width: "100%", borderRadius: 1, display: previewError ? "none" : "block" }}
                     />
                     {previewError && (
                       <Alert severity="warning">

@@ -261,6 +261,19 @@ export const adminAPI = {
     return handleResponse(response);
   },
 
+  // fields: { username?, email?, password? } — super admin: anyone; admin: team members only
+  editUser: async (id, fields) => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify(fields),
+    });
+    return handleResponse(response);
+  },
+
   deleteUser: async (id) => {
     const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
       method: "DELETE",
@@ -268,6 +281,20 @@ export const adminAPI = {
     });
     return handleResponse(response);
   },
+};
+
+// Service keys used by the website's enquiry forms (and the services a user handles)
+export const SERVICE_LABELS = {
+  "web-development": "Web Development",
+  "mobile-app": "Mobile App",
+  "ai-ml": "AI & ML",
+  seo: "SEO",
+  "social-media": "Social Media",
+  ppc: "Google & Meta Ads",
+  "email-marketing": "Email Marketing",
+  branding: "Branding",
+  ecommerce: "E-Commerce",
+  other: "Other",
 };
 
 // Each website keeps its own blog; the admin works on one at a time
@@ -675,7 +702,7 @@ const financeRequest = async (path, { method = "GET", body, params } = {}) => {
 };
 
 export const financeAPI = {
-  summary: () => financeRequest("/summary"),
+  summary: (months) => financeRequest("/summary", { params: { months } }),
   notifications: (params) => financeRequest("/notifications", { params }),
 
   clients: {
@@ -738,6 +765,33 @@ export const financeAPI = {
     addEntry: (body) => financeRequest("/wallet", { method: "POST", body }),
     deleteEntry: (id) => financeRequest(`/wallet/${id}`, { method: "DELETE" }),
   },
+};
+
+// Sales CRM (team members only get their own leads from the server)
+const leadRequest = async (path, { method = "GET", body, params } = {}) => {
+  const query = params
+    ? new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "")).toString()
+    : "";
+  const response = await fetch(`${API_BASE_URL}/leads${path}${query ? `?${query}` : ""}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${getAuthToken()}`,
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return handleResponse(response);
+};
+
+export const leadAPI = {
+  getAll: (params) => leadRequest("", { params }),
+  getById: (id) => leadRequest(`/${id}`),
+  create: (body) => leadRequest("", { method: "POST", body }),
+  update: (id, body) => leadRequest(`/${id}`, { method: "PUT", body }),
+  delete: (id) => leadRequest(`/${id}`, { method: "DELETE" }),
+  addActivity: (id, body) => leadRequest(`/${id}/activities`, { method: "POST", body }),
+  deleteActivity: (id, activityId) => leadRequest(`/${id}/activities/${activityId}`, { method: "DELETE" }),
+  weekly: (params) => leadRequest("/stats/weekly", { params }),
 };
 
 // Auth helpers

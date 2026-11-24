@@ -6,6 +6,7 @@ const LedgerEntry = require("../models/LedgerEntry");
 const { nextSequence } = require("../models/Counter");
 const { invoiceScope, isScoped, clientScope } = require("../utils/billingScope");
 const { errorDetail } = require("../utils/errors");
+const { syncClientPayments } = require("../utils/paymentLedger");
 
 const fail = (res, message, error, code = 500) =>
   res.status(code).json({ success: false, message, error: errorDetail(error) });
@@ -188,6 +189,7 @@ const updateInvoice = async (req, res) => {
       req.body;
 
     let clientChanged = false;
+    const previousClient = invoice.client;
     if (client !== undefined && String(client) !== String(invoice.client)) {
       if (!(await Client.exists({ _id: client, ...(await clientScope(req)) }))) {
         return bad(res, "Valid client is required");
@@ -238,6 +240,9 @@ const updateInvoice = async (req, res) => {
         { invoice: invoice._id },
         { client: invoice.client },
       );
+      // Moving between a company and a personal client moves the money in or out of the wallet
+      await syncClientPayments(previousClient);
+      await syncClientPayments(invoice.client);
     }
     return res.json({ success: true, invoice });
   } catch (error) {
@@ -288,15 +293,8 @@ const addPayment = async (req, res) => {
       note: req.body.note,
     });
 
-    await LedgerEntry.create({
-      type: "credit",
-      amount,
-      description: `Payment for ${invoice.number} from ${invoice.client.name}`,
-      category: "invoice-payment",
-      refType: "payment",
-      refId: payment._id,
-      date: payment.paidAt,
-    });
+    // Credits the company wallet unless it's a personal client's payment
+    await syncClientPayments(invoice.client._id);
 
     const updated = await recalculateInvoice(invoice._id);
     return res.status(201).json({ success: true, payment, invoice: updated });

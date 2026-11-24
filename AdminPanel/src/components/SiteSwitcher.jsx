@@ -32,7 +32,7 @@ export default function SiteSwitcher({ site, onChange }) {
           width: "100%",
           gap: 1.25,
           p: 1.25,
-          borderRadius: 2,
+          borderRadius: 1,
           border: 1,
           borderColor: "divider",
           justifyContent: "space-between",
@@ -53,14 +53,14 @@ export default function SiteSwitcher({ site, onChange }) {
         open={Boolean(anchor)}
         anchorEl={anchor}
         onClose={close}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
-        slotProps={{ paper: { sx: { width: 300, p: 1, borderRadius: 3, ml: 1 } } }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+        slotProps={{ paper: { sx: { width: 300, p: 1, borderRadius: 1, ml: 1 } } }}
       >
         <Stack
           direction="row"
           spacing={1}
-          sx={{ alignItems: "center", px: 1.5, py: 0.75, mb: 1, border: 1, borderColor: "divider", borderRadius: 2 }}
+          sx={{ alignItems: "center", px: 1.5, py: 0.75, mb: 1, border: 1, borderColor: "divider", borderRadius: 1 }}
         >
           <Search size={16} />
           <InputBase
@@ -90,7 +90,7 @@ export default function SiteSwitcher({ site, onChange }) {
                 justifyContent: "space-between",
                 px: 1.25,
                 py: 1.25,
-                borderRadius: 2,
+                borderRadius: 1,
                 bgcolor: s.value === site ? "action.selected" : "transparent",
                 "&:hover": { bgcolor: "action.hover" },
               }}

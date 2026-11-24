@@ -19,7 +19,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { financeAPI } from "../../services/api";
+import { adminAPI, financeAPI } from "../../services/api";
 import { useFeedback } from "../../components/Feedback";
 import { LoadingState, PageHeader } from "../../components/common";
 import DataTable from "../../components/DataTable";
@@ -64,6 +64,14 @@ function Stat({ label, value, sub, color }) {
 
 export default function Loans() {
   const { confirm, notify } = useFeedback();
+  // Only the super admin and admins may change loans and manual entries (server enforces it too)
+  const [canEdit, setCanEdit] = useState(false);
+  useEffect(() => {
+    adminAPI
+      .getProfile()
+      .then((res) => setCanEdit(["super", "admin"].includes(res?.admin?.role)))
+      .catch(() => {});
+  }, []);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [direction, setDirection] = useState("all");
@@ -177,16 +185,18 @@ export default function Loans() {
       <PageHeader
         title="Loans"
         actions={
-          <Button
-            variant="contained"
-            startIcon={<Plus />}
-            onClick={() => {
-              setFormError("");
-              setEditing(blankLoan());
-            }}
-          >
-            Add loan
-          </Button>
+          canEdit && (
+            <Button
+              variant="contained"
+              startIcon={<Plus />}
+              onClick={() => {
+                setFormError("");
+                setEditing(blankLoan());
+              }}
+            >
+              Add loan
+            </Button>
+          )
         }
       />
 
@@ -305,43 +315,47 @@ export default function Loans() {
                 <Eye />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Edit">
-              <IconButton
-                size="small"
-                color="primary"
-                aria-label="Edit"
-                onClick={() => {
-                  setFormError("");
-                  setEditing({
-                    ...l,
-                    startDate: toInputDate(l.startDate),
-                    dueDate: l.dueDate ? toInputDate(l.dueDate) : "",
-                  });
-                }}
-              >
-                <Pencil />
-              </IconButton>
-            </Tooltip>
-            {l.balance > 0 && (
-              <Button
-                size="small"
-                variant="contained"
-                onClick={() => {
-                  setFormError("");
-                  setRepaying({
-                    loan: l,
-                    form: { amount: l.balance, paidAt: toInputDate(), method: "bank-transfer", note: "" },
-                  });
-                }}
-              >
-                Repay
-              </Button>
+            {canEdit && (
+              <>
+                <Tooltip title="Edit">
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    aria-label="Edit"
+                    onClick={() => {
+                      setFormError("");
+                      setEditing({
+                        ...l,
+                        startDate: toInputDate(l.startDate),
+                        dueDate: l.dueDate ? toInputDate(l.dueDate) : "",
+                      });
+                    }}
+                  >
+                    <Pencil />
+                  </IconButton>
+                </Tooltip>
+                {l.balance > 0 && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => {
+                      setFormError("");
+                      setRepaying({
+                        loan: l,
+                        form: { amount: l.balance, paidAt: toInputDate(), method: "bank-transfer", note: "" },
+                      });
+                    }}
+                  >
+                    Repay
+                  </Button>
+                )}
+                <Tooltip title="Delete loan">
+                  <IconButton size="small" color="error" aria-label={`Delete loan with ${l.party}`} onClick={() => removeLoan(l)}>
+                    <Trash2 />
+                  </IconButton>
+                </Tooltip>
+              </>
             )}
-            <Tooltip title="Delete loan">
-              <IconButton size="small" color="error" aria-label={`Delete loan with ${l.party}`} onClick={() => removeLoan(l)}>
-                <Trash2 />
-              </IconButton>
-            </Tooltip>
           </>
         )}
       />
@@ -553,16 +567,18 @@ export default function Loans() {
                           {money(r.amount)}
                         </TableCell>
                         <TableCell align="right">
-                          <Tooltip title="Delete repayment">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              aria-label="Delete repayment"
-                              onClick={() => removeRepayment(viewing, r)}
-                            >
-                              <Trash2 size={16} />
-                            </IconButton>
-                          </Tooltip>
+                          {canEdit && (
+                            <Tooltip title="Delete repayment">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                aria-label="Delete repayment"
+                                onClick={() => removeRepayment(viewing, r)}
+                              >
+                                <Trash2 size={16} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

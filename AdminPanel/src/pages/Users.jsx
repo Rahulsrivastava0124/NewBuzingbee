@@ -17,8 +17,10 @@ import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
-import { adminAPI, financeAPI, portalHost } from "../services/api";
+import { Pencil, Plus, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import Checkbox from "@mui/material/Checkbox";
+import ListItemText from "@mui/material/ListItemText";
+import { SERVICE_LABELS, adminAPI, financeAPI, portalHost } from "../services/api";
 import { useFeedback } from "../components/Feedback";
 import { LoadingState, PageHeader } from "../components/common";
 import DataTable from "../components/DataTable";
@@ -27,6 +29,65 @@ import { PAYMENT_METHODS, dateToApi, money, toInputDate } from "./finance/format
 
 const ROLE_COLORS = { super: "warning", admin: "primary", team: "default" };
 const ROLE_LABELS = { super: "Super admin", admin: "Admin", team: "Team" };
+// "other" is for enquiries only, not something a person handles
+const SERVICE_KEYS = Object.keys(SERVICE_LABELS).filter((k) => k !== "other");
+const EMPTY_USER = { username: "", email: "", phone: "", services: [], password: "", role: "team", showBills: false };
+
+// Two-column form grid (one column on phones); FULL spans both columns
+const FORM_GRID = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+  minWidth: { sm: 560 }, // the shared Modal sizes to its content
+  columnGap: 2,
+  rowGap: 2.5,
+  pt: 1,
+};
+const FULL = { gridColumn: "1 / -1" };
+
+// Shared by the Add and Edit dialogs
+function PhoneField({ value, onChange }) {
+  return (
+    <TextField
+      label="Phone number"
+      type="tel"
+      autoComplete="tel"
+      value={value.phone}
+      onChange={(e) => onChange({ ...value, phone: e.target.value })}
+      placeholder="+91 98765 43210"
+    />
+  );
+}
+
+function ServicesField({ value, onChange }) {
+  return (
+    <TextField
+      select
+      label="Services they handle"
+      value={value.services}
+      onChange={(e) => onChange({ ...value, services: e.target.value })}
+      sx={FULL}
+      slotProps={{
+        select: {
+          multiple: true,
+          renderValue: (selected) => (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+              {selected.map((k) => (
+                <Chip key={k} size="small" label={SERVICE_LABELS[k] || k} />
+              ))}
+            </Box>
+          ),
+        },
+      }}
+    >
+      {SERVICE_KEYS.map((k) => (
+        <MenuItem key={k} value={k}>
+          <Checkbox size="small" checked={value.services.includes(k)} sx={{ py: 0 }} />
+          <ListItemText primary={SERVICE_LABELS[k]} />
+        </MenuItem>
+      ))}
+    </TextField>
+  );
+}
 
 export default function Users() {
   const { notify, confirm } = useFeedback();
@@ -34,15 +95,21 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ username: "", email: "", password: "", role: "team", showBills: true });
+  const [form, setForm] = useState(EMPTY_USER);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   // Expense wallet per user (adminId -> { spent, paid, balance })
   const [wallets, setWallets] = useState({});
   const [paying, setPaying] = useState(null);
   const [payError, setPayError] = useState("");
+  // user being edited: { user, username, email, password }
+  const [editing, setEditing] = useState(null);
+  const [editError, setEditError] = useState("");
 
   const isSuper = me?.role === "super";
+  const isAdmin = me?.role === "admin";
+  // admins manage their team: team members only, edit only (no roles, bills, pay or delete)
+  const rows = isSuper ? users : users.filter((u) => u.role === "team");
 
   useEffect(() => {
     adminAPI
@@ -92,7 +159,7 @@ export default function Users() {
       await adminAPI.createUser(form);
       notify("User created", "success");
       setOpen(false);
-      setForm({ username: "", email: "", password: "", role: "team", showBills: true });
+      setForm(EMPTY_USER);
       await load();
     } catch (err) {
       setError(err.message || "Could not create user");
@@ -138,6 +205,45 @@ export default function Users() {
     }
   };
 
+  const openEdit = (user) => {
+    setEditError("");
+    setEditing({
+      user,
+      username: user.username,
+      email: user.email,
+      phone: user.phone || "",
+      services: user.services || [],
+      password: "",
+    });
+  };
+
+  const submitEdit = async (e) => {
+    e.preventDefault();
+    const { user, username, email, phone, services, password } = editing;
+    if (password && password.length < 8) {
+      setEditError("Password must be at least 8 characters");
+      return;
+    }
+    setSaving(true);
+    setEditError("");
+    try {
+      await adminAPI.editUser(user._id, {
+        username,
+        email,
+        phone,
+        services,
+        ...(password ? { password } : {}),
+      });
+      notify(`${username} updated`, "success");
+      setEditing(null);
+      await load();
+    } catch (err) {
+      setEditError(err.message || "Could not update user");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Pay defaults to what the company owes them, if anything
   const openPay = (user) => {
     const owed = -(wallets[user._id]?.balance || 0);
@@ -173,12 +279,12 @@ export default function Users() {
     render: (u) => (wallets[u._id] ? render(wallets[u._id]) : "—"),
   });
 
-  if (!isSuper) {
+  if (!isSuper && !isAdmin) {
     return (
       <Box>
         <PageHeader title="User management" />
         <Alert severity="info">
-          Only the super admin (team@buzingbee.com) can manage users.
+          Only the super admin and admins can manage users.
         </Alert>
       </Box>
     );
@@ -187,7 +293,7 @@ export default function Users() {
   return (
     <Box>
       <PageHeader
-        title="User management"
+        title={isSuper ? "User management" : "My team"}
         actions={
           <>
             <Button
@@ -198,13 +304,15 @@ export default function Users() {
             >
               Refresh
             </Button>
-            <Button
-              variant="contained"
-              startIcon={<Plus size={16} />}
-              onClick={() => setOpen(true)}
-            >
-              Add user
-            </Button>
+            {isSuper && (
+              <Button
+                variant="contained"
+                startIcon={<Plus size={16} />}
+                onClick={() => setOpen(true)}
+              >
+                Add user
+              </Button>
+            )}
           </>
         }
       />
@@ -213,10 +321,14 @@ export default function Users() {
         <LoadingState text="Loading users..." />
       ) : (
         <DataTable
-          rows={users}
+          rows={rows}
           minWidth={1000}
           initialSort={{ key: "role", dir: "asc" }}
-          empty={{ icon: <ShieldCheck />, title: "No users", text: "Add someone with the button above." }}
+          empty={
+            isSuper
+              ? { icon: <ShieldCheck />, title: "No users", text: "Add someone with the button above." }
+              : { icon: <ShieldCheck />, title: "No team members", text: "Ask the super admin to add team members." }
+          }
           columns={[
             {
               key: "username",
@@ -235,6 +347,7 @@ export default function Users() {
                     </Typography>
                     <Typography variant="body2" color="text.secondary" noWrap>
                       {u.email}
+                      {u.phone ? ` · ${u.phone}` : ""}
                     </Typography>
                   </Box>
                 </Stack>
@@ -246,15 +359,19 @@ export default function Users() {
               mobile: "subtitle",
               value: (u) => ({ super: 0, admin: 1, team: 2 })[u.role || "admin"],
               render: (u) =>
-                u.role === "super" ? (
+                u.role === "super" || !isSuper ? (
+                  !isSuper ? (
+                    <Chip size="small" label={ROLE_LABELS[u.role] || u.role} color={ROLE_COLORS[u.role]} />
+                  ) : (
                   <Chip size="small" label={ROLE_LABELS.super} color={ROLE_COLORS.super} />
+                  )
                 ) : (
                   <Select
                     size="small"
                     value={u.role || "admin"}
                     onChange={(e) => handleRoleChange(u, e.target.value)}
                     disabled={me?.id === u._id}
-                    sx={{ borderRadius: 999, minWidth: 120 }}
+                    sx={{ minWidth: 120 }}
                   >
                     <MenuItem value="admin">{ROLE_LABELS.admin}</MenuItem>
                     <MenuItem value="team">{ROLE_LABELS.team}</MenuItem>
@@ -267,6 +384,7 @@ export default function Users() {
               sortable: false,
               render: (u) => {
                 const pinned = u.role === "super";
+                if (!isSuper) return u.showBills !== false ? "Yes" : "No";
                 return (
                   <Tooltip
                     title={
@@ -303,8 +421,17 @@ export default function Users() {
           actions={(u) => {
             const pinned = u.role === "super";
             const isSelf = me?.id === u._id;
+            const editBtn = (
+              <Tooltip title="Edit user">
+                <IconButton size="small" aria-label={`Edit ${u.username}`} onClick={() => openEdit(u)}>
+                  <Pencil size={18} />
+                </IconButton>
+              </Tooltip>
+            );
+            if (!isSuper) return editBtn;
             return (
               <>
+                {editBtn}
                 {!pinned && (
                   <Button size="small" variant="contained" onClick={() => openPay(u)}>
                     Pay
@@ -329,6 +456,55 @@ export default function Users() {
             );
           }}
         />
+      )}
+
+      {editing && (
+        <Modal wide title={`Edit ${editing.user.username}`} onClose={() => setEditing(null)}>
+          <Box component="form" onSubmit={submitEdit}>
+            <Box sx={FORM_GRID}>
+              <TextField
+                label="Username"
+                required
+                value={editing.username}
+                onChange={(e) => setEditing({ ...editing, username: e.target.value })}
+                helperText="Letters, numbers and underscore"
+                autoFocus
+              />
+              <TextField
+                label="Email"
+                type="email"
+                required
+                value={editing.email}
+                onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                disabled={editing.user.role === "super"}
+                helperText={editing.user.role === "super" ? "The super admin's email is pinned" : " "}
+              />
+              <PhoneField value={editing} onChange={setEditing} />
+              <TextField
+                label="New password"
+                type="password"
+                autoComplete="new-password"
+                value={editing.password}
+                onChange={(e) => setEditing({ ...editing, password: e.target.value })}
+                helperText="Leave blank to keep the current one"
+              />
+              <ServicesField value={editing} onChange={setEditing} />
+              {editError && (
+                <Alert severity="error" sx={FULL}>
+                  {editError}
+                </Alert>
+              )}
+            </Box>
+            <DialogActions sx={{ px: 0, pt: 3, pb: 0 }}>
+              <Button color="inherit" onClick={() => setEditing(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="contained" disabled={saving}>
+                {saving ? "Saving..." : "Save changes"}
+              </Button>
+            </DialogActions>
+          </Box>
+        </Modal>
       )}
 
       {paying && (
@@ -379,41 +555,58 @@ export default function Users() {
         </Modal>
       )}
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Add user</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            {error && <Alert severity="error">{error}</Alert>}
+        <DialogContent dividers>
+          <Box sx={FORM_GRID}>
+            {error && (
+              <Alert severity="error" sx={FULL}>
+                {error}
+              </Alert>
+            )}
             <TextField
               label="Username"
+              required
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
+              helperText="Letters, numbers and underscore"
               autoFocus
             />
             <TextField
               label="Email"
               type="email"
+              required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              helperText=" "
             />
+            <PhoneField value={form} onChange={setForm} />
             <TextField
               label="Password"
               type="password"
+              required
+              autoComplete="new-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               helperText="At least 8 characters"
             />
-            <Select
+            <ServicesField value={form} onChange={setForm} />
+            <TextField
+              select
+              label="Role"
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
+              helperText={
+                <>
+                  Signs in at <b>{portalHost(form.role)}</b>
+                </>
+              }
             >
               <MenuItem value="admin">{ROLE_LABELS.admin}</MenuItem>
               <MenuItem value="team">{ROLE_LABELS.team}</MenuItem>
-            </Select>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
-              Signs in at <b>{portalHost(form.role)}</b>
-            </Typography>
+            </TextField>
             <FormControlLabel
+              sx={{ alignSelf: "start", mt: 1 }}
               control={
                 <Switch
                   checked={form.showBills}
@@ -422,7 +615,7 @@ export default function Users() {
               }
               label="Show bills (Finance section)"
             />
-          </Stack>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button color="inherit" onClick={() => setOpen(false)}>

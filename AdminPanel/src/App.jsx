@@ -30,6 +30,8 @@ const WalletLedger = lazy(() => import("./pages/finance/WalletLedger"));
 const Expenses = lazy(() => import("./pages/finance/Expenses"));
 const Loans = lazy(() => import("./pages/finance/Loans"));
 const Users = lazy(() => import("./pages/Users"));
+const Leads = lazy(() => import("./pages/crm/Leads"));
+const LeadDetail = lazy(() => import("./pages/crm/LeadDetail"));
 
 function PrivateRoute({ children }) {
   return authHelper.isAuthenticated() ? (
@@ -100,6 +102,8 @@ function App() {
             <Route path="finance/expenses" element={<Expenses />} />
             <Route path="finance/loans" element={<Loans />} />
             <Route path="users" element={<Users />} />
+            <Route path="crm/leads" element={<Leads />} />
+            <Route path="crm/leads/:id" element={<LeadDetail />} />
           </Route>
           <Route path="/" element={<RootRedirect />} />
         </Routes>

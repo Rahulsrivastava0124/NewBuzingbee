@@ -34,7 +34,7 @@ import {
   PORTAL_LABELS,
   portalHost,
 } from "../services/api";
-import { BookOpen, HandCoins, Wallet, ChevronDown, Briefcase, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, ReceiptText, Search, Settings, ShieldCheck, TrendingUp, UserRound } from "lucide-react";
+import { BookOpen, HandCoins, Wallet, ChevronDown, Briefcase, Contact, FileText, Inbox, LayoutDashboard, LogOut, Menu, ReceiptText, Search, Settings, ShieldCheck, Target, TrendingUp, UserRound } from "lucide-react";
 import BrandMark from "../components/Brand";
 import SiteSwitcher from "../components/SiteSwitcher";
 import { getBlogSite, setBlogSite } from "../services/api";
@@ -217,6 +217,17 @@ function Dashboard() {
         },
       ],
     },
+    {
+      label: "Sales",
+      items: [
+        {
+          to: "/dashboard/crm/leads",
+          label: "Leads (CRM)",
+          icon: <Target />,
+          selected: path.startsWith("/dashboard/crm"),
+        },
+      ],
+    },
     ...(canSeeBills
       ? [
     {
@@ -273,11 +284,11 @@ function Dashboard() {
           icon: <TrendingUp />,
           selected: path.startsWith("/dashboard/traffic"),
         },
-        ...(admin?.role === "super"
+        ...(admin?.role === "super" || admin?.role === "admin"
           ? [
               {
                 to: "/dashboard/users",
-                label: "Users",
+                label: admin?.role === "super" ? "Users" : "Team",
                 icon: <ShieldCheck />,
                 selected: path.startsWith("/dashboard/users"),
               },
@@ -329,6 +340,7 @@ function Dashboard() {
       };
       return ["Finance", subs[path.split("/")[3]] || "Finance"];
     }
+    if (path.startsWith("/dashboard/crm")) return ["Sales", "Leads"];
     if (path.startsWith("/dashboard/enquiries")) return ["Manage", "Enquiries"];
     if (path.startsWith("/dashboard/traffic")) return ["Analytics", "Traffic & Leads"];
     if (path.startsWith("/dashboard/users")) return ["Manage", "Users"];
@@ -354,15 +366,11 @@ function Dashboard() {
         <ButtonBase
           onClick={() => go("/dashboard")}
           aria-label="Go to dashboard"
-          sx={{ borderRadius: 1.5, p: 0.25, "&.Mui-focusVisible": { boxShadow: "0 0 0 3px rgba(161,161,170,.5)" } }}
+          sx={{ borderRadius: 1, p: 0.25, "&.Mui-focusVisible": { boxShadow: "0 0 0 3px rgba(161,161,170,.5)" } }}
         >
           <BrandMark size={58} site={site} />
         </ButtonBase>
       </Stack>
-
-      <Box sx={{ px: 1.5, pb: 1 }}>
-        <SiteSwitcher site={site} onChange={switchSite} />
-      </Box>
 
       <Box component="nav" aria-label="Main" sx={{ flex: 1, overflowY: "auto", px: 1.5, pb: 2 }}>
         {visibleSections.map((section) => {
@@ -371,14 +379,14 @@ function Dashboard() {
           const isOpen = single || openSections[section.label] !== false;
 
           return (
-            <Box key={section.label} sx={{ pt: single ? 1 : 1.5 }}>
+            <Box key={section.label} sx={{ pt: single ? 0.5 : 1 }}>
               {!single && (
                 <ButtonBase
                   onClick={() => toggleSection(section.label)}
                   aria-expanded={isOpen}
                   sx={{
                     width: "100%",
-                    height: 40,
+                    height: 34,
                     px: 1.5,
                     borderRadius: 1,
                     justifyContent: "space-between",
@@ -399,7 +407,7 @@ function Dashboard() {
                 </ButtonBase>
               )}
               <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                <List disablePadding sx={{ display: "grid", gap: 0.5 }}>
+                <List disablePadding sx={{ display: "grid", gap: 0.25 }}>
                   {section.items.map((item) => (
                     <ListItemButton
                       key={item.to}
@@ -414,10 +422,11 @@ function Dashboard() {
                         "&.Mui-selected .MuiListItemIcon-root, &.Mui-selected .MuiListItemText-primary": {
                           color: "primary.dark",
                         },
-                        minHeight: 40,
+                        minHeight: 36,
+                        py: 0.5,
                         px: 1.5,
                         gap: 1.5,
-                        borderRadius: 2,
+                        borderRadius: 1,
                         "& .MuiListItemIcon-root": { minWidth: 0 },
                         "& .MuiListItemIcon-root svg": { width: 20, height: 20 },
                       })}
@@ -442,6 +451,11 @@ function Dashboard() {
             </Box>
           );
         })}
+      </Box>
+
+      {/* pinned footer: stays put while the menu above scrolls */}
+      <Box sx={{ flexShrink: 0, px: 1.5, py: 1.5, borderTop: 1, borderColor: "divider" }}>
+        <SiteSwitcher site={site} onChange={switchSite} />
       </Box>
     </Box>
   );
@@ -582,7 +596,7 @@ function Dashboard() {
                 aria-haspopup="menu"
                 aria-expanded={Boolean(menuAnchor)}
                 sx={{
-                  borderRadius: 1.5,
+                  borderRadius: 1,
                   p: 0.5,
                   pr: { xs: 0.5, md: 1 },
                   gap: 1,

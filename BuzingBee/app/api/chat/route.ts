@@ -6,6 +6,23 @@ const FALLBACK_MESSAGE =
 const EMPTY_WEBHOOK_RESPONSE_MESSAGE =
   "Thanks! I received your message. Please share a little more detail, and Bee will help right away. 🐝";
 
+const MAX_MESSAGE_CHARS = 1000;
+const WEBHOOK_TIMEOUT_MS = 25_000;
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+const RATE_MAX = 20; // messages per visitor IP per window
+
+// ponytail: in-memory, per server process; move to a shared store (Redis) if the
+// site ever runs on more than one instance
+const recent = new Map<string, number[]>();
+const isRateLimited = (ip: string) => {
+  const now = Date.now();
+  const hits = (recent.get(ip) || []).filter((t) => now - t < RATE_WINDOW_MS);
+  hits.push(now);
+  recent.set(ip, hits);
+  if (recent.size > 5000) recent.clear(); // bound memory under a flood
+  return hits.length > RATE_MAX;
+};
+
 const extractReplyText = (payload: unknown): string | null => {
   if (typeof payload === "string") {
     return payload.trim() || null;
@@ -61,6 +78,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  if (isRateLimited(ip)) {
+    return NextResponse.json(
+      {
+        error: "Too many messages.",
+        reply: "You're sending messages quickly! Please wait a few minutes, or reach us at buzingbee.com/contact 🐝",
+      },
+      { status: 429 },
+    );
+  }
+
   try {
     const body = (await request.json()) as {
       message?: unknown;
@@ -70,8 +101,18 @@ export async function POST(request: NextRequest) {
     const message = typeof body.message === "string" ? body.message.trim() : "";
     const sessionId =
       typeof body.sessionId === "string" && body.sessionId.trim()
-        ? body.sessionId.trim()
+        ? body.sessionId.trim().slice(0, 100)
         : null;
+
+    if (message.length > MAX_MESSAGE_CHARS) {
+      return NextResponse.json(
+        {
+          error: "Message is too long.",
+          reply: `Please keep your message under ${MAX_MESSAGE_CHARS} characters. 🐝`,
+        },
+        { status: 400 },
+      );
+    }
 
     if (!message) {
       return NextResponse.json(
@@ -91,6 +132,8 @@ export async function POST(request: NextRequest) {
         source: "buzingbee-chat-widget",
       }),
       cache: "no-store",
+      // A stuck webhook must not hold the request (and the visitor) open
+      signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
     });
 
     if (!webhookResponse.ok) {

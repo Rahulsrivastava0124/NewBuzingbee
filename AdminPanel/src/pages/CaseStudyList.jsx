@@ -139,7 +139,7 @@ export default function CaseStudyList() {
             value: (item) => item.title,
             render: (item) => (
               <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", minWidth: 0 }}>
-                <Avatar variant="rounded" src={item.image} alt="" sx={{ borderRadius: 2 }}>
+                <Avatar variant="rounded" src={item.image} alt="" sx={{ borderRadius: 1 }}>
                   <Briefcase />
                 </Avatar>
                 <Box sx={{ minWidth: 0 }}>

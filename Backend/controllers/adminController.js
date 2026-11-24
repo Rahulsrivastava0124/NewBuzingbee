@@ -1,6 +1,20 @@
 const crypto = require("crypto");
 const Admin = require("../models/Admin");
-const { ROLES, SUPER_EMAIL } = Admin;
+const { ROLES, SUPER_EMAIL, SERVICES } = Admin;
+
+// Optional phone: digits with an optional leading +, spaces/dashes allowed (7-15 digits)
+const cleanPhone = (value) => String(value ?? "").trim();
+const isValidPhone = (phone) => {
+  if (phone === "") return true;
+  const digits = phone.replace(/\D/g, "").length;
+  return /^\+?[\d\s-]+$/.test(phone) && digits >= 7 && digits <= 15;
+};
+// null when the list has an unknown service
+const cleanServices = (value) => {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.some((s) => !SERVICES.includes(s))) return null;
+  return [...new Set(value)];
+};
 const { sendMail } = require("../services/mailService");
 const jwt = require("jsonwebtoken");
 const { getJwtSecret } = require("../config");
@@ -29,6 +43,14 @@ const generateToken = (admin) => {
 const adminRegister = async (req, res) => {
   try {
     const { username, email, password, role, showBills } = req.body;
+    const phone = cleanPhone(req.body.phone);
+    const services = cleanServices(req.body.services);
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ success: false, message: "Enter a valid phone number" });
+    }
+    if (!services) {
+      return res.status(400).json({ success: false, message: "Unknown service selected" });
+    }
 
     // Only a super admin may create new users — except during bootstrap when
     // no super exists yet (first install, or pre-role deployment), in which
@@ -83,7 +105,10 @@ const adminRegister = async (req, res) => {
       email,
       password,
       role: assignedRole,
-      showBills: showBills !== false,
+      // Bill access is opt-in: the super admin turns it on per person
+      showBills: showBills === true,
+      phone,
+      services,
     });
 
     return res.status(201).json({
@@ -137,14 +162,9 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    let isPasswordValid = await admin.matchPassword(password);
-
-    // Backward compatibility for previously stored plaintext passwords
-    if (!isPasswordValid && admin.password === password) {
-      admin.password = password;
-      await admin.save();
-      isPasswordValid = true;
-    }
+    // Passwords are only ever compared as bcrypt hashes; accounts still holding
+    // a legacy plain-text password must use "Forgot password"
+    const isPasswordValid = await admin.matchPassword(password);
 
     if (!isPasswordValid) {
       logAuthEvent(req, {
@@ -262,6 +282,26 @@ const updateAdminProfile = async (req, res) => {
     let profileChanged = false;
     let passwordChanged = false;
 
+    if (trimmedUsername && !/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
+      return res.status(400).json({
+        success: false,
+        message: "Username can only contain letters, numbers, and underscore",
+      });
+    }
+    if (trimmedEmail && trimmedEmail !== admin.email) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        return res.status(400).json({ success: false, message: "Enter a valid email address" });
+      }
+      // The super role follows this address, so it can neither leave the
+      // super admin nor be claimed by anyone else (same rule as editAdmin)
+      if (admin.email === SUPER_EMAIL) {
+        return res.status(400).json({ success: false, message: "The super admin's email is pinned" });
+      }
+      if (trimmedEmail === SUPER_EMAIL) {
+        return res.status(400).json({ success: false, message: "That email is reserved" });
+      }
+    }
+
     if (trimmedUsername && trimmedUsername !== admin.username) {
       const existingUsername = await Admin.findOne({
         username: trimmedUsername,
@@ -324,12 +364,7 @@ const updateAdminProfile = async (req, res) => {
         });
       }
 
-      let isPasswordValid = await admin.matchPassword(currentPassword);
-
-      // Backward compatibility for previously stored plaintext passwords
-      if (!isPasswordValid && admin.password === currentPassword) {
-        isPasswordValid = true;
-      }
+      const isPasswordValid = await admin.matchPassword(String(currentPassword));
 
       if (!isPasswordValid) {
         return res.status(401).json({
@@ -365,6 +400,8 @@ const updateAdminProfile = async (req, res) => {
     }
 
     await admin.save();
+    // Other sessions end; this one gets a fresh token below
+    if (passwordChanged) forgetAdmin(admin._id);
 
     const message =
       profileChanged && passwordChanged
@@ -381,6 +418,7 @@ const updateAdminProfile = async (req, res) => {
         username: admin.username,
         email: admin.email,
       },
+      ...(passwordChanged ? generateToken(admin) : {}),
     });
   } catch (_error) {
     return res.status(500).json({
@@ -414,7 +452,7 @@ const updatePaymentDetails = async (req, res) => {
 // Team members (used by the "managed by" dropdown AND the user-management page)
 const listAdmins = async (_req, res) => {
   try {
-    const admins = await Admin.find({}, "username email role showBills createdAt").sort({
+    const admins = await Admin.find({}, "username email phone services role showBills createdAt").sort({
       role: 1,
       username: 1,
     });
@@ -461,6 +499,90 @@ const updateAdminRole = async (req, res) => {
         id: admin._id,
         username: admin.username,
         email: admin.email,
+        role: admin.role,
+        showBills: admin.showBills,
+      },
+    });
+  } catch (_error) {
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Edit a user's username / email / password. Super admin: anyone (the super
+// admin's own email stays pinned). Admin: only users with the "team" role.
+const editAdmin = async (req, res) => {
+  try {
+    const { username, email, password, phone, services } = req.body || {};
+    const admin = await Admin.findById(req.params.id);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    if (req.admin.role !== "super" && admin.role !== "team") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Admins can only edit team members" });
+    }
+
+    const nextUsername = username === undefined ? admin.username : String(username).trim();
+    const nextEmail = email === undefined ? admin.email : String(email).trim().toLowerCase();
+
+    if (!/^[a-zA-Z0-9_]+$/.test(nextUsername)) {
+      return res.status(400).json({
+        success: false,
+        message: "Username can only contain letters, numbers, and underscore",
+      });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      return res.status(400).json({ success: false, message: "Enter a valid email address" });
+    }
+    if (admin.email === SUPER_EMAIL && nextEmail !== SUPER_EMAIL) {
+      return res
+        .status(400)
+        .json({ success: false, message: "The super admin's email is pinned" });
+    }
+    if (nextEmail === SUPER_EMAIL && admin.email !== SUPER_EMAIL) {
+      return res.status(400).json({ success: false, message: "That email is reserved" });
+    }
+    const nextPhone = phone === undefined ? admin.phone : cleanPhone(phone);
+    if (!isValidPhone(nextPhone)) {
+      return res.status(400).json({ success: false, message: "Enter a valid phone number" });
+    }
+    const nextServices = services === undefined ? admin.services : cleanServices(services);
+    if (!nextServices) {
+      return res.status(400).json({ success: false, message: "Unknown service selected" });
+    }
+    if (password !== undefined && password !== "" && String(password).length < 8) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Password must be at least 8 characters" });
+    }
+
+    const taken = await Admin.exists({
+      _id: { $ne: admin._id },
+      $or: [{ username: nextUsername }, { email: nextEmail }],
+    });
+    if (taken) {
+      return res
+        .status(409)
+        .json({ success: false, message: "Username or email already exists" });
+    }
+
+    admin.username = nextUsername;
+    admin.email = nextEmail;
+    admin.phone = nextPhone;
+    admin.services = nextServices;
+    if (password) admin.password = String(password); // hashed by the model's pre-save hook
+    await admin.save();
+    forgetAdmin(admin._id);
+    return res.json({
+      success: true,
+      message: "User updated",
+      admin: {
+        id: admin._id,
+        username: admin.username,
+        email: admin.email,
+        phone: admin.phone,
+        services: admin.services,
         role: admin.role,
         showBills: admin.showBills,
       },
@@ -715,6 +837,7 @@ const resetPassword = async (req, res) => {
     admin.resetPasswordToken = undefined;
     admin.resetPasswordExpires = undefined;
     await admin.save();
+    forgetAdmin(admin._id); // ends any session signed in before the reset
 
     return res
       .status(200)
@@ -735,6 +858,7 @@ module.exports = {
   resetPassword,
   listAdmins,
   updateAdminRole,
+  editAdmin,
   deleteAdmin,
   sendPasswordOtp,
 };

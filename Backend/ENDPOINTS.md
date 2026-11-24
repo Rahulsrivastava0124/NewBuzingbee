@@ -190,6 +190,19 @@ All routes need `Authorization: Bearer <token>` and live under `/api/finance`.
 | GET / POST | `/wallet` | Ledger with running balance / manual credit or debit |
 | DELETE | `/wallet/:id` | Delete a manual entry |
 
+## 6b) Sales CRM (`/api/leads`)
+
+Any signed-in user; team members only see and edit leads assigned to them.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET / POST | `/` | List (`temperature`, `stage`, `owner`, `dealStatus`, `followUp=due`) / create (`enquiry` converts a website enquiry) |
+| GET | `/stats/weekly` | This week's numbers against the sales targets (`owner`) |
+| GET / PUT | `/:id` | Detail with activity log / edit (only admins reassign) |
+| DELETE | `/:id` | Delete (super admin and admins) |
+| POST | `/:id/activities` | Log a call/message/email/conversation/meeting/note; moves the follow-up along the cadence |
+| DELETE | `/:id/activities/:activityId` | Remove an entry (its author or an admin) |
+
 ## 7) Email and company settings (admin only)
 
 Outgoing email is configured in the database, not in `.env`. Use the admin

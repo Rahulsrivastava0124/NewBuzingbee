@@ -17,7 +17,7 @@ export function IconTile({ children, color = "primary", size = 44 }) {
         width: size,
         height: size,
         flexShrink: 0,
-        borderRadius: "12px",
+        borderRadius: 1,
         display: "grid",
         placeItems: "center",
         color: `${color}.main`,
@@ -162,7 +162,7 @@ export function SearchField({ value, onChange, placeholder = "Search...", sx }) 
       sx={{ maxWidth: { sm: 340 }, ...sx }}
       slotProps={{
         input: {
-          sx: { borderRadius: 999 },
+          sx: { borderRadius: 1 },
           startAdornment: (
             <InputAdornment position="start">
               <Search size={18} />

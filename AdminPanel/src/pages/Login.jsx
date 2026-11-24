@@ -90,7 +90,7 @@ export default function Login() {
           maxWidth: 460,
           minHeight: { sm: 560 },
           p: { xs: 4, sm: 6 },
-          borderRadius: 4,
+          borderRadius: 1,
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",

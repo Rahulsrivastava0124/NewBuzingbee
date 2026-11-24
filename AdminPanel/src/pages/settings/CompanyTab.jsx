@@ -189,7 +189,7 @@ export default function CompanyTab() {
                 placeItems: "center",
                 border: 1,
                 borderColor: "divider",
-                borderRadius: 2,
+                borderRadius: 1,
                 bgcolor: "action.hover",
                 overflow: "hidden",
               }}

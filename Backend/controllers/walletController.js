@@ -124,14 +124,18 @@ const deleteManualEntry = async (req, res) => {
   }
 };
 
-// GET /finance/summary — dashboard numbers + 6-month income/expense series
+// Chart lengths the dashboard offers (?months=); anything else falls back to 6
+const SUMMARY_MONTHS = [3, 6, 12, 24];
+
+// GET /finance/summary?months=6 — dashboard numbers + monthly income/expense series
 const getFinanceSummary = async (req, res) => {
   try {
     const now = new Date();
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const span = SUMMARY_MONTHS.includes(Number(req.query.months)) ? Number(req.query.months) : 6;
+    const rangeStart = new Date(now.getFullYear(), now.getMonth() - (span - 1), 1);
     // Invoice figures follow the viewer's bills (super admin: everyone's)
     const scope = await invoiceScope(req);
-    const paymentMatch = { paidAt: { $gte: sixMonthsAgo } };
+    const paymentMatch = { paidAt: { $gte: rangeStart } };
     if (isScoped(scope)) paymentMatch.invoice = { $in: await Invoice.distinct("_id", scope) };
 
     const [wallet, invoiceAgg, expenseAgg, paymentSeries, expenseSeries] =
@@ -162,7 +166,7 @@ const getFinanceSummary = async (req, res) => {
           },
         ]),
         Expense.aggregate([
-          { $match: { spentAt: { $gte: sixMonthsAgo }, ...Expense.APPROVED } },
+          { $match: { spentAt: { $gte: rangeStart }, ...Expense.APPROVED } },
           {
             $group: {
               _id: { y: { $year: "$spentAt" }, m: { $month: "$spentAt" } },
@@ -201,14 +205,17 @@ const getFinanceSummary = async (req, res) => {
     const paid = invoiceAgg[0]?.paid || 0;
 
     const months = [];
-    for (let i = 5; i >= 0; i -= 1) {
+    for (let i = span - 1; i >= 0; i -= 1) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const find = (series) =>
         series.find(
           (s) => s._id.y === d.getFullYear() && s._id.m === d.getMonth() + 1,
         )?.amount || 0;
       months.push({
-        month: d.toLocaleString("en-US", { month: "short" }),
+        // over a year the same month repeats, so add the year ("Jan 25")
+        month: d.toLocaleString("en-US", span > 12 || d.getFullYear() !== now.getFullYear()
+          ? { month: "short", year: "2-digit" }
+          : { month: "short" }),
         income: round2(find(paymentSeries)),
         expense: round2(find(expenseSeries)),
       });
