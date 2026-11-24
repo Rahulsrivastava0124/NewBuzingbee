@@ -7,9 +7,11 @@ const SEND_URL = "https://api.authkey.io/request";
 const OTP_TTL_MS = 10 * 60 * 1000;
 const TOKEN_TTL = "60m";
 const TOKEN_PURPOSE = "enquiry-phone";
+// approved authkey.io template "sent_otp" (Authentication, {{1}} = code); AUTHKEY_OTP_WID overrides it
+const OTP_WID = process.env.AUTHKEY_OTP_WID || "55580";
 
 const isOtpEnabled = () =>
-  Boolean(process.env.AUTHKEY_API_KEY && process.env.AUTHKEY_OTP_WID);
+  Boolean(process.env.AUTHKEY_API_KEY && OTP_WID);
 
 // Sites whose enquiries must carry a verified phone (default: the BuzingBee website only)
 const otpRequiredFor = (site) =>
@@ -42,7 +44,7 @@ const sendWhatsAppOtp = async (phone, code) => {
     authkey: process.env.AUTHKEY_API_KEY,
     mobile: phone,
     country_code: process.env.AUTHKEY_COUNTRY_CODE || "91",
-    wid: process.env.AUTHKEY_OTP_WID,
+    wid: OTP_WID,
     1: code,
   });
 
