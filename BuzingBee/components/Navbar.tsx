@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,6 +30,10 @@ const ENQUIRY_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL
   : "https://api.buzingbee.com/api/enquiries/submit";
 
 const EMPTY_FORM = { name: "", email: "", phone: "", service: "", message: "" };
+// shown on the thank-you screen after the phone is verified; drop a team photo at public/team-photo.jpg
+const TEAM_PHOTO = "/team-photo.jpg";
+const TEAM_PHOTO_FALLBACK = "/bee1-removebg-preview.png";
+const THANKS_CLOSE_MS = 6000;
 
 // What the free audit should cover: BuzingBee's services, with the same values as
 // the contact form so the admin panel labels them the same way
@@ -56,6 +60,9 @@ export default function Navbar() {
   const [submitMessage, setSubmitMessage] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [verification, setVerification] = useState<EnquiryVerification | null>(null);
+  // first name of the last verified enquiry; non-null switches the popup to the thank-you screen
+  const [thanksName, setThanksName] = useState<string | null>(null);
+  const submittedName = useRef("");
   const [captchaReset, setCaptchaReset] = useState(0);
   const pathname = usePathname();
   const currentPath = pathname || "/";
@@ -133,6 +140,21 @@ export default function Navbar() {
     };
   }, [enquiryOpen]);
 
+  // thank-you screen closes the popup on its own
+  useEffect(() => {
+    if (thanksName === null) return;
+    const timer = setTimeout(() => setEnquiryOpen(false), THANKS_CLOSE_MS);
+    return () => clearTimeout(timer);
+  }, [thanksName]);
+
+  // reset to the form once the popup is closed
+  useEffect(() => {
+    if (!enquiryOpen) {
+      setThanksName(null);
+      setVerification(null); // the lead stays saved, just unverified
+    }
+  }, [enquiryOpen]);
+
   // sends the enquiry to the admin panel (same API the old contact form used)
   const handleEnquirySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -157,6 +179,7 @@ export default function Navbar() {
 
       setSubmitState("success");
       setSubmitMessage(payload?.message || "Thank you! We'll be in touch shortly with your audit.");
+      submittedName.current = enquiryForm.name.trim().split(/\s+/)[0] || "";
       setEnquiryForm(EMPTY_FORM);
       // second step: WhatsApp OTP marks the saved lead as verified
       if (payload?.verification?.required) setVerification(payload.verification);
@@ -167,6 +190,15 @@ export default function Navbar() {
       );
     } finally {
       setCaptchaReset((n) => n + 1); // a token can only be used once
+    }
+  };
+
+  // OTP step finished (verified) or skipped: show the thank-you screen or back to the form
+  const handleOtpDone = (verified: boolean) => {
+    setVerification(null);
+    if (verified) {
+      setSubmitMessage("Thank you! Your number is verified. We'll be in touch shortly with your audit.");
+      setThanksName(submittedName.current);
     }
   };
 
@@ -195,6 +227,46 @@ export default function Navbar() {
               <X className="w-5 h-5" />
             </button>
 
+            {thanksName !== null ? (
+              <div role="status" className="flex flex-col items-center py-4 text-center">
+                <img
+                  src={TEAM_PHOTO}
+                  alt="The BuzingBee team"
+                  width={96}
+                  height={96}
+                  onError={(e) => {
+                    if (!e.currentTarget.src.endsWith(TEAM_PHOTO_FALLBACK)) e.currentTarget.src = TEAM_PHOTO_FALLBACK;
+                  }}
+                  className="h-24 w-24 rounded-full border-4 border-accent/40 bg-bgSection object-cover shadow-lg"
+                />
+                <h3 className="mt-5 text-2xl font-bold text-textHeading font-heading">
+                  Thank you{thanksName ? `, ${thanksName}` : ""}!
+                </h3>
+                <p className="mt-2 max-w-sm text-sm text-textMuted">
+                  Your number is verified. Our team will connect with you shortly.
+                  We&apos;ve also sent a confirmation to your email.
+                </p>
+                <p className="mt-4 flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
+                  <CheckCircle className="h-4 w-4" />
+                  Enquiry received
+                </p>
+                {/* drains over THANKS_CLOSE_MS, then the popup closes */}
+                <div className="mt-6 h-1 w-full overflow-hidden rounded-full bg-border">
+                  <motion.div
+                    initial={{ width: "100%" }}
+                    animate={{ width: "0%" }}
+                    transition={{ duration: THANKS_CLOSE_MS / 1000, ease: "linear" }}
+                    className="h-full bg-accent"
+                  />
+                </div>
+              </div>
+            ) : verification ? (
+              // second step, in place of the form: WhatsApp OTP
+              <div className="pt-2">
+                <OtpVerifyDialog inline verification={verification} onClose={handleOtpDone} />
+              </div>
+            ) : (
+            <>
             <h3 className="text-2xl font-bold text-textHeading font-heading pr-8">
               Get Your Free Audit
             </h3>
@@ -296,6 +368,8 @@ export default function Navbar() {
                 </p>
               )}
             </form>
+            </>
+            )}
           </motion.div>
         </motion.div>
       )}
@@ -475,20 +549,6 @@ export default function Navbar() {
         </AnimatePresence>
       </header>
       {mounted ? createPortal(enquiryModal, document.body) : null}
-      {mounted
-        ? createPortal(
-            <OtpVerifyDialog
-              verification={verification}
-              onClose={(verified) => {
-                setVerification(null);
-                if (verified) {
-                  setSubmitMessage("Thank you! Your number is verified. We'll be in touch shortly with your audit.");
-                }
-              }}
-            />,
-            document.body,
-          )
-        : null}
     </>
   );
 }

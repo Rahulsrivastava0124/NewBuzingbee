@@ -1,6 +1,7 @@
 const OtpCode = require("../models/OtpCode");
 const Enquiry = require("../models/Enquiry");
 const { errorDetail } = require("../utils/errors");
+const { sendMail } = require("../services/mailService");
 const {
   OTP_TTL_MS,
   isOtpEnabled,
@@ -12,6 +13,38 @@ const {
 } = require("../utils/whatsappOtp");
 
 const RESEND_COOLDOWN_MS = 60 * 1000;
+
+const escapeHtml = (value) =>
+  String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+
+// "We'll connect with you shortly" note, sent once the enquiry's phone is verified
+// (only then, so the public form can't be used to mail arbitrary addresses)
+const buildThanksEmail = (enquiry) => {
+  const first = String(enquiry.name || "").trim().split(/\s+/)[0] || "there";
+  return {
+    subject: "Thanks for reaching out — our team will connect with you shortly",
+    text: [
+      `Hi ${first},`,
+      "",
+      "Thank you for your enquiry. Your WhatsApp number is verified.",
+      "Our team is reviewing your details and will connect with you shortly.",
+      "",
+      "If you need anything in the meantime, just reply to this email.",
+      "",
+      "Team BuzingBee",
+      "https://buzingbee.com",
+    ].join("\n"),
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0f172a">
+        <h2 style="margin:0 0 12px">Thanks, ${escapeHtml(first)}! 🐝</h2>
+        <p>Thank you for your enquiry. Your WhatsApp number is verified.</p>
+        <p>Our team is reviewing your details and <strong>will connect with you shortly</strong>.</p>
+        <p>If you need anything in the meantime, just reply to this email.</p>
+        <p style="margin-top:24px">Team BuzingBee<br>
+          <a href="https://buzingbee.com" style="color:#f5a623">buzingbee.com</a></p>
+      </div>`,
+  };
+};
 const MAX_ATTEMPTS = 5;
 
 const badToken = (res) =>
@@ -127,6 +160,12 @@ const verifyOtp = async (req, res) => {
       { returnDocument: "after" },
     );
     if (!enquiry) return badToken(res);
+
+    if (enquiry.email) {
+      sendMail({ to: enquiry.email, ...buildThanksEmail(enquiry) }).catch((error) => {
+        console.error("[otp] thank-you email failed:", error.message);
+      });
+    }
 
     return res.status(200).json({ success: true, message: "Your WhatsApp number is verified. Thank you!" });
   } catch (error) {

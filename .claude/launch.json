@@ -4,8 +4,8 @@
     {
       "name": "buzingbee",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd BuzingBee && npx next dev -p ${PORT:-3001}"],
-      "port": 3001
+      "runtimeArgs": ["-c", "cd BuzingBee && NEXT_PUBLIC_API_BASE_URL=http://localhost:3002/api npx next dev -p ${PORT:-3010}"],
+      "port": 3010
     }
   ]
 }
