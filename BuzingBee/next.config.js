@@ -25,6 +25,16 @@ const nextConfig = {
 
     return config;
   },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Strict-Transport-Security", value: "max-age=63072000" },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       {

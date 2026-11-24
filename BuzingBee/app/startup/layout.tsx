@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title:
-    "Startup Plans | BuzingBee - Minimal Cost Plans for Growing Businesses",
+  title: "Startup Plans: Low-Cost Growth Packages",
   description:
     "Affordable startup plans across all services. Get started with minimal investment and scale as you grow. Perfect for new businesses and startups.",
   keywords: [

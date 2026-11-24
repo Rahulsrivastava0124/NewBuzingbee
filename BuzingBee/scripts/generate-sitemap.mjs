@@ -31,7 +31,6 @@ const STATIC_ROUTES = [
   { path: "/startup", changefreq: "monthly", priority: "0.8" },
   { path: "/portfolio", changefreq: "monthly", priority: "0.8" },
   { path: "/blog", changefreq: "weekly", priority: "0.8" },
-  { path: "/case-studies", changefreq: "weekly", priority: "0.8" },
   { path: "/contact", changefreq: "monthly", priority: "0.7" },
 ];
 
@@ -50,7 +49,39 @@ const escapeXml = (value = "") =>
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&apos;");
 
-const today = () => new Date().toISOString().split("T")[0];
+const toDay = (value) => {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().split("T")[0];
+};
+
+// last real change of a CMS item; empty means "omit <lastmod>" (it's optional, and a fake "today" teaches crawlers to ignore it)
+const lastmodOf = (item) =>
+  toDay(item?.updatedAt || item?.updated_at || item?.publishedAt || item?.createdAt);
+
+const newest = (routes) => routes.map((r) => r.lastmod).filter(Boolean).sort().pop() || "";
+
+const fetchCaseStudyRoutes = async () => {
+  const url = blogApiUrlToCaseStudies(resolvedBlogApiUrl());
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return [];
+    const payload = await response.json();
+    const items = Array.isArray(payload) ? payload : payload?.caseStudies || payload?.data || [];
+    return items
+      .filter((cs) => cs?.slug && (!cs.status || cs.status === "published"))
+      .map((cs) => ({
+        path: `/case-studies/${encodeURIComponent(String(cs.slug).trim())}`,
+        changefreq: "monthly",
+        priority: "0.7",
+        lastmod: lastmodOf(cs),
+      }));
+  } catch {
+    return [];
+  }
+};
+
+const blogApiUrlToCaseStudies = (blogUrl) =>
+  process.env.CASE_STUDY_API_URL || blogUrl.replace("/blog", "/case-studies");
 
 const fetchBlogRoutes = async () => {
   const blogApiUrl = resolvedBlogApiUrl();
@@ -71,27 +102,11 @@ const fetchBlogRoutes = async () => {
       path: `/blog/${encodeURIComponent(slug)}`,
       changefreq: "weekly",
       priority: "0.7",
-      lastmod: blogLastmodFallback(blogs, slug),
+      lastmod: lastmodOf(blogs.find((blog) => String(blog?.slug).trim() === slug)),
     }));
   } catch {
     return [];
   }
-};
-
-const blogLastmodFallback = (blogs, slug) => {
-  const match = blogs.find((blog) => String(blog?.slug).trim() === slug);
-  const source =
-    match?.updatedAt ||
-    match?.updated_at ||
-    match?.publishedAt ||
-    match?.createdAt;
-
-  if (!source) return today();
-
-  const parsed = new Date(source);
-  if (Number.isNaN(parsed.getTime())) return today();
-
-  return parsed.toISOString().split("T")[0];
 };
 
 const makeUrlTag = ({ path, changefreq, priority, lastmod }) => {
@@ -99,7 +114,7 @@ const makeUrlTag = ({ path, changefreq, priority, lastmod }) => {
   return [
     "  <url>",
     `    <loc>${escapeXml(loc)}</loc>`,
-    `    <lastmod>${lastmod || today()}</lastmod>`,
+    ...(lastmod ? [`    <lastmod>${lastmod}</lastmod>`] : []),
     `    <changefreq>${changefreq}</changefreq>`,
     `    <priority>${priority}</priority>`,
     "  </url>",
@@ -107,11 +122,21 @@ const makeUrlTag = ({ path, changefreq, priority, lastmod }) => {
 };
 
 const run = async () => {
-  const blogRoutes = await fetchBlogRoutes();
+  const [blogRoutes, caseStudyRoutes] = await Promise.all([
+    fetchBlogRoutes(),
+    fetchCaseStudyRoutes(),
+  ]);
 
+  // listing pages change when their newest item does; /case-studies is left out while it's empty (noindex)
   const allRoutes = [
-    ...STATIC_ROUTES.map((route) => ({ ...route, lastmod: today() })),
+    ...STATIC_ROUTES.map((route) =>
+      route.path === "/blog" ? { ...route, lastmod: newest(blogRoutes) } : route,
+    ),
+    ...(caseStudyRoutes.length
+      ? [{ path: "/case-studies", changefreq: "weekly", priority: "0.8", lastmod: newest(caseStudyRoutes) }]
+      : []),
     ...blogRoutes,
+    ...caseStudyRoutes,
   ];
 
   const xml = [

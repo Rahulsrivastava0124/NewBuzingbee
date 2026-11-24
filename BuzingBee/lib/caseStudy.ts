@@ -182,7 +182,7 @@ export const fetchCaseStudies = async (): Promise<CaseStudyDetail[]> => {
   return items.map((cs, i) => mapToDetail(cs, i, apiOrigin));
 };
 
-export const fetchCaseStudyCards = async (): Promise<CaseStudyCardItem[]> => {
+export const fetchCaseStudyCards = cache(async (): Promise<CaseStudyCardItem[]> => {
   const posts = await fetchCaseStudies();
   return posts.map(
     ({
@@ -211,7 +211,7 @@ export const fetchCaseStudyCards = async (): Promise<CaseStudyCardItem[]> => {
       metrics,
     }),
   );
-};
+});
 
 // Cached per request so generateMetadata and the page share one fetch (one view count).
 // Returns null only when the API answers and the slug is unknown; network/API errors throw.

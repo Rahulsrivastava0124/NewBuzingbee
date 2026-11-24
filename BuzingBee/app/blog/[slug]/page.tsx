@@ -78,7 +78,8 @@ export async function generateMetadata({
   const canonicalUrl = resolveCmsCanonical(post?.canonicalUrl, canonicalPath);
 
   return {
-    title,
+    // skip the " | BuzingBee" suffix: post titles are already long enough to get truncated
+    title: { absolute: title },
     description,
     keywords: post?.seoKeywords,
     alternates: {
@@ -125,7 +126,9 @@ export default async function BlogDetailPage({
   const minutes = readingMinutes(contentHtml || post?.excerpt || "");
   const reads = post?.views ?? 0;
   const articleUrl = canonicalForPath(`/blog/${slug}`);
-  const recommendedBlogs = blogCards
+  // the next 3 posts after this one (wrapping), so every post gets linked from others, not just the newest few
+  const at = blogCards.findIndex((blog) => blog.slug === slug);
+  const recommendedBlogs = [...blogCards.slice(at + 1), ...blogCards.slice(0, Math.max(at, 0))]
     .filter((blog) => blog.slug !== slug)
     .slice(0, 3);
 

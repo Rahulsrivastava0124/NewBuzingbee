@@ -5,7 +5,7 @@ import { SITE_CONFIG } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   title: "Case Studies — Real Results for Real Businesses",
   description:
     "Explore how BuzingBee has helped businesses grow with digital marketing, web development, SEO, and AI-driven strategies. Real clients, real results.",
@@ -33,8 +33,13 @@ export const metadata: Metadata = {
       "See how BuzingBee delivers measurable growth for clients across industries.",
     images: ["/og-image.png"],
   },
-  robots: { index: true, follow: true },
 };
+
+// keep the page out of the index while there are no case studies (thin "coming soon" page)
+export async function generateMetadata(): Promise<Metadata> {
+  const items = await fetchCaseStudyCards().catch(() => []);
+  return { ...baseMetadata, robots: { index: items.length > 0, follow: true } };
+}
 
 export default async function CaseStudiesPage() {
   let items: Awaited<ReturnType<typeof fetchCaseStudyCards>> = [];

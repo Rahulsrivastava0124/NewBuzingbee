@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Pricing Plans — Affordable Website & Marketing Packages",
+  title: "Pricing Plans: Website & Marketing Packages",
   description:
     "Choose from our flexible pricing plans: Basic, Standard, and Premium. Get a professional website with domain, hosting, SEO, and more starting at ₹9,999.",
   keywords: [
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     canonical: "/pricing",
   },
   openGraph: {
-    title: "Pricing Plans — Affordable Website & Marketing Packages",
+    title: "Pricing Plans: Website & Marketing Packages",
     description:
       "Compare BuzingBee subscription and project-based pricing plans for marketing, development, and AI services.",
     url: "/pricing",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pricing Plans — Affordable Website & Marketing Packages",
+    title: "Pricing Plans: Website & Marketing Packages",
     description:
       "Compare BuzingBee subscription and project-based pricing plans for marketing, development, and AI services.",
   },

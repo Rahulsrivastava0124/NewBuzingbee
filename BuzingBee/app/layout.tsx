@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     canonical: "https://buzingbee.com/",
   },
   description:
-    "BuzingBee is a leading digital marketing and AI services agency. We help businesses grow with web development, mobile apps, SEO, paid ads, and AI-powered automation.",
+    "BuzingBee is a digital marketing and AI services agency. We help businesses grow with web development, mobile apps, SEO, paid ads, and AI-powered automation.",
   metadataBase: new URL(SITE_CONFIG.url),
   openGraph: {
     type: "website",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${SITE_CONFIG.name} — Digital Marketing & AI Services Agency`,
     description:
-      "BuzingBee is a leading digital marketing and AI services agency.",
+      "BuzingBee is a digital marketing and AI services agency.",
     images: ["/og-image.png"],
   },
   robots: {

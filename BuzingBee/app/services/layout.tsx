@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Services — Development, Marketing, AI, LLM SEO & GEO",
+  title: "Services: Web, Apps, Marketing, AI SEO & GEO",
   description:
-    "Explore BuzingBee services: website development, web application development, mobile app development, digital marketing, paid ads, AI automation, LLM SEO, AI SEO, and GEO strategies for business growth.",
+    "BuzingBee services: website, web app and mobile app development, digital marketing, paid ads, AI automation, LLM SEO and GEO for business growth.",
   keywords: [
     "digital marketing services",
     "dhanbad degital marketing agency",
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     canonical: "/services",
   },
   openGraph: {
-    title: "Services — Development, Marketing, AI, LLM SEO & GEO",
+    title: "Services: Web, Apps, Marketing, AI SEO & GEO",
     description:
       "Explore BuzingBee services across website development, web app development, mobile app development, digital marketing, AI automation, LLM SEO, AI SEO, and generative engine optimization.",
     url: "/services",
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Services — Development, Marketing, AI, LLM SEO & GEO",
+    title: "Services: Web, Apps, Marketing, AI SEO & GEO",
     description:
       "Explore BuzingBee services across website development, web app development, mobile app development, digital marketing, AI automation, LLM SEO, AI SEO, and generative engine optimization.",
   },

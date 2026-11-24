@@ -19,7 +19,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-2 mb-4">
               <img
                 src="/android-chrome-192x192.png"
-                alt=""
+                alt="BuzingBee logo"
                 width={32}
                 height={32}
                 className="w-8 h-8"
@@ -40,7 +40,11 @@ export default function Footer() {
               Quick Links
             </h4>
             <ul className="space-y-2">
-              {NAV_LINKS.map((link) => (
+              {[
+                ...NAV_LINKS,
+                { label: "Startup Plans", href: "/startup" },
+                { label: "Case Studies", href: "/case-studies" },
+              ].map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

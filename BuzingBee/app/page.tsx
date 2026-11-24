@@ -6,14 +6,15 @@ import {
   Search,
   Code2,
   Target,
-  Mail,
   ArrowUpRight,
+  Bot,
+  MessageCircle,
+  ShoppingBag,
+  Megaphone,
   PlayCircle,
   Layers,
   BarChart3,
   Headphones,
-  Share2,
-  FileText,
 } from "lucide-react";
 import HeroStories from "@/components/HeroStories";
 import ServiceRevealCard from "@/components/ServiceRevealCard";
@@ -59,39 +60,39 @@ const BRANDS = [
 
 const SERVICE_OVERVIEW = [
   {
+    icon: Bot,
+    title: "AI Agents & Automation",
+    desc: "Deploy intelligent AI agents to handle support, sales and business workflows 24/7.",
+    href: "#all-services",
+  },
+  {
+    icon: MessageCircle,
+    title: "WhatsApp Automation",
+    desc: "Automate conversations, lead capture, notifications and end-to-end journeys.",
+    href: "#all-services",
+  },
+  {
+    icon: ShoppingBag,
+    title: "Shopify Development",
+    desc: "Build, customize and optimize high-converting Shopify stores that drive real sales.",
+    href: "#all-services",
+  },
+  {
     icon: Search,
-    title: "Search Engine Optimization (SEO)",
-    desc: "Rank higher, get found, and bring in organic traffic.",
+    title: "Search & AI Visibility",
+    desc: "Grow your presence on Google and AI platforms with SEO, GEO and AEO strategies.",
     href: "#all-services",
   },
   {
-    icon: BarChart3,
-    title: "Google Ads",
-    desc: "Target the right audience and get instant results.",
-    href: "#all-services",
-  },
-  {
-    icon: Share2,
-    title: "Social Media Marketing",
-    desc: "Build your brand and engage your audience.",
-    href: "#all-services",
-  },
-  {
-    icon: FileText,
-    title: "Content Marketing",
-    desc: "Valuable content that builds trust and drives sales.",
+    icon: Megaphone,
+    title: "Performance Marketing",
+    desc: "Run data-driven campaigns on Google, Meta and more to attract, engage and convert.",
     href: "#all-services",
   },
   {
     icon: Code2,
-    title: "Website Design & Development",
-    desc: "Modern websites that convert visitors into customers.",
-    href: "#all-services",
-  },
-  {
-    icon: Mail,
-    title: "Email Marketing",
-    desc: "Nurture leads and boost customer loyalty.",
+    title: "Website Development",
+    desc: "Design and develop modern, fast and conversion-focused websites and web apps.",
     href: "#all-services",
   },
 ];
@@ -330,13 +331,13 @@ export default function HomePage() {
                       >
                         <img
                           src={brand.src}
-                          alt={brand.label ? "" : brand.name}
+                          alt={`${brand.name} logo`}
                           className={`${brand.h} w-auto ${
                             "invertDark" in brand ? "dark:invert dark:hue-rotate-180" : ""
                           }`}
                         />
                         {brand.label && (
-                          <span className="text-lg font-semibold text-ink">{brand.name}</span>
+                          <span aria-hidden="true" className="text-lg font-semibold text-ink">{brand.name}</span>
                         )}
                       </li>
                     ))}
@@ -351,27 +352,27 @@ export default function HomePage() {
           {/* section label, centred across the whole block */}
           <p id="about" className="scroll-mt-4 flex items-center justify-center gap-4 pt-20 text-[15px] font-semibold uppercase tracking-[0.08em] text-ink lg:pt-24">
             <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
-            Our Services
+            What We Do
             <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
           </p>
           <div className="grid gap-12 pb-20 pt-10 lg:pb-24 min-[1400px]:grid-cols-[0.85fr_2fr] min-[1400px]:gap-8">
             <div>
               <h2 className={`${H2} !leading-[1.3]`}>
                 End-to-End{" "}
-                <span className="rounded-lg bg-[#fdb905]/30 px-2 [box-decoration-break:clone]">Digital</span>{" "}
+                <span className="rounded-lg bg-[#fdb905]/30 px-2 [box-decoration-break:clone]">Business</span>{" "}
                 <span className="rounded-lg bg-[#6d3df2]/10 px-2 [box-decoration-break:clone]">
                   <span className="bg-gradient-to-r from-[#6d3df2] via-[#9b3ff0] to-[#e0349a] bg-clip-text text-transparent">
-                    Marketing
+                    Growth
                   </span>
                 </span>{" "}
                 Solutions
               </h2>
               <p className={`mt-6 max-w-[34ch] ${LEAD} sm:text-[19px]`}>
-                From strategy to performance, we handle everything you need to
-                grow online.
+                From AI automation to digital marketing and e-commerce, we help
+                you build, market and scale your business.
               </p>
               <a href="#all-services" className={`mt-8 ${BTN_HONEY}`}>
-                View All Services
+                Explore All Services
                 <ArrowUpRight className="h-5 w-5" />
               </a>
             </div>
