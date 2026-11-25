@@ -3,20 +3,18 @@ const Admin = require("./models/Admin");
 const { isProduction } = require("./config");
 
 // Creates the first admin from DEFAULT_ADMIN_* when no admin exists yet.
-// Production never falls back to well-known credentials.
+// There are no passwords: that admin signs in with a code sent to the email.
 const seedDefaultAdmin = async () => {
   const username = process.env.DEFAULT_ADMIN_USERNAME;
   const email = process.env.DEFAULT_ADMIN_EMAIL;
-  const password = process.env.DEFAULT_ADMIN_PASSWORD;
 
-  if (!username || !email || !password) {
+  if (!username || !email) {
     if (!isProduction && (await Admin.countDocuments()) === 0) {
       await Admin.create({
         username: "admin",
         email: "admin@example.com",
-        password: "admin12345",
       });
-      console.warn("Development admin created: admin / admin12345");
+      console.warn("Development admin created: admin@example.com (sign in with an email code)");
     }
     return;
   }
@@ -26,7 +24,7 @@ const seedDefaultAdmin = async () => {
   });
 
   if (!existingAdmin) {
-    await Admin.create({ username, email, password });
+    await Admin.create({ username, email });
     console.log("Initial admin account created");
   }
 };

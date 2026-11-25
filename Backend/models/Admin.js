@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 
 const ROLES = ["super", "admin", "team"];
 const SUPER_EMAIL = "team@buzingbee.com";
@@ -31,11 +30,6 @@ const adminSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
-    password: {
-      type: String,
-      required: true,
-      minlength: 8,
-    },
     role: {
       type: String,
       enum: ROLES,
@@ -54,15 +48,8 @@ const adminSchema = new mongoose.Schema(
       bankIfsc: { type: String, trim: true, uppercase: true, default: "" },
       upiId: { type: String, trim: true, lowercase: true, default: "" },
     },
-    // SHA-256 of the emailed token; the token itself is never stored
-    resetPasswordToken: { type: String, select: false, default: undefined },
-    resetPasswordExpires: { type: Date, select: false, default: undefined },
-    // Emailed code required to change the password from Settings (SHA-256 only)
-    passwordOtp: { type: String, select: false, default: undefined },
-    passwordOtpExpires: { type: Date, select: false, default: undefined },
-    passwordOtpAttempts: { type: Number, select: false, default: 0 },
-    // Sign-ins issued before this are rejected, so changing or resetting the
-    // password ends every other session
+    // Sign-ins issued before this are rejected (sign-in is by WhatsApp or email
+    // code only; there are no passwords). Name kept for existing records.
     passwordChangedAt: { type: Date, default: null },
   },
   {
@@ -70,23 +57,10 @@ const adminSchema = new mongoose.Schema(
   },
 );
 
-adminSchema.pre("save", async function () {
+adminSchema.pre("save", function () {
   // Pin super admin to the designated email, no matter what role was passed in
   if (this.email === SUPER_EMAIL) this.role = "super";
-
-  if (!this.isModified("password")) {
-    return;
-  }
-
-  this.password = await bcrypt.hash(this.password, 12);
-  // A second back so a token signed right after the change is still valid
-  // (token times are whole seconds)
-  if (!this.isNew) this.passwordChangedAt = new Date(Date.now() - 1000);
 });
-
-adminSchema.methods.matchPassword = async function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.password);
-};
 
 module.exports = mongoose.model("Admin", adminSchema);
 module.exports.ROLES = ROLES;

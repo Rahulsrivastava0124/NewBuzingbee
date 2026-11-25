@@ -9,6 +9,8 @@ const TOKEN_TTL = "60m";
 const TOKEN_PURPOSE = "enquiry-phone";
 // approved authkey.io template "sent_otp" (Authentication, {{1}} = code); AUTHKEY_OTP_WID overrides it
 const OTP_WID = process.env.AUTHKEY_OTP_WID || "55580";
+// approved template "login_otp" for admin panel sign-in codes; AUTHKEY_LOGIN_OTP_WID overrides it
+const LOGIN_OTP_WID = process.env.AUTHKEY_LOGIN_OTP_WID || "55579";
 
 const isOtpEnabled = () =>
   Boolean(process.env.AUTHKEY_API_KEY && OTP_WID);
@@ -39,12 +41,12 @@ const codesMatch = (phone, code, storedHash) => {
 };
 
 // Sends the code with the approved WhatsApp template (numeric WID); "1" fills {{1}}.
-const sendWhatsAppOtp = async (phone, code) => {
+const sendWhatsAppOtp = async (phone, code, wid = OTP_WID) => {
   const params = new URLSearchParams({
     authkey: process.env.AUTHKEY_API_KEY,
     mobile: phone,
     country_code: process.env.AUTHKEY_COUNTRY_CODE || "91",
-    wid: OTP_WID,
+    wid,
     1: code,
   });
 
@@ -78,6 +80,7 @@ const readEnquiryToken = (token) => {
 
 module.exports = {
   OTP_TTL_MS,
+  LOGIN_OTP_WID,
   isOtpEnabled,
   otpRequiredFor,
   normalizeIndianMobile,

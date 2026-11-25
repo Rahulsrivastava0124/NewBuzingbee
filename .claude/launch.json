@@ -18,6 +18,34 @@
         "cd AdminPanel && npx vite --port ${PORT:-5180} --strictPort"
       ],
       "port": 5180
+    },
+    {
+      "name": "buzingbee-win",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "-e",
+        "const b=require('path').resolve('BuzingBee/node_modules/next/dist/bin/next');process.chdir('BuzingBee');process.argv=[process.argv[0],b,'dev','-p','3011'];require(b)"
+      ],
+      "port": 3011
+    },
+    {
+      "name": "admin-win",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "-e",
+        "const b=require('path').resolve('AdminPanel/node_modules/vite/bin/vite.js');process.chdir('AdminPanel');process.argv=[process.argv[0],b,'--port','5181','--strictPort'];import(require('url').pathToFileURL(b))"
+      ],
+      "port": 5181
+    },
+    {
+      "name": "backend-win",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "-e",
+        "process.chdir('Backend');require(require('path').resolve('index.js'))"
+      ],
+      "port": 3001,
+      "autoPort": false
     }
   ]
 }

@@ -9,23 +9,14 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { adminAPI, authHelper } from "../services/api";
-import { IconTile, LoadingState, PageHeader, PasswordField } from "../components/common";
+import { adminAPI } from "../services/api";
+import { IconTile, LoadingState, PageHeader } from "../components/common";
 import CompanyTab from "./settings/CompanyTab";
 import EmailTab from "./settings/EmailTab";
 import ActivityTab from "./settings/ActivityTab";
 import PaymentTab from "./settings/PaymentTab";
-import { Building2, Landmark, Lock, Mail, MailCheck, Save, ScrollText, User } from "lucide-react";
+import { Building2, KeyRound, Landmark, Mail, MessageCircle, Save, ScrollText, User } from "lucide-react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
-
-const EMPTY_PASSWORDS = {
-  currentPassword: "",
-  newPassword: "",
-  confirmPassword: "",
-  otp: "",
-};
-
-const RESEND_SECONDS = 60;
 
 function SectionTitle({ icon, title, subtitle }) {
   return (
@@ -46,18 +37,11 @@ function SectionTitle({ icon, title, subtitle }) {
 function ProfileSettings() {
   const [loading, setLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
-  const [passwordSaving, setPasswordSaving] = useState(false);
   const [error, setError] = useState("");
   const [profileError, setProfileError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
-  const [passwordSuccess, setPasswordSuccess] = useState("");
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({ username: "", email: "" });
-  const [passwordForm, setPasswordForm] = useState(EMPTY_PASSWORDS);
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpSentTo, setOtpSentTo] = useState("");
-  const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -77,36 +61,16 @@ function ProfileSettings() {
     loadProfile();
   }, []);
 
-  useEffect(() => {
-    if (cooldown <= 0) return undefined;
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [cooldown]);
-
   const handleInputChange = (key) => (event) => {
     setForm((prev) => ({ ...prev, [key]: event.target.value }));
     setProfileSuccess("");
     setProfileError("");
   };
 
-  const handlePasswordInputChange = (key) => (event) => {
-    const value = key === "otp" ? event.target.value.replace(/\D/g, "").slice(0, 6) : event.target.value;
-    setPasswordForm((prev) => ({ ...prev, [key]: value }));
-    setPasswordSuccess("");
-    setPasswordError("");
-  };
-
   const handleReset = () => {
     setForm({ username: profile?.username || "", email: profile?.email || "" });
     setProfileError("");
     setProfileSuccess("");
-  };
-
-  const handlePasswordReset = () => {
-    setPasswordForm(EMPTY_PASSWORDS);
-    setPasswordError("");
-    setPasswordSuccess("");
-    setOtpSentTo("");
   };
 
   const handleProfileSubmit = async (event) => {
@@ -137,74 +101,7 @@ function ProfileSettings() {
     }
   };
 
-  // Same checks the server makes, so the code isn't emailed for a form that will fail
-  const passwordProblem = () => {
-    const { currentPassword, newPassword, confirmPassword } = passwordForm;
-    if (!currentPassword || !newPassword || !confirmPassword) return "All password fields are required.";
-    if (newPassword.length < 8) return "New password must be at least 8 characters.";
-    if (newPassword !== confirmPassword) return "New password and confirm password do not match.";
-    if (newPassword === currentPassword) return "New password must be different from the current one.";
-    return "";
-  };
-
-  const sendCode = async () => {
-    setPasswordError("");
-    setPasswordSuccess("");
-    const problem = passwordProblem();
-    if (problem) {
-      setPasswordError(problem);
-      return;
-    }
-    setOtpSending(true);
-    try {
-      const response = await adminAPI.sendPasswordOtp();
-      setOtpSentTo(response?.message || "Verification code sent to your email.");
-      setCooldown(RESEND_SECONDS);
-    } catch (err) {
-      setPasswordError(err.message || "Could not send the verification code");
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (event) => {
-    event.preventDefault();
-    setPasswordError("");
-    setPasswordSuccess("");
-
-    const problem = passwordProblem();
-    if (problem) {
-      setPasswordError(problem);
-      return;
-    }
-    if (!otpSentTo) {
-      await sendCode();
-      return;
-    }
-    if (passwordForm.otp.length !== 6) {
-      setPasswordError("Enter the 6-digit code from your email.");
-      return;
-    }
-
-    setPasswordSaving(true);
-    try {
-      const response = await adminAPI.updateProfile(passwordForm);
-      // Changing the password signs out every other session; keep this one
-      if (response?.token) authHelper.saveToken(response.token, response.expiresAt);
-      setPasswordSuccess(response?.message || "Password updated successfully.");
-      setPasswordForm(EMPTY_PASSWORDS);
-      setOtpSentTo("");
-      setCooldown(0);
-    } catch (err) {
-      setPasswordError(err.message || "Failed to update password");
-    } finally {
-      setPasswordSaving(false);
-    }
-  };
-
   if (loading) return <LoadingState text="Loading profile settings..." />;
-
-  const passwordBusy = passwordSaving || otpSending;
 
   return (
     <Box>
@@ -263,98 +160,27 @@ function ProfileSettings() {
         </Grid>
 
         <Grid size={{ xs: 12, lg: 7 }}>
-          <Paper component="form" onSubmit={handlePasswordSubmit} sx={{ p: { xs: 2.5, sm: 3 } }}>
-            <SectionTitle icon={<Lock />} title="Change password" />
-            <Grid container spacing={2}>
-              {passwordError && (
-                <Grid size={12}>
-                  <Alert severity="error">{passwordError}</Alert>
-                </Grid>
-              )}
-              {passwordSuccess && (
-                <Grid size={12}>
-                  <Alert severity="success">{passwordSuccess}</Alert>
-                </Grid>
-              )}
-              <Grid size={12}>
-                <PasswordField
-                  label="Current password"
-                  value={passwordForm.currentPassword}
-                  onChange={handlePasswordInputChange("currentPassword")}
-                  autoComplete="current-password"
-                  disabled={passwordBusy}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <PasswordField
-                  label="New password"
-                  value={passwordForm.newPassword}
-                  onChange={handlePasswordInputChange("newPassword")}
-                  autoComplete="new-password"
-                  helperText="At least 8 characters"
-                  disabled={passwordBusy}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <PasswordField
-                  label="Confirm new password"
-                  value={passwordForm.confirmPassword}
-                  onChange={handlePasswordInputChange("confirmPassword")}
-                  autoComplete="new-password"
-                  disabled={passwordBusy}
-                />
-              </Grid>
-
-              {otpSentTo && (
-                <>
-                  <Grid size={12}>
-                    <Alert severity="info" icon={<MailCheck size={18} />}>
-                      {otpSentTo}. It expires in 10 minutes.
-                    </Alert>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      label="Verification code"
-                      value={passwordForm.otp}
-                      onChange={handlePasswordInputChange("otp")}
-                      autoComplete="one-time-code"
-                      autoFocus
-                      disabled={passwordSaving}
-                      slotProps={{
-                        htmlInput: {
-                          inputMode: "numeric",
-                          maxLength: 6,
-                          style: { letterSpacing: "0.4em", fontVariantNumeric: "tabular-nums" },
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 6 }} sx={{ display: "flex", alignItems: "center" }}>
-                    <Button onClick={sendCode} disabled={cooldown > 0 || passwordBusy}>
-                      {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
-                    </Button>
-                  </Grid>
-                </>
-              )}
-            </Grid>
-            <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", mt: 3 }}>
-              <Button variant="outlined" onClick={handlePasswordReset} disabled={passwordBusy}>
-                Reset
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={otpSentTo ? <Save /> : <Mail />}
-                disabled={passwordBusy || Boolean(otpSentTo && passwordForm.otp.length !== 6)}
-              >
-                {otpSending
-                  ? "Sending code..."
-                  : passwordSaving
-                    ? "Saving..."
-                    : otpSentTo
-                      ? "Update password"
-                      : "Send verification code"}
-              </Button>
+          <Paper sx={{ p: { xs: 2.5, sm: 3 } }}>
+            <SectionTitle
+              icon={<KeyRound />}
+              title="How you sign in"
+              subtitle="There are no passwords. Each sign-in uses a one-time code."
+            />
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
+                <MessageCircle size={20} style={{ flexShrink: 0, marginTop: 2 }} />
+                <Typography variant="body2">
+                  <strong>WhatsApp:</strong> a code goes to the mobile number saved on your account
+                  {profile?.phone ? ` (${profile.phone})` : " (none saved yet; ask the super admin to add it)"}.
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
+                <Mail size={20} style={{ flexShrink: 0, marginTop: 2 }} />
+                <Typography variant="body2">
+                  <strong>Email:</strong> a code goes to {profile?.email || "your account email"}. If you change your
+                  email here, use the new address next time you sign in.
+                </Typography>
+              </Stack>
             </Stack>
           </Paper>
         </Grid>
@@ -364,7 +190,7 @@ function ProfileSettings() {
 }
 
 const TABS = [
-  { key: "profile", label: "Profile & password", icon: <User size={18} /> },
+  { key: "profile", label: "Profile", icon: <User size={18} /> },
   // Super admin's payment details live on the Company tab
   { key: "payment", label: "Payment details", icon: <Landmark size={18} />, notSuper: true },
   { key: "company", label: "Company", icon: <Building2 size={18} />, superOnly: true },

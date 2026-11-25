@@ -7,8 +7,6 @@ import {
 } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import { authHelper } from "./services/api";
 import { LoadingState } from "./components/common";
 
@@ -65,8 +63,6 @@ function App() {
               </PublicOnlyRoute>
             }
           />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/dashboard"
             element={

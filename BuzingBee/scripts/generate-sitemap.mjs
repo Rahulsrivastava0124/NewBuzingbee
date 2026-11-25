@@ -32,6 +32,10 @@ const STATIC_ROUTES = [
   { path: "/portfolio", changefreq: "monthly", priority: "0.8" },
   { path: "/blog", changefreq: "weekly", priority: "0.8" },
   { path: "/contact", changefreq: "monthly", priority: "0.7" },
+  { path: "/terms-and-conditions", changefreq: "yearly", priority: "0.3" },
+  { path: "/privacy-policy", changefreq: "yearly", priority: "0.3" },
+  { path: "/refund-policy", changefreq: "yearly", priority: "0.3" },
+  { path: "/cookie-policy", changefreq: "yearly", priority: "0.3" },
 ];
 
 const normalizeBlogPayload = (payload) => {

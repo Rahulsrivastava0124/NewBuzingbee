@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFeedback } from "../components/Feedback";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -10,8 +10,12 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import { adminAPI, authHelper, PORTAL, PORTAL_LABELS } from "../services/api";
+import BrandMark from "../components/Brand";
 
 // Set by the dashboard when an account was signed out for using the wrong portal
 const readPortalNotice = () => {
@@ -23,8 +27,40 @@ const readPortalNotice = () => {
     return null;
   }
 };
-import { PasswordField } from "../components/common";
-import BrandMark from "../components/Brand";
+
+// There are no passwords: every sign-in is a one-time code, sent either to the
+// WhatsApp number or to the email address saved on the account
+const CHANNELS = {
+  whatsapp: {
+    tab: "WhatsApp",
+    send: (id) => adminAPI.sendLoginOtp(id),
+    verify: (id, code) => adminAPI.verifyLoginOtp(id, code),
+    field: {
+      label: "Mobile number",
+      placeholder: "98765 43210",
+      autoComplete: "tel",
+      inputMode: "tel",
+      type: "tel",
+      adornment: "+91",
+    },
+    change: "Change number",
+    sent: "Code sent to your WhatsApp.",
+  },
+  email: {
+    tab: "Email",
+    send: (id) => adminAPI.sendEmailLoginOtp(id),
+    verify: (id, code) => adminAPI.verifyEmailLoginOtp(id, code),
+    field: {
+      label: "Email address",
+      placeholder: "you@buzingbee.com",
+      autoComplete: "email",
+      inputMode: "email",
+      type: "email",
+    },
+    change: "Change email",
+    sent: "Code sent to your email.",
+  },
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -40,37 +76,74 @@ export default function Login() {
     }, 0);
     return () => clearTimeout(t);
   }, [notify]);
-  const [formData, setFormData] = useState({ loginId: "", password: "" });
-  const [error, setError] = useState("");
-  const [portalNotice] = useState(readPortalNotice);
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const [portalNotice] = useState(readPortalNotice);
+  const [channel, setChannel] = useState("whatsapp");
+  const [ids, setIds] = useState({ whatsapp: "", email: "" });
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [info, setInfo] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  const ch = CHANNELS[channel];
+  const id = ids[channel];
+
+  useEffect(() => {
+    if (resendIn <= 0) return undefined;
+    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  const resetCodeStep = () => {
+    setCodeSent(false);
+    setCode("");
+    setInfo("");
+    setError("");
+    setResendIn(0);
+  };
+
+  const switchChannel = (_e, next) => {
+    if (!next || next === channel) return;
+    setChannel(next);
+    resetCodeStep();
+  };
+
+  const handleSend = async (e) => {
+    e?.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = await ch.send(id.trim());
+      setCodeSent(true);
+      setCode("");
+      setInfo(response.message || ch.sent);
+      setResendIn(response.resendAfterSeconds || 60);
+    } catch (err) {
+      setError(err.message || "Could not send the code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
-      const response = await adminAPI.login({
-        username: formData.loginId,
-        email: formData.loginId,
-        password: formData.password,
-      });
-
+      const response = await ch.verify(id.trim(), code);
       if (response.token) {
         authHelper.saveToken(response.token, response.expiresAt);
         notify(`Welcome back${response.data?.username ? `, ${response.data.username}` : ""}!`, "success");
         navigate("/dashboard");
       }
     } catch (err) {
-      setError(err.message || "Login failed. Please check your credentials.");
+      setError(err.message || "Could not verify the code.");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   return (
     <Box
@@ -106,63 +179,104 @@ export default function Login() {
           </Typography>
         </Stack>
 
-        <Box component="form" onSubmit={handleSubmit}>
+        {portalNotice && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            This account is a {PORTAL_LABELS[portalNotice.role] || portalNotice.role} account and signs in at{" "}
+            <Link href={`${window.location.protocol}//${portalNotice.host}/login`} sx={{ fontWeight: 600 }}>
+              {portalNotice.host}
+            </Link>
+            .
+          </Alert>
+        )}
+
+        <ToggleButtonGroup
+          value={channel}
+          exclusive
+          size="small"
+          onChange={switchChannel}
+          disabled={loading}
+          aria-label="Where to send your sign-in code"
+          sx={{ mb: 3, width: "100%", flexWrap: "nowrap" }}
+        >
+          {Object.entries(CHANNELS).map(([key, c]) => (
+            <ToggleButton key={key} value={key} sx={{ flex: 1 }}>
+              {c.tab}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+
+        <Box component="form" onSubmit={codeSent ? handleVerify : handleSend}>
           <Stack spacing={3}>
-            {portalNotice && (
-              <Alert severity="warning">
-                This account is a {PORTAL_LABELS[portalNotice.role] || portalNotice.role} account and signs in at{" "}
-                <Link href={`${window.location.protocol}//${portalNotice.host}/login`} sx={{ fontWeight: 600 }}>
-                  {portalNotice.host}
-                </Link>
-                .
-              </Alert>
-            )}
             {error && <Alert severity="error">{error}</Alert>}
+            {codeSent && info && !error && <Alert severity="info">{info}</Alert>}
 
             <TextField
+              key={channel}
               size="medium"
-              label="Username or Email"
-              name="loginId"
-              value={formData.loginId}
-              onChange={handleChange}
-              placeholder="admin or admin@buzingbee.com"
+              label={ch.field.label}
+              type={ch.field.type}
+              value={id}
+              onChange={(e) => setIds((prev) => ({ ...prev, [channel]: e.target.value }))}
+              placeholder={ch.field.placeholder}
               required
               autoFocus
-              autoComplete="username"
-              disabled={loading}
+              autoComplete={ch.field.autoComplete}
+              inputMode={ch.field.inputMode}
+              disabled={loading || codeSent}
+              slotProps={
+                ch.field.adornment
+                  ? { input: { startAdornment: <InputAdornment position="start">{ch.field.adornment}</InputAdornment> } }
+                  : undefined
+              }
             />
 
-            <PasswordField
-              size="medium"
-              label="Password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              autoComplete="current-password"
-              disabled={loading}
-            />
+            {codeSent && (
+              <TextField
+                size="medium"
+                label="6-digit code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                required
+                autoFocus
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                disabled={loading}
+              />
+            )}
 
-            <Box sx={{ textAlign: "right", mt: -1 }}>
-              <Link
-                component={RouterLink}
-                to="/forgot-password"
-                underline="hover"
-                sx={{ fontSize: 14, fontWeight: 600 }}
-              >
-                Forgot password?
-              </Link>
-            </Box>
+            {codeSent && (
+              <Stack direction="row" sx={{ justifyContent: "space-between", mt: -1 }}>
+                <Link
+                  component="button"
+                  type="button"
+                  underline="hover"
+                  sx={{ fontSize: 14, fontWeight: 600 }}
+                  onClick={resetCodeStep}
+                >
+                  {ch.change}
+                </Link>
+                <Link
+                  component="button"
+                  type="button"
+                  underline="hover"
+                  sx={{ fontSize: 14, fontWeight: 600 }}
+                  disabled={resendIn > 0 || loading}
+                  onClick={handleSend}
+                >
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                </Link>
+              </Stack>
+            )}
 
             <Button
               type="submit"
               variant="contained"
               size="large"
               sx={{ minHeight: 52, fontSize: 16 }}
-              disabled={loading}
+              disabled={loading || (codeSent && code.length !== 6)}
               startIcon={loading ? <CircularProgress size={18} color="inherit" /> : null}
             >
-              {loading ? "Signing In..." : "Sign In"}
+              {loading ? "Please wait..." : codeSent ? "Verify & Sign In" : "Send Code"}
             </Button>
           </Stack>
         </Box>

@@ -2,18 +2,20 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const {
   adminRegister,
-  adminLogin,
   getAdminProfile,
   updateAdminProfile,
   updatePaymentDetails,
-  forgotPassword,
-  resetPassword,
   listAdmins,
   updateAdminRole,
   editAdmin,
   deleteAdmin,
-  sendPasswordOtp,
 } = require("../controllers/adminController");
+const {
+  sendLoginOtp,
+  verifyLoginOtp,
+  sendEmailLoginOtp,
+  verifyEmailLoginOtp,
+} = require("../controllers/adminOtpLoginController");
 const { protectAdmin, requireSuper, requireRole } = require("../middleware/authMiddleware");
 const { listAuditLog } = require("../middleware/auditLog");
 
@@ -39,24 +41,19 @@ const authLimiter = rateLimit({
 
 // Only a signed-in admin can create another admin account
 router.post("/register", authLimiter, protectAdmin, adminRegister);
-// Reset flow is public, so each step gets its own tight limiter
-const makeResetLimiter = (max) =>
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-      success: false,
-      message: "Too many reset attempts. Try again later.",
-    },
-  });
-const forgotLimiter = makeResetLimiter(5);
-const resetLimiter = makeResetLimiter(10);
-
-router.post("/login", authLimiter, adminLogin);
-router.post("/forgot-password", forgotLimiter, forgotPassword);
-router.post("/reset-password", resetLimiter, resetPassword);
+// Sign-in is by one-time code only (WhatsApp or email); sending is capped
+// tighter than checking
+const otpSendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many code requests. Try again later." },
+});
+router.post("/login/otp/send", otpSendLimiter, sendLoginOtp);
+router.post("/login/otp/verify", authLimiter, verifyLoginOtp);
+router.post("/login/email/send", otpSendLimiter, sendEmailLoginOtp);
+router.post("/login/email/verify", authLimiter, verifyEmailLoginOtp);
 router.get("/smtp/status", protectAdmin, requireSuper, async (_req, res) => {
   const status = await checkSmtpConnection();
   logSmtpStatus(status);
@@ -96,12 +93,11 @@ router.post("/smtp/test", protectAdmin, requireSuper, async (req, res) => {
 router.get("/audit-log", protectAdmin, requireSuper, listAuditLog);
 router.get("/users", protectAdmin, listAdmins);
 router.patch("/users/:id", protectAdmin, requireSuper, updateAdminRole);
-// name / email / password; admins may edit team members only (checked in the controller)
+// name / email / phone; admins may edit team members only (checked in the controller)
 router.put("/users/:id", protectAdmin, requireRole("super", "admin"), editAdmin);
 router.delete("/users/:id", protectAdmin, requireSuper, deleteAdmin);
 router.get("/profile", protectAdmin, getAdminProfile);
 router.put("/profile", protectAdmin, updateAdminProfile);
 router.put("/profile/payment", protectAdmin, updatePaymentDetails);
-router.post("/profile/password-otp", protectAdmin, makeResetLimiter(5), sendPasswordOtp);
 
 module.exports = router;

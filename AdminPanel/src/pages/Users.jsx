@@ -31,7 +31,7 @@ const ROLE_COLORS = { super: "warning", admin: "primary", team: "default" };
 const ROLE_LABELS = { super: "Super admin", admin: "Admin", team: "Team" };
 // "other" is for enquiries only, not something a person handles
 const SERVICE_KEYS = Object.keys(SERVICE_LABELS).filter((k) => k !== "other");
-const EMPTY_USER = { username: "", email: "", phone: "", services: [], password: "", role: "team", showBills: false };
+const EMPTY_USER = { username: "", email: "", phone: "", services: [], role: "team", showBills: false };
 
 // Two-column form grid (one column on phones); FULL spans both columns
 const FORM_GRID = {
@@ -102,7 +102,7 @@ export default function Users() {
   const [wallets, setWallets] = useState({});
   const [paying, setPaying] = useState(null);
   const [payError, setPayError] = useState("");
-  // user being edited: { user, username, email, password }
+  // user being edited: { user, username, email, phone, services }
   const [editing, setEditing] = useState(null);
   const [editError, setEditError] = useState("");
 
@@ -146,12 +146,8 @@ export default function Users() {
 
   const handleCreate = async () => {
     setError("");
-    if (!form.username || !form.email || !form.password) {
-      setError("Username, email and password are required");
-      return;
-    }
-    if (form.password.length < 8) {
-      setError("Password must be at least 8 characters");
+    if (!form.username || !form.email) {
+      setError("Username and email are required");
       return;
     }
     setSaving(true);
@@ -213,17 +209,12 @@ export default function Users() {
       email: user.email,
       phone: user.phone || "",
       services: user.services || [],
-      password: "",
     });
   };
 
   const submitEdit = async (e) => {
     e.preventDefault();
-    const { user, username, email, phone, services, password } = editing;
-    if (password && password.length < 8) {
-      setEditError("Password must be at least 8 characters");
-      return;
-    }
+    const { user, username, email, phone, services } = editing;
     setSaving(true);
     setEditError("");
     try {
@@ -232,7 +223,6 @@ export default function Users() {
         email,
         phone,
         services,
-        ...(password ? { password } : {}),
       });
       notify(`${username} updated`, "success");
       setEditing(null);
@@ -480,14 +470,6 @@ export default function Users() {
                 helperText={editing.user.role === "super" ? "The super admin's email is pinned" : " "}
               />
               <PhoneField value={editing} onChange={setEditing} />
-              <TextField
-                label="New password"
-                type="password"
-                autoComplete="new-password"
-                value={editing.password}
-                onChange={(e) => setEditing({ ...editing, password: e.target.value })}
-                helperText="Leave blank to keep the current one"
-              />
               <ServicesField value={editing} onChange={setEditing} />
               {editError && (
                 <Alert severity="error" sx={FULL}>
@@ -578,18 +560,9 @@ export default function Users() {
               required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              helperText=" "
+              helperText="They sign in with a code sent here or to their WhatsApp"
             />
             <PhoneField value={form} onChange={setForm} />
-            <TextField
-              label="Password"
-              type="password"
-              required
-              autoComplete="new-password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              helperText="At least 8 characters"
-            />
             <ServicesField value={form} onChange={setForm} />
             <TextField
               select

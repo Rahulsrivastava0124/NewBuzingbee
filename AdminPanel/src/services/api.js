@@ -140,14 +140,38 @@ const handleResponse = async (response) => {
 
 // Admin API
 export const adminAPI = {
-  // Login
-  login: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/admin/login`, {
+  // WhatsApp OTP sign-in (code goes to the phone saved on the account)
+  sendLoginOtp: async (phone) => {
+    const response = await fetch(`${API_BASE_URL}/admin/login/otp/send`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ...credentials, ...(PORTAL && { portal: PORTAL }) }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    return handleResponse(response);
+  },
+  verifyLoginOtp: async (phone, code) => {
+    const response = await fetch(`${API_BASE_URL}/admin/login/otp/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, code, ...(PORTAL && { portal: PORTAL }) }),
+    });
+    return handleResponse(response);
+  },
+
+  // Email code sign-in (code goes to the account's email address)
+  sendEmailLoginOtp: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/admin/login/email/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    return handleResponse(response);
+  },
+  verifyEmailLoginOtp: async (email, code) => {
+    const response = await fetch(`${API_BASE_URL}/admin/login/email/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code, ...(PORTAL && { portal: PORTAL }) }),
     });
     return handleResponse(response);
   },
@@ -169,25 +193,6 @@ export const adminAPI = {
     });
     const data = await handleResponse(response);
     return data.admins || [];
-  },
-
-  // Forgot / reset password (public)
-  forgotPassword: async (payload) => {
-    const response = await fetch(`${API_BASE_URL}/admin/forgot-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    return handleResponse(response);
-  },
-
-  resetPassword: async (payload) => {
-    const response = await fetch(`${API_BASE_URL}/admin/reset-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    return handleResponse(response);
   },
 
   // Get admin profile
@@ -226,15 +231,6 @@ export const adminAPI = {
     return handleResponse(response);
   },
 
-  // Emails a 6-digit code that must accompany a password change
-  sendPasswordOtp: async () => {
-    const response = await fetch(`${API_BASE_URL}/admin/profile/password-otp`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${getAuthToken()}` },
-    });
-    return handleResponse(response);
-  },
-
   // User management (super admin only on the server)
   createUser: async (payload) => {
     const response = await fetch(`${API_BASE_URL}/admin/register`, {
@@ -261,7 +257,7 @@ export const adminAPI = {
     return handleResponse(response);
   },
 
-  // fields: { username?, email?, password? } — super admin: anyone; admin: team members only
+  // fields: { username?, email?, phone?, services? } — super admin: anyone; admin: team members only
   editUser: async (id, fields) => {
     const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
       method: "PUT",

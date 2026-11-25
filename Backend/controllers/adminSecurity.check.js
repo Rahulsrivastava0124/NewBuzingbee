@@ -1,7 +1,7 @@
 // Run: node controllers/adminSecurity.check.js  (no database needed)
 // Fixes from the security audit: the super email can't move or be claimed via
-// Settings; only super/admin change loans and manual wallet entries; a password
-// change ends older sessions; no plain-text password fallback; personal-client
+// Settings; only super/admin change loans and manual wallet entries; a session
+// reset ends older sessions; there is no password sign-in at all; personal-client
 // payments stay out of the company wallet; new enquiries alert the team safely.
 const assert = require("assert");
 const jwt = require("jsonwebtoken");
@@ -10,7 +10,8 @@ const Client = require("../models/Client");
 const Payment = require("../models/Payment");
 const LedgerEntry = require("../models/LedgerEntry");
 const { getJwtSecret } = require("../config");
-const { updateAdminProfile, adminLogin } = require("./adminController");
+const { updateAdminProfile } = require("./adminController");
+const adminRouter = require("../routes/adminRoutes");
 const { protectAdmin, forgetAdmin } = require("../middleware/authMiddleware");
 const { syncClientPayments } = require("../utils/paymentLedger");
 const { buildTeamAlert } = require("./enquiryController");
@@ -24,7 +25,11 @@ const fakeRes = () => {
 };
 
 let current;
-Admin.findById = () => ({ select: async () => current });
+Admin.findById = () => {
+  const found = Promise.resolve(current);
+  found.select = async () => current;
+  return found;
+};
 Admin.findOne = async () => null; // no clashes
 let saved = false;
 Admin.prototype.save = async function () {
@@ -41,8 +46,8 @@ const profile = async (doc, body) => {
 };
 
 (async () => {
-  const boss = new Admin({ username: "boss", email: Admin.SUPER_EMAIL, password: "x".repeat(8), role: "super" });
-  const anshu = new Admin({ username: "anshu", email: "anshu@buzingbee.com", password: "x".repeat(8), role: "team" });
+  const boss = new Admin({ username: "boss", email: Admin.SUPER_EMAIL, role: "super" });
+  const anshu = new Admin({ username: "anshu", email: "anshu@buzingbee.com", role: "team" });
 
   let res = await profile(boss, { email: "elsewhere@buzingbee.com" });
   assert.strictEqual(res.statusCode, 400, "super can't move off the pinned email");
@@ -72,8 +77,8 @@ const profile = async (doc, body) => {
     }
   }
 
-  // A password change ends sessions signed in before it; newer ones still work
-  const sessionUser = new Admin({ username: "rk", email: "rk@buzingbee.com", password: "x".repeat(8), role: "admin" });
+  // A session reset (passwordChangedAt) ends sessions signed in before it; newer ones still work
+  const sessionUser = new Admin({ username: "rk", email: "rk@buzingbee.com", role: "admin" });
   const auth = async (token) => {
     const res = fakeRes();
     let passed = false;
@@ -83,26 +88,20 @@ const profile = async (doc, body) => {
   const tokenAt = (secondsAgo) =>
     jwt.sign({ id: sessionUser._id, iat: Math.floor(Date.now() / 1000) - secondsAgo }, getJwtSecret());
   current = sessionUser;
-  assert.strictEqual(await auth(tokenAt(3600)), true, "no password change yet");
+  assert.strictEqual(await auth(tokenAt(3600)), true, "no reset yet");
   sessionUser.passwordChangedAt = new Date(Date.now() - 60 * 1000);
   forgetAdmin(sessionUser._id);
   assert.strictEqual(await auth(tokenAt(3600)), false, "older session is ended");
   assert.strictEqual(await auth(tokenAt(0)), true, "session after the change works");
-  // The model stamps it whenever an existing user's password changes
-  const existing = new Admin({ username: "a1", email: "a1@x.com", password: "x".repeat(8) });
-  existing.isNew = false;
-  existing.password = "y".repeat(8);
-  await existing.validate();
-  await Admin.schema.s.hooks.execPre("save", existing);
-  assert.ok(existing.passwordChangedAt && existing.passwordChangedAt <= new Date());
-
-  // Sending the stored value itself as the password no longer signs in
-  const stored = new Admin({ username: "old", email: "old@x.com", password: "plain-legacy" });
-  Admin.findOne = async () => stored;
-  const loginRes = fakeRes();
-  await adminLogin({ body: { username: "old", password: stored.password }, headers: {} }, loginRes);
-  assert.strictEqual(loginRes.statusCode, 401);
-  Admin.findOne = async () => null;
+  // Sign-in is by one-time code only: no password, forgot or reset routes remain
+  const paths = adminRouter.stack.filter((l) => l.route).map((l) => l.route.path);
+  for (const gone of ["/login", "/forgot-password", "/reset-password", "/profile/password-otp"]) {
+    assert.ok(!paths.includes(gone), `${gone} should be removed`);
+  }
+  for (const kept of ["/login/otp/send", "/login/otp/verify", "/login/email/send", "/login/email/verify"]) {
+    assert.ok(paths.includes(kept), `${kept} should exist`);
+  }
+  assert.strictEqual(Admin.schema.path("password"), undefined, "no password field on accounts");
 
   // Personal-client payments leave the company wallet; company clients' payments are credited
   const company = new Client({ name: "Acme", personal: false });

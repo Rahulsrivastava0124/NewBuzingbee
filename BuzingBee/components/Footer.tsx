@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NAV_LINKS, SITE_CONFIG } from "@/lib/constants";
+import { LEGAL_LINKS } from "@/components/LegalPage";
 import {
   FaInstagram,
   FaFacebookF,
@@ -126,9 +127,22 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-textMuted text-sm">
-            &copy; {currentYear} {SITE_CONFIG.name}. All rights reserved.
-          </p>
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <p className="text-textMuted text-sm">
+              &copy; {currentYear} {SITE_CONFIG.name}. All rights reserved.
+            </p>
+            <nav aria-label="Legal" className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
+              {LEGAL_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-textMuted hover:text-accent transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
           <div className="flex items-center gap-4">
             <a
               href={SITE_CONFIG.socials.instagram}
