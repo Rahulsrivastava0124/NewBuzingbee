@@ -21,6 +21,7 @@ import { SERVICES } from "@/components/ServicesGrid";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 import OtpVerifyDialog, { type EnquiryVerification } from "@/components/OtpVerifyDialog";
+import ThankYouCard from "@/components/ThankYouCard";
 
 // homepage sections the menu links to, in page order (used to underline the one in view)
 const SECTION_IDS = ["about", "work", "insights", "all-services"];
@@ -30,9 +31,6 @@ const ENQUIRY_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL
   : "https://api.buzingbee.com/api/enquiries/submit";
 
 const EMPTY_FORM = { name: "", email: "", phone: "", service: "", message: "" };
-// shown on the thank-you screen after the phone is verified; drop a team photo at public/team-photo.jpg
-const TEAM_PHOTO = "/team-photo.jpg";
-const TEAM_PHOTO_FALLBACK = "/bee1-removebg-preview.png";
 const THANKS_CLOSE_MS = 6000;
 
 // What the free audit should cover: BuzingBee's services, with the same values as
@@ -228,28 +226,8 @@ export default function Navbar() {
             </button>
 
             {thanksName !== null ? (
-              <div role="status" className="flex flex-col items-center py-4 text-center">
-                <img
-                  src={TEAM_PHOTO}
-                  alt="The BuzingBee team"
-                  width={96}
-                  height={96}
-                  onError={(e) => {
-                    if (!e.currentTarget.src.endsWith(TEAM_PHOTO_FALLBACK)) e.currentTarget.src = TEAM_PHOTO_FALLBACK;
-                  }}
-                  className="h-24 w-24 rounded-full border-4 border-accent/40 bg-bgSection object-cover shadow-lg"
-                />
-                <h3 className="mt-5 text-2xl font-bold text-textHeading font-heading">
-                  Thank you{thanksName ? `, ${thanksName}` : ""}!
-                </h3>
-                <p className="mt-2 max-w-sm text-sm text-textMuted">
-                  Your number is verified. Our team will connect with you shortly.
-                  We&apos;ve also sent a confirmation to your email.
-                </p>
-                <p className="mt-4 flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
-                  <CheckCircle className="h-4 w-4" />
-                  Enquiry received
-                </p>
+              <div className="flex flex-col items-center">
+                <ThankYouCard name={thanksName} />
                 {/* drains over THANKS_CLOSE_MS, then the popup closes */}
                 <div className="mt-6 h-1 w-full overflow-hidden rounded-full bg-border">
                   <motion.div

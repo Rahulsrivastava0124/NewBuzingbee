@@ -40,15 +40,15 @@ const codesMatch = (phone, code, storedHash) => {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
 
-// Sends the code with the approved WhatsApp template (numeric WID); "1" fills {{1}}.
-const sendWhatsAppOtp = async (phone, code, wid = OTP_WID) => {
+// Sends an approved WhatsApp template (numeric WID); values[0] fills {{1}}, values[1] {{2}}...
+const sendWhatsAppTemplate = async (phone, wid, values = []) => {
   const params = new URLSearchParams({
     authkey: process.env.AUTHKEY_API_KEY,
     mobile: phone,
     country_code: process.env.AUTHKEY_COUNTRY_CODE || "91",
     wid,
-    1: code,
   });
+  values.forEach((value, i) => params.set(String(i + 1), value));
 
   const response = await fetch(`${SEND_URL}?${params}`, {
     signal: AbortSignal.timeout(10000),
@@ -58,6 +58,9 @@ const sendWhatsAppOtp = async (phone, code, wid = OTP_WID) => {
     throw new Error(`authkey.io send failed (${response.status}): ${text.slice(0, 200)}`);
   }
 };
+
+// Sends a one-time code; the template's {{1}} is the code
+const sendWhatsAppOtp = (phone, code, wid = OTP_WID) => sendWhatsAppTemplate(phone, wid, [code]);
 
 // Returned after an enquiry is saved: lets that visitor (and only for that phone)
 // send and check an OTP for this one enquiry.
@@ -88,6 +91,7 @@ module.exports = {
   hashCode,
   codesMatch,
   sendWhatsAppOtp,
+  sendWhatsAppTemplate,
   issueEnquiryToken,
   readEnquiryToken,
 };

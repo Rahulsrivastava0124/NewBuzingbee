@@ -13,7 +13,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "node controllers/expenseWalletController.check.js && node controllers/loanController.check.js && node utils/billingScope.check.js && node controllers/leadController.check.js && node controllers/adminSecurity.check.js && node controllers/adminOtpLogin.check.js",
+    "test": "node controllers/expenseWalletController.check.js && node controllers/loanController.check.js && node utils/billingScope.check.js && node controllers/leadController.check.js && node controllers/adminSecurity.check.js && node controllers/adminOtpLogin.check.js && node controllers/leadAlert.check.js",
     "lint": "eslint .",
     "check": "node --check index.js"
   },

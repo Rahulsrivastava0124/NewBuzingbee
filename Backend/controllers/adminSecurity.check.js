@@ -14,7 +14,7 @@ const { updateAdminProfile } = require("./adminController");
 const adminRouter = require("../routes/adminRoutes");
 const { protectAdmin, forgetAdmin } = require("../middleware/authMiddleware");
 const { syncClientPayments } = require("../utils/paymentLedger");
-const { buildTeamAlert } = require("./enquiryController");
+const { buildTeamAlert } = require("../services/leadAlert");
 const financeRouter = require("../routes/financeRoutes");
 
 const fakeRes = () => {

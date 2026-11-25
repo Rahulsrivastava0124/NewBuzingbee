@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
 import {
@@ -11,10 +11,12 @@ import {
   Send,
   CheckCircle,
   AlertCircle,
+  X,
 } from "lucide-react";
 import { SITE_CONFIG } from "@/lib/constants";
 import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 import OtpVerifyDialog, { type EnquiryVerification } from "@/components/OtpVerifyDialog";
+import ThankYouCard from "@/components/ThankYouCard";
 
 interface ContactFormData {
   name: string;
@@ -44,6 +46,9 @@ export default function ContactPage() {
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaReset, setCaptchaReset] = useState(0);
   const [verification, setVerification] = useState<EnquiryVerification | null>(null);
+  // first name of the last verified enquiry; non-null opens the thank-you modal
+  const [thanksName, setThanksName] = useState<string | null>(null);
+  const submittedName = useRef("");
 
   const onSubmit = async (data: ContactFormData) => {
     setSubmitState("idle");
@@ -67,6 +72,7 @@ export default function ContactPage() {
       setSubmitMessage(
         json.message || "Thank you! We'll get back to you within 24 hours.",
       );
+      submittedName.current = data.name.trim().split(/\s+/)[0] || "";
       reset();
       // second step: WhatsApp OTP marks the saved lead as verified
       if (json.verification?.required) setVerification(json.verification);
@@ -263,6 +269,7 @@ export default function ContactPage() {
               verification={verification}
               onClose={(verified) => {
                 setVerification(null);
+                if (verified) setThanksName(submittedName.current);
                 setSubmitState("success");
                 setSubmitMessage(
                   verified
@@ -271,6 +278,30 @@ export default function ContactPage() {
                 );
               }}
             />
+            {thanksName !== null && (
+              <div
+                className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="thank-you-title"
+                onClick={(e) => e.target === e.currentTarget && setThanksName(null)}
+              >
+                <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setThanksName(null)}
+                    aria-label="Close"
+                    className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-textMuted transition-colors hover:border-accent hover:text-accent"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                  <ThankYouCard name={thanksName} />
+                  <button type="button" onClick={() => setThanksName(null)} className="btn-primary mt-2 w-full">
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
 
           {/* Contact Info */}

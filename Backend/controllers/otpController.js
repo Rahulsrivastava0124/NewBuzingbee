@@ -2,6 +2,8 @@ const OtpCode = require("../models/OtpCode");
 const Enquiry = require("../models/Enquiry");
 const { errorDetail } = require("../utils/errors");
 const { sendMail } = require("../services/mailService");
+const { alertTeam } = require("../services/leadAlert");
+const { createLeadFromEnquiry } = require("../services/enquiryToLead");
 const {
   OTP_TTL_MS,
   isOtpEnabled,
@@ -22,12 +24,12 @@ const escapeHtml = (value) =>
 const buildThanksEmail = (enquiry) => {
   const first = String(enquiry.name || "").trim().split(/\s+/)[0] || "there";
   return {
-    subject: "Thanks for reaching out — our team will connect with you shortly",
+    subject: "Thanks for reaching out — Sunny from BuzingBee will connect with you shortly",
     text: [
       `Hi ${first},`,
       "",
       "Thank you for your enquiry. Your WhatsApp number is verified.",
-      "Our team is reviewing your details and will connect with you shortly.",
+      "Sunny from our team is reviewing your details and will reach out to you shortly.",
       "",
       "If you need anything in the meantime, just reply to this email.",
       "",
@@ -38,7 +40,7 @@ const buildThanksEmail = (enquiry) => {
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0f172a">
         <h2 style="margin:0 0 12px">Thanks, ${escapeHtml(first)}! 🐝</h2>
         <p>Thank you for your enquiry. Your WhatsApp number is verified.</p>
-        <p>Our team is reviewing your details and <strong>will connect with you shortly</strong>.</p>
+        <p><strong>Sunny</strong> from our team is reviewing your details and <strong>will reach out to you shortly</strong>.</p>
         <p>If you need anything in the meantime, just reply to this email.</p>
         <p style="margin-top:24px">Team BuzingBee<br>
           <a href="https://buzingbee.com" style="color:#f5a623">buzingbee.com</a></p>
@@ -154,12 +156,24 @@ const verifyOtp = async (req, res) => {
     }
 
     await OtpCode.deleteMany({ phone });
-    const enquiry = await Enquiry.findByIdAndUpdate(
+    // "before" tells whether this call is the one that verified it, so the team
+    // alert and the thank-you email go out exactly once
+    const before = await Enquiry.findByIdAndUpdate(
       enquiryId,
       { phoneVerified: true, phoneVerifiedAt: new Date() },
-      { returnDocument: "after" },
+      { returnDocument: "before" },
     );
-    if (!enquiry) return badToken(res);
+    if (!before) return badToken(res);
+    if (before.phoneVerified) {
+      return res.status(200).json({ success: true, message: "Your WhatsApp number is verified. Thank you!" });
+    }
+    const enquiry = before;
+
+    // Verified leads go into the CRM, then the team is told (email + WhatsApp).
+    // Neither is awaited: a problem there must not fail the visitor's verification.
+    createLeadFromEnquiry(enquiry)
+      .catch((error) => console.error("[otp] CRM lead creation failed:", error.message))
+      .finally(() => alertTeam(enquiry));
 
     if (enquiry.email) {
       sendMail({ to: enquiry.email, ...buildThanksEmail(enquiry) }).catch((error) => {
