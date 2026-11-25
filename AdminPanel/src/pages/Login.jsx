@@ -62,6 +62,8 @@ const CHANNELS = {
   },
 };
 
+const EMPTY_STEP = { id: "", code: "", codeSent: false, info: "", error: "", resendIn: 0 };
+
 export default function Login() {
   const navigate = useNavigate();
   const { notify } = useFeedback();
@@ -79,49 +81,59 @@ export default function Login() {
 
   const [portalNotice] = useState(readPortalNotice);
   const [channel, setChannel] = useState("whatsapp");
-  const [ids, setIds] = useState({ whatsapp: "", email: "" });
-  const [code, setCode] = useState("");
-  const [codeSent, setCodeSent] = useState(false);
-  const [info, setInfo] = useState("");
-  const [error, setError] = useState("");
+  // Each tab keeps its own progress, so switching tabs never loses what was typed
+  // or a code that was already sent
+  const [steps, setSteps] = useState({ whatsapp: { ...EMPTY_STEP }, email: { ...EMPTY_STEP } });
   const [loading, setLoading] = useState(false);
-  const [resendIn, setResendIn] = useState(0);
 
   const ch = CHANNELS[channel];
-  const id = ids[channel];
+  const { id, code, codeSent, info, error, resendIn } = steps[channel];
+  const update = (key, patch) => setSteps((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
 
+  // One tick drives the resend countdown of both tabs
+  const counting = steps.whatsapp.resendIn > 0 || steps.email.resendIn > 0;
   useEffect(() => {
-    if (resendIn <= 0) return undefined;
-    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendIn]);
-
-  const resetCodeStep = () => {
-    setCodeSent(false);
-    setCode("");
-    setInfo("");
-    setError("");
-    setResendIn(0);
-  };
+    if (!counting) return undefined;
+    const t = setInterval(() => {
+      setSteps((prev) => {
+        const next = { ...prev };
+        for (const key of Object.keys(prev)) {
+          if (prev[key].resendIn > 0) next[key] = { ...prev[key], resendIn: prev[key].resendIn - 1 };
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [counting]);
 
   const switchChannel = (_e, next) => {
-    if (!next || next === channel) return;
-    setChannel(next);
-    resetCodeStep();
+    if (next && next !== channel) setChannel(next);
   };
+
+  // A different number/email has its own cooldown on the server, so the timer restarts
+  const changeId = () => update(channel, { codeSent: false, code: "", info: "", error: "", resendIn: 0 });
 
   const handleSend = async (e) => {
     e?.preventDefault();
-    setError("");
+    if (resendIn > 0) return;
+    const key = channel;
+    update(key, { error: "" });
     setLoading(true);
     try {
       const response = await ch.send(id.trim());
-      setCodeSent(true);
-      setCode("");
-      setInfo(response.message || ch.sent);
-      setResendIn(response.resendAfterSeconds || 60);
+      update(key, {
+        codeSent: true,
+        code: "",
+        info: response.message || ch.sent,
+        resendIn: response.resendAfterSeconds || 60,
+      });
     } catch (err) {
-      setError(err.message || "Could not send the code.");
+      // A code went out moments ago: go to the code step and count down instead
+      if (err.status === 429 && err.data?.retryAfter) {
+        update(key, { codeSent: true, info: ch.sent, error: "", resendIn: err.data.retryAfter });
+      } else {
+        update(key, { error: err.message || "Could not send the code." });
+      }
     } finally {
       setLoading(false);
     }
@@ -129,7 +141,8 @@ export default function Login() {
 
   const handleVerify = async (e) => {
     e.preventDefault();
-    setError("");
+    const key = channel;
+    update(key, { error: "" });
     setLoading(true);
     try {
       const response = await ch.verify(id.trim(), code);
@@ -139,7 +152,7 @@ export default function Login() {
         navigate("/dashboard");
       }
     } catch (err) {
-      setError(err.message || "Could not verify the code.");
+      update(key, { error: err.message || "Could not verify the code." });
     } finally {
       setLoading(false);
     }
@@ -216,7 +229,7 @@ export default function Login() {
               label={ch.field.label}
               type={ch.field.type}
               value={id}
-              onChange={(e) => setIds((prev) => ({ ...prev, [channel]: e.target.value }))}
+              onChange={(e) => update(channel, { id: e.target.value })}
               placeholder={ch.field.placeholder}
               required
               autoFocus
@@ -235,7 +248,7 @@ export default function Login() {
                 size="medium"
                 label="6-digit code"
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => update(channel, { code: e.target.value.replace(/\D/g, "").slice(0, 6) })}
                 required
                 autoFocus
                 autoComplete="one-time-code"
@@ -251,7 +264,7 @@ export default function Login() {
                   type="button"
                   underline="hover"
                   sx={{ fontSize: 14, fontWeight: 600 }}
-                  onClick={resetCodeStep}
+                  onClick={changeId}
                 >
                   {ch.change}
                 </Link>
@@ -259,7 +272,12 @@ export default function Login() {
                   component="button"
                   type="button"
                   underline="hover"
-                  sx={{ fontSize: 14, fontWeight: 600 }}
+                  sx={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    fontVariantNumeric: "tabular-nums",
+                    ...(resendIn > 0 && { color: "text.disabled", cursor: "default", textDecoration: "none" }),
+                  }}
                   disabled={resendIn > 0 || loading}
                   onClick={handleSend}
                 >

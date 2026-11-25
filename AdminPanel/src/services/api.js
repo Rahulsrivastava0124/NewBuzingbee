@@ -133,7 +133,11 @@ const handleResponse = async (response) => {
     const error = await response
       .json()
       .catch(() => ({ message: "An error occurred" }));
-    throw new Error(error.message || "Request failed");
+    // Keep the status and body so callers can react (e.g. retryAfter on 429)
+    throw Object.assign(new Error(error.message || "Request failed"), {
+      status: response.status,
+      data: error,
+    });
   }
   return response.json();
 };
