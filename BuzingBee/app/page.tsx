@@ -332,6 +332,8 @@ export default function HomePage() {
                         <img
                           src={brand.src}
                           alt={`${brand.name} logo`}
+                          loading="lazy"
+                          decoding="async"
                           className={`${brand.h} w-auto ${
                             "invertDark" in brand ? "dark:invert dark:hue-rotate-180" : ""
                           }`}

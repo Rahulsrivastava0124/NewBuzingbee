@@ -1,26 +1,30 @@
 # BuzingBee
 
-> BuzingBee is a digital marketing and AI services agency.
+> BuzingBee is a digital marketing and AI services agency in India. We build websites, web apps and mobile apps, run SEO and paid ads, and set up AI automation, LLM SEO and Generative Engine Optimization (GEO) for business growth.
 
-## Primary Services
-- AI SEO and LLM SEO
-- Generative Engine Optimization (GEO)
-- Answer Engine Optimization (AEO)
-- SEO and content strategy
-- Google Ads and Meta Ads
-- Web development and mobile app development
-- AI automation and chatbot integration
+Primary services: AI SEO and LLM SEO, Generative Engine Optimization (GEO), Answer Engine Optimization (AEO), SEO and content strategy, Google Ads and Meta Ads, web and mobile app development, and AI automation and chatbot integration.
 
-## Important URLs
-- Home: https://buzingbee.com/
-- About: https://buzingbee.com/about
-- Services: https://buzingbee.com/services
-- Pricing: https://buzingbee.com/pricing
-- Portfolio: https://buzingbee.com/portfolio
-- Case studies: https://buzingbee.com/case-studies
-- Blog: https://buzingbee.com/blog
-- Contact: https://buzingbee.com/contact
+Contact: hello@buzingbee.com · +91 73608 79787
 
-## Contact
-- Email: hello@buzingbee.com
-- Phone: +91 73608 79787
+## Main pages
+
+- [Home](https://buzingbee.com/): Overview of BuzingBee and its services
+- [Services](https://buzingbee.com/services): Website, web app and mobile app development, digital marketing, paid ads, AI automation, LLM SEO and GEO
+- [Pricing](https://buzingbee.com/pricing): Basic, Standard and Premium website plans with domain, hosting and SEO, starting at ₹9,999
+- [Startup plan](https://buzingbee.com/startup): Essential setup and monthly reporting for new businesses
+- [About](https://buzingbee.com/about): Our story, mission, team and process
+- [Contact](https://buzingbee.com/contact): Request a free quote by form, email or phone
+
+## Work and insights
+
+- [Portfolio](https://buzingbee.com/portfolio): Websites, mobile apps, e-commerce stores, brand identities and marketing campaigns we have delivered
+- [Case studies](https://buzingbee.com/case-studies): How clients grew with our digital marketing, web development, SEO and AI work
+- [Blog](https://buzingbee.com/blog): Articles on digital marketing, web development, AI and business growth
+
+## Optional
+
+- [Privacy policy](https://buzingbee.com/privacy-policy)
+- [Terms and conditions](https://buzingbee.com/terms-and-conditions)
+- [Refund policy](https://buzingbee.com/refund-policy)
+- [Cookie policy](https://buzingbee.com/cookie-policy)
+- [Sitemap](https://buzingbee.com/sitemap.xml)

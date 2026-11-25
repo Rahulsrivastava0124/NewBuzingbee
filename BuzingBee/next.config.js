@@ -5,6 +5,9 @@ const nextConfig = {
   pageExtensions: ["ts", "tsx"],
   experimental: {
     forceSwcTransforms: true,
+    // Put the (small, ~15 KB gzipped) CSS straight into the HTML so the first
+    // paint doesn't wait on an extra round trip; mostly matters on mobile networks
+    inlineCss: true,
   },
   images: {
     remotePatterns: [

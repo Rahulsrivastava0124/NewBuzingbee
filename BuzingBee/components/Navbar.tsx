@@ -372,18 +372,20 @@ export default function Navbar() {
             {/* Logo */}
             <Link href="/" className="shrink-0">
               <img
-                src="/buzingbee-logo.webp"
+                src="/buzingbee-logo-88.webp"
                 alt={`${SITE_CONFIG.name} — Digital Marketing & AI`}
-                width={944}
-                height={257}
+                width={323}
+                height={88}
                 className="h-9 md:h-11 w-auto dark:hidden"
               />
-              {/* same logo with off-white lettering for dark mode */}
+              {/* same logo with off-white lettering for dark mode; lazy so light mode
+                  never downloads it (hidden lazy images aren't fetched) */}
               <img
-                src="/buzingbee-logo-dark.webp"
+                src="/buzingbee-logo-dark-88.webp"
                 alt={`${SITE_CONFIG.name} — Digital Marketing & AI`}
-                width={944}
-                height={257}
+                width={323}
+                height={88}
+                loading="lazy"
                 className="hidden h-9 md:h-11 w-auto dark:block"
               />
             </Link>

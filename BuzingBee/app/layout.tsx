@@ -18,6 +18,9 @@ const generalSans = localFont({
   ],
   variable: "--font-general-sans",
   display: "swap",
+  // Preloading all five weights (~150 KB) competed with the CSS the first paint
+  // needs; text now paints in the size-matched fallback and swaps when they arrive
+  preload: false,
 });
  
 
