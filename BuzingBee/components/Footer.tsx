@@ -17,18 +17,24 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div>
-            <Link href="/" className="flex items-center gap-2 mb-4">
+            {/* Same logo as the navbar; the dark copy has off-white lettering */}
+            <Link href="/" className="mb-4 inline-flex">
               <img
-                src="/android-chrome-192x192.png"
-                alt="BuzingBee logo"
-                width={32}
-                height={32}
+                src="/buzingbee-logo-88.webp"
+                alt={`${SITE_CONFIG.name} logo`}
+                width={323}
+                height={88}
                 loading="lazy"
-                className="w-8 h-8"
+                className="h-11 w-auto dark:hidden"
               />
-              <span className="text-xl font-bold text-textHeading font-heading">
-                Buzing<span className="text-accent">Bee</span>
-              </span>
+              <img
+                src="/buzingbee-logo-dark-88.webp"
+                alt={`${SITE_CONFIG.name} logo`}
+                width={323}
+                height={88}
+                loading="lazy"
+                className="hidden h-11 w-auto dark:block"
+              />
             </Link>
             <p className="text-textMuted text-sm leading-relaxed">
               We craft innovative digital marketing strategies and AI-powered
