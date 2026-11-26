@@ -139,6 +139,23 @@ const structuredData = {
           url: `${SITE_CONFIG.url}/`,
           isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
         },
+        // main sections, so search engines see them as the site's key pages
+        ...[
+          ["Shopify Stores", "/services/shopify-development"],
+          ["Performance Marketing", "/services/performance-marketing"],
+          ["AI Automation", "/services/ai-automation"],
+          ["Our Services", "/services"],
+          ["Pricing Plans", "/pricing"],
+          ["Our Portfolio", "/portfolio"],
+          ["Our Blog", "/blog"],
+          ["Contact Us", "/contact"],
+        ].map(([name, path]) => ({
+          "@type": ["WebPage", "SiteNavigationElement"],
+          "@id": `${SITE_CONFIG.url}${path}#page`,
+          name,
+          url: `${SITE_CONFIG.url}${path}`,
+          isPartOf: { "@id": `${SITE_CONFIG.url}/#website` },
+        })),
       ],
     },
   ],

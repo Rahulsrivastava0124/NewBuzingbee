@@ -71,21 +71,21 @@ const SERVICE_OVERVIEW = [
     color: "#4f46e5",
     title: "AI Agents & Automation",
     desc: "Deploy intelligent AI agents to handle support, sales and business workflows 24/7.",
-    href: "#all-services",
+    href: "/services/ai-automation",
   },
   {
     icon: FaWhatsapp,
     color: "#25d366", // WhatsApp brand green
     title: "WhatsApp Automation",
     desc: "Automate conversations, lead capture, notifications and end-to-end journeys.",
-    href: "#all-services",
+    href: "/services/ai-automation",
   },
   {
     icon: FaShopify,
     color: "#95bf47", // Shopify brand green
     title: "Shopify Development",
     desc: "Build, customize and optimize high-converting Shopify stores that drive real sales.",
-    href: "#all-services",
+    href: "/services/shopify-development",
   },
   {
     icon: Search,
@@ -99,7 +99,7 @@ const SERVICE_OVERVIEW = [
     color: "#6d3df2",
     title: "Performance Marketing",
     desc: "Run data-driven campaigns on Google, Meta and more to attract, engage and convert.",
-    href: "#all-services",
+    href: "/services/performance-marketing",
   },
   {
     icon: Code2,

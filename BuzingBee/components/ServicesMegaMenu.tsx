@@ -16,6 +16,13 @@ import {
 import { SERVICES } from "@/components/ServicesGrid";
 import { openAuditPopup } from "@/lib/audit-popup";
 
+// services with their own landing page link there; the rest open the audit popup
+const PAGES: Record<string, string> = {
+  "Performance Marketing": "/services/performance-marketing",
+  "Conversion-led Storefronts": "/services/shopify-development",
+  "Systems & Automation": "/services/ai-automation",
+};
+
 // one coloured icon per service, matched by title
 const ICONS: Record<string, { icon: LucideIcon; color: string }> = {
   "Performance Marketing": { icon: TrendingUp, color: "#6d3df2" },
@@ -50,16 +57,11 @@ export default function ServicesMegaMenu({ allHref, onNavigate }: Props) {
           {SERVICES.map((svc) => {
             const meta = ICONS[svc.title] ?? { icon: TrendingUp, color: "#fdb905" };
             const Icon = meta.icon;
-            return (
-              <li key={svc.title}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate();
-                    openAuditPopup(svc.title);
-                  }}
-                  className="group flex w-full items-center gap-4 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-ink/[0.04] focus-visible:bg-ink/[0.04] focus-visible:outline-none"
-                >
+            const page = PAGES[svc.title];
+            const itemClass =
+              "group flex w-full items-center gap-4 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-ink/[0.04] focus-visible:bg-ink/[0.04] focus-visible:outline-none";
+            const content = (
+              <>
                   <span
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-ink/10 bg-surface transition-transform duration-200 group-hover:scale-105"
                     style={{ backgroundColor: `${meta.color}0f` }}
@@ -70,7 +72,26 @@ export default function ServicesMegaMenu({ allHref, onNavigate }: Props) {
                     <span className="block text-[15px] font-medium text-ink">{svc.title}</span>
                     <span className="block truncate text-[13px] text-slate">{svc.tags.join(" · ")}</span>
                   </span>
-                </button>
+              </>
+            );
+            return (
+              <li key={svc.title}>
+                {page ? (
+                  <Link href={page} onClick={onNavigate} className={itemClass}>
+                    {content}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onNavigate();
+                      openAuditPopup(svc.title);
+                    }}
+                    className={itemClass}
+                  >
+                    {content}
+                  </button>
+                )}
               </li>
             );
           })}

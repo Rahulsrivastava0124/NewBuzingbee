@@ -72,6 +72,21 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm text-textMuted">
               <li>
+                <Link href="/services/shopify-development" className="hover:text-accent transition-colors">
+                  Shopify Stores
+                </Link>
+              </li>
+              <li>
+                <Link href="/services/performance-marketing" className="hover:text-accent transition-colors">
+                  Performance Marketing
+                </Link>
+              </li>
+              <li>
+                <Link href="/services/ai-automation" className="hover:text-accent transition-colors">
+                  AI Automation
+                </Link>
+              </li>
+              <li>
                 <Link href="/services#web-app-development" className="hover:text-accent transition-colors">
                   Web Design &amp; Development
                 </Link>
