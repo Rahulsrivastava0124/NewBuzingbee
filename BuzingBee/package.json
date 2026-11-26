@@ -35,7 +35,7 @@
   },
   "scripts": {
     "seo:generate": "node scripts/generate-sitemap.mjs",
-    "predev": "pkill -f \"next dev\" >/dev/null 2>&1 || true && kill -9 $(lsof -ti:3000) >/dev/null 2>&1 || true && sleep 1 && rm -rf .next && npm run seo:generate",
+    "predev": "node scripts/predev.mjs",
     "dev": "next dev -p 3000",
     "prebuild": "npm run seo:generate",
     "prestart": "npm run seo:generate",

@@ -20,6 +20,7 @@ import HeroStories from "@/components/HeroStories";
 import ServiceRevealCard from "@/components/ServiceRevealCard";
 import ServicesGrid from "@/components/ServicesGrid";
 import ProjectsMarquee from "@/components/ProjectsMarquee";
+import RibbonText, { type Ribbon } from "@/components/RibbonText";
 import { Highlighter } from "@/components/ui/highlighter";
 import dynamic from "next/dynamic";
 
@@ -56,6 +57,21 @@ const BRANDS = [
   { name: "Hostinger", src: "/brands/hostinger.svg", h: "h-6", label: true },
   { name: "Cashfree", src: "/brands/cashfree.svg", h: "h-5", invertDark: true },
   { name: "PhonePe", src: "/brands/phonepe.svg", h: "h-6", label: true },
+];
+
+// one honey ribbon waving across the section
+const RIBBONS: Ribbon[] = [
+  {
+    text: "AI AUTOMATION  •  PERFORMANCE MARKETING  •  WEB DEVELOPMENT  •  SEO",
+    bg: "#fdb905",
+    fg: "#141414",
+    y: 0.5,
+    amplitude: 36,
+    frequency: 1.1,
+    width: 84,
+    speed: 80,
+    direction: "left",
+  },
 ];
 
 const SERVICE_OVERVIEW = [
@@ -357,7 +373,7 @@ export default function HomePage() {
             What We Do
             <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
           </p>
-          <div className="grid gap-12 pb-20 pt-10 lg:pb-24 min-[1400px]:grid-cols-[0.85fr_2fr] min-[1400px]:gap-8">
+          <div className="grid gap-12 pb-6 pt-10 lg:pb-8 min-[1400px]:grid-cols-[0.85fr_2fr] min-[1400px]:gap-8">
             <div>
               <h2 className={`${H2} !leading-[1.3]`}>
                 End-to-End{" "}
@@ -391,6 +407,16 @@ export default function HomePage() {
             </ul>
           </div>
         </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          RIBBONS: services on waving ribbons
+      ══════════════════════════════════════════ */}
+      <section aria-label="What we offer" className="bg-paper">
+        <RibbonText
+          className="h-[180px] sm:h-[210px]"
+          ribbons={RIBBONS}
+        />
       </section>
 
       {/* ══════════════════════════════════════════
