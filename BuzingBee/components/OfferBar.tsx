@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import { openAuditPopup } from "@/lib/audit-popup";
+import Counter from "@/components/ui/counter/Counter";
 
 /**
  * Thin dark announcement bar at the very top of the site. It shows one offer at a
@@ -48,6 +49,80 @@ const OFFERS: Offer[] = [
 
 const INTERVAL_MS = 3500;
 
+// the offers run for 10 days; countdown hides itself once this passes (IST)
+const OFFER_ENDS_AT = new Date("2026-12-06T23:59:59+05:30").getTime();
+
+function timeLeft(now: number) {
+  const s = Math.max(0, Math.floor((OFFER_ENDS_AT - now) / 1000));
+  return {
+    total: s,
+    days: Math.floor(s / 86400),
+    hours: Math.floor((s % 86400) / 3600),
+    minutes: Math.floor((s % 3600) / 60),
+    seconds: s % 60,
+  };
+}
+
+const TILE_STYLE = {
+  padding: "3px 5px",
+  borderRadius: 6,
+  border: "1px solid rgba(253, 185, 5, 0.45)",
+  background: "rgba(253, 185, 5, 0.08)",
+};
+
+/** "Ends in DD : HH : MM : SS", each number rolling with the React Bits Counter */
+function Countdown() {
+  // computed on the client only, so server and client HTML match
+  const [left, setLeft] = useState<ReturnType<typeof timeLeft> | null>(null);
+
+  useEffect(() => {
+    const tick = () => setLeft(timeLeft(Date.now()));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!left || left.total === 0) return null;
+
+  const parts: [number, string][] = [
+    [left.days, "d"],
+    [left.hours, "h"],
+    [left.minutes, "m"],
+    [left.seconds, "s"],
+  ];
+
+  return (
+    <div
+      className="hidden shrink-0 items-center gap-2 pr-4 md:flex"
+      role="timer"
+      aria-label={`Offer ends in ${left.days} days ${left.hours} hours ${left.minutes} minutes`}
+    >
+      <span className="text-[12px] text-white/55">Ends in</span>
+      <span className="flex items-center gap-1" aria-hidden="true">
+        {parts.map(([value, unit], i) => (
+          <span key={unit} className="flex items-center gap-1">
+            {i > 0 && <span className="text-white/40">:</span>}
+            <Counter
+              value={value}
+              minDigits={2}
+              fontSize={13}
+              fontWeight="600"
+              textColor="#fdb905"
+              intro={false}
+              direction="shortest"
+              duration={0.5}
+              fade={0.15}
+              gap={1}
+              style={TILE_STYLE}
+            />
+            <span className="text-[11px] text-white/45">{unit}</span>
+          </span>
+        ))}
+      </span>
+    </div>
+  );
+}
+
 const CTA_CLASS =
   "inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-[#0b0d14] transition-colors hover:bg-honey focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-honey sm:px-4 sm:text-[13px]";
 
@@ -66,13 +141,14 @@ export default function OfferBar() {
 
   return (
     <div
-      className="relative h-9 overflow-hidden bg-[#0b0d14] text-white [perspective:600px]"
+      className="flex h-9 items-center overflow-hidden bg-[#0b0d14] text-white"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
       aria-live="polite"
     >
+      <div className="relative h-full min-w-0 flex-1 [perspective:600px]">
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={index}
@@ -102,6 +178,8 @@ export default function OfferBar() {
           )}
         </motion.div>
       </AnimatePresence>
+      </div>
+      <Countdown />
     </div>
   );
 }

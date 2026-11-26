@@ -8,7 +8,6 @@ import {
   Target,
   ArrowUpRight,
   Bot,
-  ShoppingBag,
   Megaphone,
   PlayCircle,
   Layers,
@@ -19,7 +18,7 @@ import HeroStories from "@/components/HeroStories";
 import ServiceRevealCard from "@/components/ServiceRevealCard";
 import ServicesGrid from "@/components/ServicesGrid";
 import ProjectsMarquee from "@/components/ProjectsMarquee";
-import { FaWhatsapp } from "react-icons/fa6";
+import { FaShopify, FaWhatsapp } from "react-icons/fa6";
 import RibbonText, { type Ribbon } from "@/components/RibbonText";
 import { Highlighter } from "@/components/ui/highlighter";
 import { RollingText } from "@/components/animate-ui/primitives/texts/rolling";
@@ -82,8 +81,8 @@ const SERVICE_OVERVIEW = [
     href: "#all-services",
   },
   {
-    icon: ShoppingBag,
-    color: "#5e8e3e", // Shopify green
+    icon: FaShopify,
+    color: "#95bf47", // Shopify brand green
     title: "Shopify Development",
     desc: "Build, customize and optimize high-converting Shopify stores that drive real sales.",
     href: "#all-services",
