@@ -66,9 +66,9 @@ const RIBBONS: Ribbon[] = [
     bg: "#fdb905",
     fg: "#141414",
     y: 0.5,
-    amplitude: 70,
+    amplitude: 36,
     frequency: 1.1,
-    width: 72,
+    width: 84,
     speed: 80,
     direction: "left",
   },
@@ -373,7 +373,7 @@ export default function HomePage() {
             What We Do
             <span className="h-[3px] w-12 rounded-full bg-[#fdb905]" />
           </p>
-          <div className="grid gap-12 pb-20 pt-10 lg:pb-24 min-[1400px]:grid-cols-[0.85fr_2fr] min-[1400px]:gap-8">
+          <div className="grid gap-12 pb-6 pt-10 lg:pb-8 min-[1400px]:grid-cols-[0.85fr_2fr] min-[1400px]:gap-8">
             <div>
               <h2 className={`${H2} !leading-[1.3]`}>
                 End-to-End{" "}
@@ -414,7 +414,7 @@ export default function HomePage() {
       ══════════════════════════════════════════ */}
       <section aria-label="What we offer" className="bg-paper">
         <RibbonText
-          className="h-[260px] sm:h-[340px]"
+          className="h-[180px] sm:h-[210px]"
           ribbons={RIBBONS}
         />
       </section>

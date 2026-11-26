@@ -22,6 +22,7 @@ import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 import OtpVerifyDialog, { type EnquiryVerification } from "@/components/OtpVerifyDialog";
 import ThankYouCard from "@/components/ThankYouCard";
+import OfferBar from "@/components/OfferBar";
 
 // homepage sections the menu links to, in page order (used to underline the one in view)
 const SECTION_IDS = ["about", "work", "insights", "all-services"];
@@ -363,6 +364,7 @@ export default function Navbar() {
             : "bg-transparent"
         }`}
       >
+        <OfferBar />
         <nav className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
           <div
             className={`flex items-center gap-4 xl:gap-8 transition-[height] duration-300 ${
