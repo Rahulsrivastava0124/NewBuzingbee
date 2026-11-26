@@ -20,6 +20,7 @@ import HeroStories from "@/components/HeroStories";
 import ServiceRevealCard from "@/components/ServiceRevealCard";
 import ServicesGrid from "@/components/ServicesGrid";
 import ProjectsMarquee from "@/components/ProjectsMarquee";
+import RibbonText, { type Ribbon } from "@/components/RibbonText";
 import { Highlighter } from "@/components/ui/highlighter";
 import dynamic from "next/dynamic";
 
@@ -56,6 +57,21 @@ const BRANDS = [
   { name: "Hostinger", src: "/brands/hostinger.svg", h: "h-6", label: true },
   { name: "Cashfree", src: "/brands/cashfree.svg", h: "h-5", invertDark: true },
   { name: "PhonePe", src: "/brands/phonepe.svg", h: "h-6", label: true },
+];
+
+// one honey ribbon waving across the section
+const RIBBONS: Ribbon[] = [
+  {
+    text: "AI AUTOMATION  •  PERFORMANCE MARKETING  •  WEB DEVELOPMENT  •  SEO",
+    bg: "#fdb905",
+    fg: "#141414",
+    y: 0.5,
+    amplitude: 70,
+    frequency: 1.1,
+    width: 72,
+    speed: 80,
+    direction: "left",
+  },
 ];
 
 const SERVICE_OVERVIEW = [
@@ -391,6 +407,16 @@ export default function HomePage() {
             </ul>
           </div>
         </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          RIBBONS: services on waving ribbons
+      ══════════════════════════════════════════ */}
+      <section aria-label="What we offer" className="bg-paper">
+        <RibbonText
+          className="h-[260px] sm:h-[340px]"
+          ribbons={RIBBONS}
+        />
       </section>
 
       {/* ══════════════════════════════════════════
