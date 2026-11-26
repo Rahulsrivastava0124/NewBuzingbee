@@ -8,7 +8,6 @@ import {
   Target,
   ArrowUpRight,
   Bot,
-  MessageCircle,
   ShoppingBag,
   Megaphone,
   PlayCircle,
@@ -20,16 +19,9 @@ import HeroStories from "@/components/HeroStories";
 import ServiceRevealCard from "@/components/ServiceRevealCard";
 import ServicesGrid from "@/components/ServicesGrid";
 import ProjectsMarquee from "@/components/ProjectsMarquee";
+import { FaWhatsapp } from "react-icons/fa6";
 import RibbonText, { type Ribbon } from "@/components/RibbonText";
 import { Highlighter } from "@/components/ui/highlighter";
-import dynamic from "next/dynamic";
-
-// decorative and computed with trig, whose last decimals differ between Node and browsers;
-// render it client-only so server and client HTML always match
-const HexagonPattern = dynamic(
-  () => import("@/components/ui/hexagon-pattern").then((m) => m.HexagonPattern),
-  { ssr: false },
-);
 import { RollingText } from "@/components/animate-ui/primitives/texts/rolling";
 import { openAuditPopup } from "@/lib/audit-popup";
 
@@ -77,36 +69,42 @@ const RIBBONS: Ribbon[] = [
 const SERVICE_OVERVIEW = [
   {
     icon: Bot,
+    color: "#4f46e5",
     title: "AI Agents & Automation",
     desc: "Deploy intelligent AI agents to handle support, sales and business workflows 24/7.",
     href: "#all-services",
   },
   {
-    icon: MessageCircle,
+    icon: FaWhatsapp,
+    color: "#25d366", // WhatsApp brand green
     title: "WhatsApp Automation",
     desc: "Automate conversations, lead capture, notifications and end-to-end journeys.",
     href: "#all-services",
   },
   {
     icon: ShoppingBag,
+    color: "#5e8e3e", // Shopify green
     title: "Shopify Development",
     desc: "Build, customize and optimize high-converting Shopify stores that drive real sales.",
     href: "#all-services",
   },
   {
     icon: Search,
+    color: "#4285f4", // Google blue
     title: "Search & AI Visibility",
     desc: "Grow your presence on Google and AI platforms with SEO, GEO and AEO strategies.",
     href: "#all-services",
   },
   {
     icon: Megaphone,
+    color: "#6d3df2",
     title: "Performance Marketing",
     desc: "Run data-driven campaigns on Google, Meta and more to attract, engage and convert.",
     href: "#all-services",
   },
   {
     icon: Code2,
+    color: "#f97316",
     title: "Website Development",
     desc: "Design and develop modern, fast and conversion-focused websites and web apps.",
     href: "#all-services",
@@ -123,11 +121,6 @@ function overviewBorders(i: number) {
     i % 3 === 0 ? "lg:border-l-0" : "lg:border-l",
   ].join(" ");
 }
-
-// honey-filled cells in the hero honeycomb, as [column, row]
-const HERO_HEXAGONS: [number, number][] = [
-  [9, 2], [13, 1], [15, 4], [18, 2], [20, 6], [22, 3], [17, 8], [24, 5], [12, 7], [6, 5],
-];
 
 // agency services cycled in the hero headline ("Performance <service>")
 const HERO_SERVICES = [
@@ -223,47 +216,6 @@ export default function HomePage() {
           1. HERO SECTION
       ══════════════════════════════════════════ */}
       <section className="relative overflow-hidden bg-paper font-jakarta lg:min-h-screen">
-        {/* honeycomb (Magic UI Hexagon Pattern): faint lines, a few honey cells, faded at the edges */}
-        <HexagonPattern
-          radius={34}
-          gap={3}
-          hexagons={HERO_HEXAGONS}
-          className="fill-[#fdb905]/20 stroke-ink/[0.07] [mask-image:radial-gradient(ellipse_80%_75%_at_65%_40%,black_25%,transparent_80%)]"
-        />
-        {/* yellow swooshes */}
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 1440 900"
-          preserveAspectRatio="none"
-          className="absolute inset-0 h-full w-full pointer-events-none"
-        >
-          <defs>
-            <linearGradient id="hero-swoosh" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="#fdb905" stopOpacity="0" />
-              <stop offset="45%" stopColor="#fdb905" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#fdb905" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="hero-wave" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#ffe9a8" stopOpacity="0" />
-              <stop offset="55%" stopColor="#ffd23f" />
-              <stop offset="100%" stopColor="#fdb905" />
-            </linearGradient>
-            <radialGradient id="hero-glow" cx="0" cy="1" r="1">
-              <stop offset="0%" stopColor="#ffd23f" stopOpacity="0.55" />
-              <stop offset="100%" stopColor="#fff4cc" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <path className="hidden lg:block" d="M 690 320 Q 860 120 1120 62 Q 880 140 690 320 Z" fill="url(#hero-swoosh)" />
-          <path d="M 0 560 Q 160 760 420 900 L 0 900 Z" fill="url(#hero-glow)" />
-          <path className="dark:opacity-10" d="M 700 900 Q 1160 880 1440 610 L 1440 900 Z" fill="#fff1c2" opacity="0.7" />
-          <path d="M 860 900 Q 1240 860 1440 680 L 1440 900 Z" fill="url(#hero-wave)" />
-        </svg>
-        {/* fade the waves into white so the hero blends into the brands strip below */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent via-paper/70 to-paper"
-        />
-
         <div className="relative z-10 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pt-28 md:pt-36 lg:pt-40 pb-16 lg:pb-20 grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-6 items-center">
           {/* centred on phones/tablets, left-aligned beside the animation on desktop */}
           <div className="text-center lg:text-left">

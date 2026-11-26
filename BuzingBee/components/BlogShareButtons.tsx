@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Facebook, Link2, Linkedin, MessageCircle, Send, Share2 } from "lucide-react";
+import { Check, Facebook, Link2, Linkedin, Send, Share2 } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa6";
 
 interface BlogShareButtonsProps {
   title: string;
@@ -28,7 +29,7 @@ export default function BlogShareButtons({ title, url }: BlogShareButtonsProps) 
     {
       href: `https://wa.me/?text=${t}%20${u}`,
       label: "WhatsApp",
-      icon: MessageCircle,
+      icon: FaWhatsapp,
       color: "bg-[#25d366]/15 text-[#128c4b] dark:text-[#25d366] hover:bg-[#25d366]",
     },
     {

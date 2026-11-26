@@ -9,7 +9,6 @@ import {
   Menu,
   X,
   Phone,
-  MessageCircle,
   ArrowUpRight,
   ChevronDown,
   CheckCircle,
@@ -17,7 +16,8 @@ import {
 } from "lucide-react";
 import { NAV_LINKS, SITE_CONFIG } from "@/lib/constants";
 import { AUDIT_POPUP_EVENT, openAuditPopup } from "@/lib/audit-popup";
-import { SERVICES } from "@/components/ServicesGrid";
+import ServicesMegaMenu from "@/components/ServicesMegaMenu";
+import { FaWhatsapp } from "react-icons/fa6";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import TurnstileWidget, { TURNSTILE_SITE_KEY } from "@/components/TurnstileWidget";
 import OtpVerifyDialog, { type EnquiryVerification } from "@/components/OtpVerifyDialog";
@@ -52,6 +52,20 @@ const AUDIT_OPTIONS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const servicesBtnRef = useRef<HTMLButtonElement>(null);
+  const servicesPanelRef = useRef<HTMLDivElement>(null);
+  // hover: open on enter; close shortly after the pointer leaves both the button and
+  // the menu, so moving across the small gap between them doesn't close it
+  const servicesCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverOpenServices = () => {
+    if (servicesCloseTimer.current) clearTimeout(servicesCloseTimer.current);
+    setServicesOpen(true);
+  };
+  const hoverCloseServices = () => {
+    if (servicesCloseTimer.current) clearTimeout(servicesCloseTimer.current);
+    servicesCloseTimer.current = setTimeout(() => setServicesOpen(false), 180);
+  };
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [enquiryForm, setEnquiryForm] = useState(EMPTY_FORM);
@@ -102,7 +116,30 @@ export default function Navbar() {
 
   useEffect(() => {
     setMobileOpen(false);
+    setServicesOpen(false);
   }, [pathname]);
+
+  // services menu closes on outside click or Escape
+  useEffect(() => {
+    if (!servicesOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (servicesPanelRef.current?.contains(t) || servicesBtnRef.current?.contains(t)) return;
+      setServicesOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setServicesOpen(false);
+        servicesBtnRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [servicesOpen]);
 
   useEffect(() => {
     setMounted(true);
@@ -414,30 +451,28 @@ export default function Navbar() {
                   );
                 }
 
-                // Services: link to the grid, plus a dropdown of the 8 services
-                // (each opens the free-audit popup pre-filled with that service)
+                // Services: click opens the full-width services menu below the bar
                 return (
-                  <div key={link.href} className="relative group">
-                    <Link href={link.href} className={linkClass}>
-                      {link.label}
-                      <ChevronDown className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" />
-                      {underline}
-                    </Link>
-                    <div className="invisible opacity-0 translate-y-2 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:visible group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-200 absolute left-1/2 -translate-x-1/2 top-full pt-3">
-                      <div className="w-80 rounded-2xl border border-[#fdb905]/25 bg-surface p-2 shadow-[0_18px_40px_rgba(18,20,28,0.12)]">
-                        {SERVICES.map((svc) => (
-                          <button
-                            key={svc.title}
-                            type="button"
-                            onClick={() => openAuditPopup(svc.title)}
-                            className="block w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium text-ink hover:bg-[#fdb905]/10 focus-visible:bg-[#fdb905]/10 focus-visible:outline-none"
-                          >
-                            {svc.title}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  <button
+                    key={link.href}
+                    ref={servicesBtnRef}
+                    type="button"
+                    // hover already opened it; a click must not toggle it shut again
+                    onClick={hoverOpenServices}
+                    onMouseEnter={hoverOpenServices}
+                    onMouseLeave={hoverCloseServices}
+                    aria-expanded={servicesOpen}
+                    aria-controls="services-menu"
+                    className={`${linkClass} rounded-full px-4 -mx-4 ${
+                      servicesOpen ? "ring-2 ring-[#fdb905] text-ink" : ""
+                    }`}
+                  >
+                    {link.label}
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${servicesOpen ? "rotate-180" : ""}`}
+                    />
+                    {underline}
+                  </button>
                 );
               })}
             </div>
@@ -470,6 +505,28 @@ export default function Navbar() {
             </div>
           </div>
         </nav>
+
+        {/* Services menu (desktop) */}
+        <AnimatePresence>
+          {servicesOpen && (
+            <motion.div
+              id="services-menu"
+              ref={servicesPanelRef}
+              onMouseEnter={hoverOpenServices}
+              onMouseLeave={hoverCloseServices}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-x-0 top-full hidden border-y border-ink/10 bg-paper shadow-[0_24px_48px_rgba(18,20,28,0.10)] xl:block"
+            >
+              <ServicesMegaMenu
+                allHref={NAV_LINKS.find((l) => l.label === "Services")?.href ?? "/#all-services"}
+                onNavigate={() => setServicesOpen(false)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Mobile menu */}
         <AnimatePresence>
@@ -512,9 +569,9 @@ export default function Navbar() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="WhatsApp us"
-                    className="btn-light btn-icon !text-green-600"
+                    className="btn-light btn-icon !text-[#25d366]"
                   >
-                    <MessageCircle className="w-5 h-5" />
+                    <FaWhatsapp className="w-5 h-5" />
                   </a>
                   <button
                     type="button"

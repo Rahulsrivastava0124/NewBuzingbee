@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType, CSSProperties } from "react";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 
 // spotlight: honey in light mode, violet in dark (--spot in globals.css), white + ink dots at medium strength, so the
@@ -15,13 +15,18 @@ const DOT_OPACITIES = [0.25, 0.25, 0.25, 0.35, 0.35, 0.35, 0.5, 0.5, 0.5, 0.65];
 
 // Homepage service item: a honey spotlight follows the pointer (or centres on keyboard
 // focus) and reveals the dot matrix around it. Text stays ink: white on honey is unreadable.
+type ServiceIcon = ComponentType<{ className?: string; style?: CSSProperties; strokeWidth?: number }>;
+
 export default function ServiceRevealCard({
   icon: Icon,
+  color,
   title,
   desc,
   href,
 }: {
-  icon: LucideIcon;
+  icon: ServiceIcon;
+  /** icon colour (brand or accent); falls back to ink */
+  color?: string;
   title: string;
   desc: string;
   href: string;
@@ -40,7 +45,7 @@ export default function ServiceRevealCard({
       >
         {/* fixed 2-line title row so descriptions line up across each row */}
         <div className="flex min-h-[3.5rem] items-center gap-5">
-          <Icon className="h-7 w-7 shrink-0 text-ink" strokeWidth={1.75} />
+          <Icon className="h-7 w-7 shrink-0 text-ink" style={color ? { color } : undefined} strokeWidth={1.75} />
           <h3 className="text-lg font-semibold leading-snug text-ink">{title}</h3>
         </div>
         <p className="mt-2 pl-12 text-base leading-relaxed text-slate transition-colors duration-200 group-hover/spotlight:text-ink/85">
