@@ -11,7 +11,7 @@ interface BlogCardProps {
   date: string;
   image: string;
   slug: string;
-  views: number;
+  views: number | null;
   index: number;
 }
 
@@ -59,10 +59,12 @@ export default function BlogCard({
             <Calendar className="w-3 h-3" />
             {date}
           </div>
-          <div className="flex items-center gap-1" title="Unique visitors">
-            <Eye className="w-3 h-3" aria-hidden="true" />
-            <span>{views.toLocaleString("en-IN")} {views === 1 ? "visitor" : "visitors"}</span>
-          </div>
+          {views != null && (
+            <div className="flex shrink-0 items-center gap-1" title="Unique visitors">
+              <Eye className="w-3 h-3" aria-hidden="true" />
+              <span>{views.toLocaleString("en-IN")} {views === 1 ? "visitor" : "visitors"}</span>
+            </div>
+          )}
         </div>
         <h3
           className="text-lg font-bold text-textHeading font-heading mb-2 line-clamp-2

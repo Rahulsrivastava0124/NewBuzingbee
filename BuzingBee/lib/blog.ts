@@ -30,7 +30,8 @@ export interface BlogCardItem {
   date: string;
   image: string;
   slug: string;
-  views: number;
+  /** unique visitors; null when the API doesn't report it */
+  views: number | null;
 }
 
 export interface BlogPostItem extends BlogCardItem {
@@ -185,7 +186,7 @@ export const fetchBlogBySlug = cache(async (
           blogApiOrigin,
         ),
         slug: raw.slug || toSlug(raw.title || slug || "blog"),
-        views: Number(raw.uniqueVisitors) || 0, // the site shows unique visitors only
+        views: raw.uniqueVisitors == null ? null : Number(raw.uniqueVisitors) || 0, // the site shows unique visitors only
         content: raw.content || "",
         seoTitle: raw.seo?.title || raw.title || "BuzingBee Blog",
         seoDescription:
@@ -278,7 +279,7 @@ export const fetchBlogPosts = async (): Promise<BlogPostItem[]> => {
     date: toReadableDate(blog.publishedAt || blog.createdAt),
     image: normalizeImageUrl(blog.image || blog.seo?.ogImage, blogApiOrigin),
     slug: blog.slug || toSlug(blog.title || `blog-${index + 1}`),
-    views: Number(blog.uniqueVisitors) || 0, // the site shows unique visitors only
+    views: blog.uniqueVisitors == null ? null : Number(blog.uniqueVisitors) || 0, // the site shows unique visitors only
     content: blog.content || "",
     seoTitle: blog.seo?.title || blog.title || "BuzingBee Blog",
     seoDescription:

@@ -5,7 +5,7 @@ const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 const { sanitizeRichText } = require("../utils/sanitize");
 const { escapeRegex } = require("../utils/validate");
 const BlogViewDay = require("../models/BlogViewDay");
-const BlogVisitor = require("../models/BlogVisitor");
+const Analytics = require("../models/Analytics");
 const { DEFAULT_SITE, resolveSite, siteFilter, slugify } = require("../utils/site");
 
 // Clean slug that is unique within one website's blog (-2, -3 ... on clashes).
@@ -36,34 +36,37 @@ const recordDailyView = (blogId) =>
     { upsert: true },
   ).catch((error) => console.error("[blog] Could not record daily view:", error.message));
 
-const VISITOR_ID = /^[A-Za-z0-9-]{8,64}$/;
+// The website's URL path for a post (mirrors the site: blank slugs fall back to the title)
+const postPath = (blog) =>
+  `/blog/${
+    blog.slug ||
+    String(blog.title || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+  }`;
 
-// POST /blog/:id/visit { visitor } — count a browser once per post.
-// Returns the post's unique visitor count.
-const recordBlogVisit = async (req, res) => {
-  const { id } = req.params;
-  const visitor = String(req.body?.visitor || "");
-  if (!mongoose.isValidObjectId(id) || !VISITOR_ID.test(visitor)) {
-    return res.status(400).json({ success: false, message: "Invalid visit" });
-  }
-  try {
-    const blog = await Blog.exists({ _id: id, status: "published" });
-    if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
-
-    let counted = false;
-    try {
-      await BlogVisitor.create({ blog: id, visitor });
-      counted = true;
-    } catch (error) {
-      if (error.code !== 11000) throw error; // 11000 = already counted
-    }
-    const updated = counted
-      ? await Blog.findByIdAndUpdate(id, { $inc: { uniqueVisitors: 1 } }, { returnDocument: "after" })
-      : await Blog.findById(id).select("uniqueVisitors");
-    return res.json({ success: true, counted, uniqueVisitors: updated?.uniqueVisitors || 0 });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to record visit" });
-  }
+// Unique visitors per post = distinct IPs in the page-view log for that post's URL.
+// Returns the posts as plain objects with `uniqueVisitors` added.
+// ponytail: counts per IP (shared office IPs count once); the log keeps every row.
+const withUniqueVisitors = async (blogs) => {
+  const list = blogs.map((b) => (b.toObject ? b.toObject() : b));
+  if (!list.length) return list;
+  const rows = await Analytics.aggregate([
+    { $match: { page: { $in: list.map(postPath) }, ipAddress: { $nin: ["", null] } } },
+    { $group: { _id: { website: "$website", page: "$page" }, ips: { $addToSet: "$ipAddress" } } },
+    { $project: { count: { $size: "$ips" } } },
+  ]).catch((error) => {
+    console.error("[blog] Could not count unique visitors:", error.message);
+    return [];
+  });
+  const counts = new Map(rows.map((r) => [`${r._id.website} ${r._id.page}`, r.count]));
+  return list.map((b) => ({
+    ...b,
+    uniqueVisitors: counts.get(`${b.site || DEFAULT_SITE} ${postPath(b)}`) || 0,
+  }));
 };
 
 // GET /blog/views/daily?days=14 — per-post daily views for the admin graphs
@@ -277,8 +280,8 @@ const getAllBlogs = async (req, res) => {
     }
 
     const blogs = await Blog.find(query).sort({ createdAt: -1 });
-    const normalizedBlogs = blogs.map((blog) => ({
-      ...blog.toObject(),
+    const normalizedBlogs = (await withUniqueVisitors(blogs)).map((blog) => ({
+      ...blog,
       views: Number.isFinite(Number(blog.views)) ? Number(blog.views) : 0,
     }));
 
@@ -447,9 +450,10 @@ const getBlogBySlug = async (req, res) => {
       durationMs: Date.now() - startedAt,
     });
 
+    const [withCount] = await withUniqueVisitors([blog]);
     return res.status(200).json({
       success: true,
-      blog,
+      blog: withCount,
     });
   } catch (error) {
     traceBlogApiCall(req, {
@@ -687,6 +691,5 @@ module.exports = {
   deleteBlog,
   getBlogStats,
   getBlogViewsDaily,
-  recordBlogVisit,
   autoPublishScheduledBlogs,
 };

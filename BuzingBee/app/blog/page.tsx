@@ -13,7 +13,7 @@ type BlogListItem = {
   date: string;
   image: string;
   slug: string;
-  views: number;
+  views: number | null;
 };
 
 export const metadata: Metadata = {
