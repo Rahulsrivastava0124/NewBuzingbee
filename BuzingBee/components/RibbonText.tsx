@@ -46,6 +46,8 @@ const POINTS = 90;
 const DESIGN_WIDTH = 1100;
 const MIN_WAVE_LENGTH = 900;
 const scaleFor = (w: number) => Math.min(1, Math.max(0.55, w / DESIGN_WIDTH));
+// the band itself shrinks less than the wave, so it stays thick on phones
+const thicknessFor = (w: number) => Math.min(1, Math.max(0.8, w / DESIGN_WIDTH));
 
 export default function RibbonText({ ribbons, separator = "  •  ", className = "" }: Props) {
   const uid = "rb" + useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -104,7 +106,7 @@ export default function RibbonText({ ribbons, separator = "  •  ", className =
         const sc = scaleFor(w);
         const amp = (r.amplitude ?? h * 0.22) * sc;
         const freq = r.frequency ?? 1.1;
-        const half = ((r.width ?? 64) * sc) / 2;
+        const half = ((r.width ?? 64) * thicknessFor(w)) / 2;
         const cy = (r.y ?? 0.5) * h;
         const ph = r.phase ?? 0;
         const k = (Math.PI * 2 * freq) / Math.max(w, MIN_WAVE_LENGTH);
@@ -179,7 +181,7 @@ export default function RibbonText({ ribbons, separator = "  •  ", className =
       {size.w > 0 && (
         <svg width={size.w} height={size.h} viewBox={`0 0 ${size.w} ${size.h}`} className="absolute inset-0" aria-hidden="true">
           {ribbons.map((r, i) => {
-            const fontSize = Math.round((r.width ?? 64) * scaleFor(size.w) * 0.42);
+            const fontSize = Math.round((r.width ?? 64) * thicknessFor(size.w) * 0.42);
             const unitText = `${r.text}${separator}`;
             return (
               <g key={i}>
