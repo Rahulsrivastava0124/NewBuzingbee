@@ -39,7 +39,23 @@ type Props = {
   className?: string;
 };
 
-const POINTS = 90;
+// sample points per ribbon; joined with smooth curves, so few are needed
+const POINTS = 36;
+
+type Pt = [number, number];
+const fmt = (p: Pt) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`;
+
+// Smooth curve through the points: each point is a quadratic control point and the
+// midpoints between them are the anchors. Text on a straight-segment path turns in
+// steps at every corner, which reads as jitter; this keeps its rotation continuous.
+function curve(pts: Pt[]) {
+  let d = "";
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mid: Pt = [(pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2];
+    d += `Q${fmt(pts[i])} ${fmt(mid)}`;
+  }
+  return d + `L${fmt(pts[pts.length - 1])}`;
+}
 
 // On narrow screens the ribbon, its text and its wave shrink together, and the wave
 // keeps a desktop-like length so it doesn't bunch up into steep peaks on phones.
@@ -114,9 +130,9 @@ export default function RibbonText({ ribbons, separator = "  •  ", className =
         const yAt = (x: number) =>
           cy + amp * Math.sin(k * x + t * 0.6 + ph) + amp * 0.25 * Math.sin(k * 0.5 * x - t * 0.35 + ph * 2);
 
-        const top: string[] = [];
-        const bottom: string[] = [];
-        const centre: string[] = [];
+        const top: Pt[] = [];
+        const bottom: Pt[] = [];
+        const centre: Pt[] = [];
         const x0 = -80;
         const x1 = w + 80;
         for (let p = 0; p <= POINTS; p++) {
@@ -129,17 +145,18 @@ export default function RibbonText({ ribbons, separator = "  •  ", className =
           const ny = 2 / len;
           // thickness breathes along the length = fake twist toward/away from the viewer
           const hw = half * (0.72 + 0.28 * Math.cos(k * 0.8 * x + t * 0.9 + ph));
-          top.push(`${(x + nx * hw).toFixed(1)},${(y - ny * hw).toFixed(1)}`);
-          bottom.push(`${(x - nx * hw).toFixed(1)},${(y + ny * hw).toFixed(1)}`);
-          centre.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+          top.push([x + nx * hw, y - ny * hw]);
+          bottom.push([x - nx * hw, y + ny * hw]);
+          centre.push([x, y]);
         }
-        band.setAttribute("d", `M${top.join("L")}L${bottom.reverse().join("L")}Z`);
-        line.setAttribute("d", `M${centre.join("L")}`);
+        bottom.reverse();
+        band.setAttribute("d", `M${fmt(top[0])}${curve(top)}L${fmt(bottom[0])}${curve(bottom)}Z`);
+        line.setAttribute("d", `M${fmt(centre[0])}${curve(centre)}`);
 
         const unit = units[i];
         const travel = (t * (r.speed ?? 70)) % unit;
         const offset = (r.direction ?? "left") === "left" ? -travel : travel - unit;
-        tp.setAttribute("startOffset", offset.toFixed(1));
+        tp.setAttribute("startOffset", offset.toFixed(2));
       });
     };
 
@@ -218,6 +235,8 @@ export default function RibbonText({ ribbons, separator = "  •  ", className =
                   fontWeight={700}
                   letterSpacing="0.06em"
                   dominantBaseline="central"
+                  // no pixel snapping of glyphs, so the moving text doesn't shimmer
+                  textRendering="geometricPrecision"
                   style={{ whiteSpace: "pre" }}
                 >
                   <textPath

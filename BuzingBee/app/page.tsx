@@ -20,6 +20,7 @@ import ServicesGrid from "@/components/ServicesGrid";
 import ProjectsMarquee from "@/components/ProjectsMarquee";
 import { FaShopify, FaWhatsapp } from "react-icons/fa6";
 import RibbonText, { type Ribbon } from "@/components/RibbonText";
+import ScrollRevealText, { type RevealWord } from "@/components/ScrollRevealText";
 import { Highlighter } from "@/components/ui/highlighter";
 import { RollingText } from "@/components/animate-ui/primitives/texts/rolling";
 import { openAuditPopup } from "@/lib/audit-popup";
@@ -51,6 +52,15 @@ const BRANDS = [
 ];
 
 // one honey ribbon waving across the section
+// "About us" paragraph that fills in on scroll; two words carry pop-up tags
+const ABOUT_TEXT =
+  "We believe growth needs focus. That’s why we keep our team tight and our involvement high, so every brand gets our full attention. We build marketing, automation and websites that turn attention into revenue.";
+const ABOUT_TAGS: Record<number, { tag: string; tilt: number }> = {
+  8: { tag: "Professional overthinkers", tilt: -3 },
+  15: { tag: "Nerding out on growth", tilt: 3 },
+};
+const ABOUT_WORDS: RevealWord[] = ABOUT_TEXT.split(" ").map((text, i) => ({ text, ...ABOUT_TAGS[i] }));
+
 const RIBBONS: Ribbon[] = [
   {
     text: "AI AUTOMATION  •  PERFORMANCE MARKETING  •  WEB DEVELOPMENT  •  SEO",
@@ -368,6 +378,10 @@ export default function HomePage() {
           className="h-[130px] sm:h-[210px]"
           ribbons={RIBBONS}
         />
+      </section>
+
+      <section aria-label="About us" className="bg-paper">
+        <ScrollRevealText words={ABOUT_WORDS} />
       </section>
 
       {/* ══════════════════════════════════════════
