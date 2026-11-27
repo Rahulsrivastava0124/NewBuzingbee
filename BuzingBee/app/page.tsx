@@ -365,7 +365,7 @@ export default function HomePage() {
       ══════════════════════════════════════════ */}
       <section aria-label="What we offer" className="bg-paper">
         <RibbonText
-          className="h-[180px] sm:h-[210px]"
+          className="h-[130px] sm:h-[210px]"
           ribbons={RIBBONS}
         />
       </section>

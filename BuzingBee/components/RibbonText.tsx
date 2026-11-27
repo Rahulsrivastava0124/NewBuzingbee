@@ -41,6 +41,12 @@ type Props = {
 
 const POINTS = 90;
 
+// On narrow screens the ribbon, its text and its wave shrink together, and the wave
+// keeps a desktop-like length so it doesn't bunch up into steep peaks on phones.
+const DESIGN_WIDTH = 1100;
+const MIN_WAVE_LENGTH = 900;
+const scaleFor = (w: number) => Math.min(1, Math.max(0.55, w / DESIGN_WIDTH));
+
 export default function RibbonText({ ribbons, separator = "  •  ", className = "" }: Props) {
   const uid = "rb" + useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -95,12 +101,13 @@ export default function RibbonText({ ribbons, separator = "  •  ", className =
         const tp = textPathRefs.current[i];
         if (!band || !line || !tp) return;
 
-        const amp = r.amplitude ?? h * 0.22;
+        const sc = scaleFor(w);
+        const amp = (r.amplitude ?? h * 0.22) * sc;
         const freq = r.frequency ?? 1.1;
-        const half = (r.width ?? 64) / 2;
+        const half = ((r.width ?? 64) * sc) / 2;
         const cy = (r.y ?? 0.5) * h;
         const ph = r.phase ?? 0;
-        const k = (Math.PI * 2 * freq) / w;
+        const k = (Math.PI * 2 * freq) / Math.max(w, MIN_WAVE_LENGTH);
 
         const yAt = (x: number) =>
           cy + amp * Math.sin(k * x + t * 0.6 + ph) + amp * 0.25 * Math.sin(k * 0.5 * x - t * 0.35 + ph * 2);
@@ -172,7 +179,7 @@ export default function RibbonText({ ribbons, separator = "  •  ", className =
       {size.w > 0 && (
         <svg width={size.w} height={size.h} viewBox={`0 0 ${size.w} ${size.h}`} className="absolute inset-0" aria-hidden="true">
           {ribbons.map((r, i) => {
-            const fontSize = Math.round((r.width ?? 64) * 0.42);
+            const fontSize = Math.round((r.width ?? 64) * scaleFor(size.w) * 0.42);
             const unitText = `${r.text}${separator}`;
             return (
               <g key={i}>

@@ -20,17 +20,17 @@ export default function Footer() {
             {/* Same logo as the navbar; the dark copy has off-white lettering */}
             <Link href="/" className="mb-4 inline-flex">
               <img
-                src="/buzingbee-logo-v3-88.webp"
+                src="/buzingbee-logo-v2-88.webp"
                 alt={`${SITE_CONFIG.name} logo`}
-                width={390}
+                width={334}
                 height={88}
                 loading="lazy"
                 className="h-11 w-auto dark:hidden"
               />
               <img
-                src="/buzingbee-logo-v3-dark-88.webp"
+                src="/buzingbee-logo-v2-dark-88.webp"
                 alt={`${SITE_CONFIG.name} logo`}
-                width={390}
+                width={334}
                 height={88}
                 loading="lazy"
                 className="hidden h-11 w-auto dark:block"
