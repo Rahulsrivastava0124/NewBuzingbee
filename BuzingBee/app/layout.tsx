@@ -119,8 +119,10 @@ const structuredData = {
       },
       address: {
         "@type": "PostalAddress",
-        addressLocality: "Kolkata",
-        addressRegion: "West Bengal",
+        streetAddress: "01, Bank Rd, Bank More",
+        addressLocality: "Dhanbad",
+        addressRegion: "Jharkhand",
+        postalCode: "826007",
         addressCountry: "IN",
       },
     },

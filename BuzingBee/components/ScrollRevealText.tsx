@@ -175,9 +175,11 @@ export default function ScrollRevealText({ eyebrow, words, className = "" }: Pro
 
   return (
     <div ref={rootRef} className={className}>
+      {/* text sits at the top (just below the navbar), not centred in the tall pinned
+          screen, so there's no half-screen gap above it */}
       <div
         ref={pinRef}
-        className="flex min-h-[100svh] items-center justify-center overflow-x-clip bg-paper px-4 pt-24 sm:px-6 lg:px-12"
+        className="flex min-h-[100svh] items-start justify-center overflow-x-clip bg-paper px-4 pt-20 sm:px-6 sm:pt-24 lg:px-12"
       >
       <div className="mx-auto max-w-[1440px] text-center">
         {eyebrow && (

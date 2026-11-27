@@ -5,7 +5,7 @@ export const SITE_CONFIG = {
   email: "hello@buzingbee.com",
   phone: "+91 7360879787",
   whatsapp: "918603089777",
-  address: "Kolkata, West Bengal, India",
+  address: "01, Bank Rd, Bank More, Dhanbad, Jharkhand 826007",
   workingHours: "Mon - Sat: 9:00 AM - 7:00 PM",
   socials: {
     instagram: "https://www.instagram.com/buzingbee_/",
