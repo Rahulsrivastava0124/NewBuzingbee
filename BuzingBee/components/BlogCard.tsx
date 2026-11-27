@@ -59,9 +59,9 @@ export default function BlogCard({
             <Calendar className="w-3 h-3" />
             {date}
           </div>
-          <div className="flex items-center gap-1">
-            <Eye className="w-3 h-3" />
-            <span>{views.toLocaleString()}</span>
+          <div className="flex items-center gap-1" title="Unique visitors">
+            <Eye className="w-3 h-3" aria-hidden="true" />
+            <span>{views.toLocaleString("en-IN")} {views === 1 ? "visitor" : "visitors"}</span>
           </div>
         </div>
         <h3

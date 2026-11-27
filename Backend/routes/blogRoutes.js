@@ -1,4 +1,5 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const {
   addBlog,
   getAllBlogs,
@@ -8,12 +9,22 @@ const {
   deleteBlog,
   getBlogStats,
   getBlogViewsDaily,
+  recordBlogVisit,
 } = require("../controllers/blogController");
 const { protectAdmin, optionalAdmin } = require("../middleware/authMiddleware");
 const { uploadBlogImage } = require("../middleware/uploadMiddleware");
 const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 
 const router = express.Router();
+
+// one visit per page open; this only stops scripted floods
+const visitLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests" },
+});
 
 router.post("/add", protectAdmin, uploadBlogImage.single("image"), addBlog);
 router.get("/all", optionalAdmin, getAllBlogs);
@@ -53,6 +64,7 @@ router.post(
 );
 router.get("/", optionalAdmin, getAllBlogs); // Public: published only unless an admin token is sent
 router.get("/slug/:slug", optionalAdmin, getBlogBySlug); // Public endpoint for fetching single blog by slug
+router.post("/:id/visit", visitLimiter, recordBlogVisit); // Public: counts a unique visitor
 router.get("/:id", optionalAdmin, getBlogById); // Public endpoint for fetching single blog
 router.post("/", protectAdmin, uploadBlogImage.single("image"), addBlog);
 router.put("/:id", protectAdmin, uploadBlogImage.single("image"), updateBlog);

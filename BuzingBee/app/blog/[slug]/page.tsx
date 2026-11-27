@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ArticleSidebar, { type ArticleHeading } from "@/components/ArticleSidebar";
 import BlogCard from "@/components/BlogCard";
 import BlogShareButtons from "@/components/BlogShareButtons";
+import BlogVisitors from "@/components/BlogVisitors";
 import { fetchBlogBySlug } from "@/lib/blog";
 import { fetchBlogCards, type BlogCardItem } from "@/lib/blog";
 import { SITE_CONFIG } from "@/lib/constants";
@@ -124,7 +125,6 @@ export default async function BlogDetailPage({
   const sameText = (a: string) => a.trim().toLowerCase() === title.trim().toLowerCase();
   const headings = allHeadings.filter((h) => !sameText(h.text));
   const minutes = readingMinutes(contentHtml || post?.excerpt || "");
-  const reads = post?.views ?? 0;
   const articleUrl = canonicalForPath(`/blog/${slug}`);
   // the next 3 posts after this one (wrapping), so every post gets linked from others, not just the newest few
   const at = blogCards.findIndex((blog) => blog.slug === slug);
@@ -170,10 +170,7 @@ export default async function BlogDetailPage({
               <span aria-hidden="true">•</span>
               <span>{minutes} min read</span>
               <span aria-hidden="true">•</span>
-              <span className="inline-flex items-center gap-1.5">
-                <Eye className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                {reads.toLocaleString("en-IN")} {reads === 1 ? "read" : "reads"}
-              </span>
+              <BlogVisitors blogId={post.id} initial={post.views} />
             </div>
           </div>
 

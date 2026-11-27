@@ -88,6 +88,12 @@ const blogSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    // distinct browsers that opened the post (shown on the website)
+    uniqueVisitors: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",

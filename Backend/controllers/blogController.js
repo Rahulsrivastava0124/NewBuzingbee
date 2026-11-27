@@ -5,6 +5,7 @@ const { uploadBlogImageAndGetUrl } = require("../services/storageService");
 const { sanitizeRichText } = require("../utils/sanitize");
 const { escapeRegex } = require("../utils/validate");
 const BlogViewDay = require("../models/BlogViewDay");
+const BlogVisitor = require("../models/BlogVisitor");
 const { DEFAULT_SITE, resolveSite, siteFilter, slugify } = require("../utils/site");
 
 // Clean slug that is unique within one website's blog (-2, -3 ... on clashes).
@@ -34,6 +35,36 @@ const recordDailyView = (blogId) =>
     { $inc: { views: 1 }, $setOnInsert: { createdAt: new Date() } },
     { upsert: true },
   ).catch((error) => console.error("[blog] Could not record daily view:", error.message));
+
+const VISITOR_ID = /^[A-Za-z0-9-]{8,64}$/;
+
+// POST /blog/:id/visit { visitor } — count a browser once per post.
+// Returns the post's unique visitor count.
+const recordBlogVisit = async (req, res) => {
+  const { id } = req.params;
+  const visitor = String(req.body?.visitor || "");
+  if (!mongoose.isValidObjectId(id) || !VISITOR_ID.test(visitor)) {
+    return res.status(400).json({ success: false, message: "Invalid visit" });
+  }
+  try {
+    const blog = await Blog.exists({ _id: id, status: "published" });
+    if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
+
+    let counted = false;
+    try {
+      await BlogVisitor.create({ blog: id, visitor });
+      counted = true;
+    } catch (error) {
+      if (error.code !== 11000) throw error; // 11000 = already counted
+    }
+    const updated = counted
+      ? await Blog.findByIdAndUpdate(id, { $inc: { uniqueVisitors: 1 } }, { returnDocument: "after" })
+      : await Blog.findById(id).select("uniqueVisitors");
+    return res.json({ success: true, counted, uniqueVisitors: updated?.uniqueVisitors || 0 });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to record visit" });
+  }
+};
 
 // GET /blog/views/daily?days=14 — per-post daily views for the admin graphs
 const getBlogViewsDaily = async (req, res) => {
@@ -656,5 +687,6 @@ module.exports = {
   deleteBlog,
   getBlogStats,
   getBlogViewsDaily,
+  recordBlogVisit,
   autoPublishScheduledBlogs,
 };

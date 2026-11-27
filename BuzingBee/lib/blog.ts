@@ -12,6 +12,7 @@ export interface BlogApiItem {
   createdAt?: string;
   status?: string;
   views?: number;
+  uniqueVisitors?: number;
   seo?: {
     title?: string;
     description?: string;
@@ -184,7 +185,7 @@ export const fetchBlogBySlug = cache(async (
           blogApiOrigin,
         ),
         slug: raw.slug || toSlug(raw.title || slug || "blog"),
-        views: Number.isFinite(Number(raw.views)) ? Number(raw.views) : 0,
+        views: Number(raw.uniqueVisitors) || 0, // the site shows unique visitors only
         content: raw.content || "",
         seoTitle: raw.seo?.title || raw.title || "BuzingBee Blog",
         seoDescription:
@@ -277,7 +278,7 @@ export const fetchBlogPosts = async (): Promise<BlogPostItem[]> => {
     date: toReadableDate(blog.publishedAt || blog.createdAt),
     image: normalizeImageUrl(blog.image || blog.seo?.ogImage, blogApiOrigin),
     slug: blog.slug || toSlug(blog.title || `blog-${index + 1}`),
-    views: Number.isFinite(Number(blog.views)) ? Number(blog.views) : 0,
+    views: Number(blog.uniqueVisitors) || 0, // the site shows unique visitors only
     content: blog.content || "",
     seoTitle: blog.seo?.title || blog.title || "BuzingBee Blog",
     seoDescription:
