@@ -11,6 +11,7 @@ import Counter from "@/components/ui/counter/Counter";
  * Thin dark announcement bar at the very top of the site. It shows one offer at a
  * time and flips (rotates on the X axis) to the next every few seconds.
  * Hovering or focusing the bar pauses the rotation so people can click.
+ * The offer is centred on the whole bar; the countdown floats on the right (xl+).
  */
 
 type Offer = {
@@ -66,8 +67,7 @@ function timeLeft(now: number) {
 const TILE_STYLE = {
   padding: "3px 5px",
   borderRadius: 6,
-  border: "1px solid rgba(253, 185, 5, 0.45)",
-  background: "rgba(253, 185, 5, 0.08)",
+  background: "#fdb905",
 };
 
 /** "Ends in DD : HH : MM : SS", each number rolling with the React Bits Counter */
@@ -93,21 +93,20 @@ function Countdown() {
 
   return (
     <div
-      className="hidden shrink-0 items-center gap-2 pr-4 md:flex"
+      className="absolute inset-y-0 right-0 hidden items-center gap-2 bg-[#0b0d14] pl-4 pr-4 xl:flex"
       role="timer"
       aria-label={`Offer ends in ${left.days} days ${left.hours} hours ${left.minutes} minutes`}
     >
       <span className="text-[12px] text-white/55">Ends in</span>
-      <span className="flex items-center gap-1" aria-hidden="true">
-        {parts.map(([value, unit], i) => (
+      <span className="flex items-center gap-2" aria-hidden="true">
+        {parts.map(([value, unit]) => (
           <span key={unit} className="flex items-center gap-1">
-            {i > 0 && <span className="text-white/40">:</span>}
             <Counter
               value={value}
               minDigits={2}
               fontSize={13}
-              fontWeight="600"
-              textColor="#fdb905"
+              fontWeight="700"
+              textColor="#ffffff"
               intro={false}
               direction="shortest"
               duration={0.5}
@@ -141,7 +140,7 @@ export default function OfferBar() {
 
   return (
     <div
-      className="flex h-9 items-center overflow-hidden bg-[#0b0d14] text-white"
+      className="relative flex h-9 items-center overflow-hidden bg-[#0b0d14] text-white"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -164,7 +163,7 @@ export default function OfferBar() {
           <span className="hidden rounded-md border border-dashed border-emerald-400/60 px-2 py-0.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-300 md:inline">
             {offer.tag}
           </span>
-          <span className="hidden truncate text-white/60 lg:inline">{offer.note}</span>
+          <span className="hidden truncate text-white/60 2xl:inline">{offer.note}</span>
           {offer.audit ? (
             <button type="button" onClick={() => openAuditPopup()} className={CTA_CLASS}>
               {offer.cta}

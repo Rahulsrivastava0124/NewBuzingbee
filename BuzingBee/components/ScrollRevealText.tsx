@@ -36,6 +36,8 @@ const BULGE_SCALE = 0.12;
 type RGB = [number, number, number];
 const hex = (h: string): RGB => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) as RGB;
 const PALE = hex("#f5d98a");
+// not-yet-reached colour on the dark theme: a dim honey, so it reads as "unfilled"
+const PALE_DARK = hex("#3a3118");
 const HONEY = hex("#fdb905");
 const AMBER = hex("#8a5a00");
 
@@ -45,11 +47,11 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
   a[2] + (b[2] - a[2]) * t,
 ];
 
-function colorAt(v: number, ink: RGB): string {
+function colorAt(v: number, ink: RGB, pale: RGB): string {
   // 0 = not reached yet (pale yellow), 1 = done (ink)
   let c: RGB;
-  if (v <= 0) c = PALE;
-  else if (v < 0.35) c = mix(PALE, HONEY, v / 0.35);
+  if (v <= 0) c = pale;
+  else if (v < 0.35) c = mix(pale, HONEY, v / 0.35);
   else if (v < 0.7) c = mix(HONEY, AMBER, (v - 0.35) / 0.35);
   else if (v < 1) c = mix(AMBER, ink, (v - 0.7) / 0.3);
   else c = ink;
@@ -73,8 +75,15 @@ export default function ScrollRevealText({ eyebrow, words, className = "" }: Pro
 
     const chars = Array.from(textEl.querySelectorAll<HTMLSpanElement>("[data-char]"));
     const tags = Array.from(textEl.querySelectorAll<HTMLSpanElement>("[data-tag]"));
-    // final colour follows the theme (text-ink is light in dark mode)
-    const ink = parseRgb(getComputedStyle(textEl).color);
+    // final and start colours follow the theme (text-ink is light in dark mode);
+    // re-read when the theme toggles, or the filled text keeps the old colour
+    let ink: RGB = [0, 0, 0];
+    let pale: RGB = PALE;
+    const readTheme = () => {
+      ink = parseRgb(getComputedStyle(textEl).color);
+      pale = document.documentElement.classList.contains("dark") ? PALE_DARK : PALE;
+    };
+    readTheme();
     const total = chars.length;
     const last = new Array<string>(total).fill("");
     const lastBump = new Array<number>(total).fill(0);
@@ -88,7 +97,7 @@ export default function ScrollRevealText({ eyebrow, words, className = "" }: Pro
       const bulgeCentre = head - BAND * 0.4;
       for (let i = 0; i < total; i++) {
         const v = Math.min(1, Math.max(0, (head - i) / BAND));
-        const col = colorAt(v, ink);
+        const col = colorAt(v, ink, pale);
         if (col !== last[i]) {
           chars[i].style.color = col;
           last[i] = col;
@@ -115,9 +124,18 @@ export default function ScrollRevealText({ eyebrow, words, className = "" }: Pro
       });
     };
 
+    let shown = 0;
+    const themeWatch = new MutationObserver(() => {
+      readTheme();
+      last.fill(""); // force every letter to repaint
+      paint(shown);
+    });
+    themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      shown = 1;
       paint(1);
-      return;
+      return () => themeWatch.disconnect();
     }
 
     paint(0);
@@ -127,7 +145,6 @@ export default function ScrollRevealText({ eyebrow, words, className = "" }: Pro
     // end, so the fill keeps flowing for a moment after scrolling stops instead of
     // jumping with each wheel tick.
     let target = 0;
-    let shown = 0;
     const MAX_SPEED = 0.45; // progress per second at most (whole fill ≈ 2.2 s minimum)
     const CATCH_UP = 0.5; // seconds; how long the tail glides after scrolling stops
 
@@ -164,6 +181,7 @@ export default function ScrollRevealText({ eyebrow, words, className = "" }: Pro
     const refresh = window.setTimeout(() => ScrollTrigger.refresh(), 600);
 
     return () => {
+      themeWatch.disconnect();
       window.clearTimeout(refresh);
       gsap.ticker.remove(step);
       st.kill();
@@ -211,8 +229,8 @@ export default function ScrollRevealText({ eyebrow, words, className = "" }: Pro
                       data-tag=""
                       data-at={start}
                       data-tilt={w.tilt ?? -4}
-                      className="pointer-events-none absolute left-1/2 top-[-0.1em] z-10 whitespace-nowrap rounded-full bg-[#fdb905] px-3 py-1 text-[12px] font-semibold tracking-normal text-white shadow-[0_6px_18px_rgba(253,185,5,0.35)] sm:px-4 sm:py-1.5 sm:text-[15px]"
-                      style={{ opacity: 0, color: "#ffffff", textShadow: "0 1px 2px rgba(120,80,0,0.35)" }}
+                      className="pointer-events-none absolute left-1/2 top-[-0.1em] z-10 whitespace-nowrap rounded-full bg-gradient-to-r from-[#6d3df2] via-[#9b3ff0] to-[#e0349a] px-3 py-1.5 text-[12px] font-semibold tracking-normal text-white shadow-[0_6px_18px_rgba(155,63,240,0.35)] sm:px-5 sm:py-2.5 sm:text-[15px]"
+                      style={{ opacity: 0, color: "#ffffff" }}
                     >
                       {w.tag}
                     </span>

@@ -252,7 +252,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.2 }}
-            className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 md:p-7 shadow-2xl"
+            className="relative w-full max-w-xl rounded-2xl border border-border bg-card p-6 md:p-7 shadow-2xl"
           >
             <button
               type="button"
@@ -290,7 +290,8 @@ export default function Navbar() {
               Share your details and we&apos;ll send you a short plan for growing your business.
             </p>
 
-            <form onSubmit={handleEnquirySubmit} className="mt-5 space-y-3">
+            {/* two columns from sm up: name | email, WhatsApp | service, then full-width rows */}
+            <form onSubmit={handleEnquirySubmit} className="mt-5 grid gap-3 sm:grid-cols-2">
               <input
                 type="text"
                 required
@@ -358,27 +359,29 @@ export default function Navbar() {
                     message: e.target.value,
                   }))
                 }
-                className="w-full rounded-xl border border-border bg-bgPrimary px-4 py-2.5 text-sm text-textHeading placeholder:text-textMuted outline-none focus:border-accent resize-none"
+                className="w-full rounded-xl border border-border bg-bgPrimary px-4 py-2.5 text-sm text-textHeading placeholder:text-textMuted outline-none focus:border-accent resize-none sm:col-span-2"
               />
 
-              <TurnstileWidget onToken={setCaptchaToken} resetSignal={captchaReset} />
+              <div className="empty:hidden sm:col-span-2">
+                <TurnstileWidget onToken={setCaptchaToken} resetSignal={captchaReset} />
+              </div>
 
               <button
                 type="submit"
                 disabled={submitState === "submitting"}
-                className="btn-primary w-full mt-1 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary w-full mt-1 disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
               >
                 {submitState === "submitting" ? "Sending…" : "Request my free audit"}
               </button>
 
               {submitState === "success" && (
-                <p role="status" className="flex items-start gap-2 rounded-xl bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+                <p role="status" className="flex items-start gap-2 rounded-xl bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400 sm:col-span-2">
                   <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   {submitMessage}
                 </p>
               )}
               {submitState === "error" && (
-                <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+                <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400 sm:col-span-2">
                   <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   {submitMessage}
                 </p>
@@ -521,7 +524,6 @@ export default function Navbar() {
               className="absolute inset-x-0 top-full hidden border-y border-ink/10 bg-paper shadow-[0_24px_48px_rgba(18,20,28,0.10)] xl:block"
             >
               <ServicesMegaMenu
-                allHref={NAV_LINKS.find((l) => l.label === "Services")?.href ?? "/#all-services"}
                 onNavigate={() => setServicesOpen(false)}
               />
             </motion.div>
